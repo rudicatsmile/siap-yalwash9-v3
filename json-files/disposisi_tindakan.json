@@ -1,0 +1,41 @@
+{
+    "success": true,
+    "data": [
+        {
+            "kode": "01",
+            "deskripsi": "Tindak lanjuti"
+        },
+        {
+            "kode": "02",
+            "deskripsi": "Setuju"
+        },
+        {
+            "kode": "03",
+            "deskripsi": "Teliti dan pendapat"
+        },
+        {
+            "kode": "04",
+            "deskripsi": "Tolak"
+        },
+        {
+            "kode": "05",
+            "deskripsi": "Untuk diketahui"
+        },
+        {
+            "kode": "06",
+            "deskripsi": "Selesaikan"
+        },
+        {
+            "kode": "07",
+            "deskripsi": "Sesuai catatan"
+        },
+        {
+            "kode": "08",
+            "deskripsi": "Untuk diperhatikan"
+        },
+        {
+            "kode": "09",
+            "deskripsi": "Edarkan"
+        }
+    ]
+}

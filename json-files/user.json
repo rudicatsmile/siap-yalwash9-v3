@@ -1,0 +1,30 @@
+{
+    "data": {
+        "id_user": "48",
+        "username": "kasubag-data",
+        "password": "bdb97a42223eecd8345531406e44e069",
+        "nama_lengkap": "Kasubag Data dan Media",
+        "jabatan": "KA SUBAG DATA DAN MEDIA",
+        "role": "user",
+        "instansi": "03",
+        "email": "rudi.catsmile2@gmail.com",
+        "alamat": null,
+        "telp": "081367155656",
+        "pengalaman": null,
+        "level": "admin",
+        "level_pimpinan": null,
+        "level_tu": null,
+        "level_admin": "A2",
+        "level_manajemen": "0",
+        "kode_user": "MN-03-STF-001",
+        "status": null,
+        "tgl_daftar": null,
+        "terakhir_login": "01-10-2025 15:27:30",
+        "token": null,
+        "fcm_token": "fPlvPpnaQ0-Eg4sSuLGp6h:APA91bELiKg13ZgH5TR9q2rzOIZnLFH8mtwRbL7Lrdu2R74BNGycdcQAwLYSNLhLd27Yav9OhyM-YOCQPGn3P-qM-4N790F00eWIUhSifxT8nTMwxTJUisQ",
+        "login_attempts": "0",
+        "last_attempt": null,
+        "blocked_until": null,
+        "failed_ip": null
+    }
+}
