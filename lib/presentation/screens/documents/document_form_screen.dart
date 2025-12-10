@@ -19,6 +19,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _docNumberPart1Controller = TextEditingController();
+  final _docNumberPart2Controller = TextEditingController();
+  final _todayDateController = TextEditingController();
+  final _pengirimController = TextEditingController();
   final _isLoading = false.obs;
 
   DocumentModel? _existingDocument;
@@ -42,6 +46,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _jenisController.loadTable('m_jenis_dokumen');
     _kategoriLaporanController.loadTable('m_kategori_laporan');
     _usersDropdownController.loadUsers();
+
+    final now = DateTime.now();
+    _todayDateController.text =
+        '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}';
   }
 
   void _initializeForm() {
@@ -58,6 +66,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _docNumberPart1Controller.dispose();
+    _docNumberPart2Controller.dispose();
+    _todayDateController.dispose();
     super.dispose();
   }
 
@@ -95,6 +106,70 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                           return null;
                         },
                       ),
+
+                      Text(
+                        'Nomor dokumen',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _docNumberPart1Controller,
+                              decoration: const InputDecoration(
+                                hintText: 'Bagian 1',
+                                border: OutlineInputBorder(),
+                                prefixIcon:
+                                    Icon(Icons.confirmation_number_outlined),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _docNumberPart2Controller,
+                              decoration: const InputDecoration(
+                                hintText: 'Bagian 2',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.tag_outlined),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+                      Text(
+                        'Tanggal buat',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextFormField(
+                        controller: _todayDateController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          // labelText: 'Tanggal Hari Ini',
+                          hintText: 'dd-mm-yyyy',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.calendar_today_outlined),
+                        ),
+                      ),
+
+                      //Tambahkan TextFormFiled untuk input Pengirim berkas
+                      const SizedBox(height: 16),
+                      Text(
+                        'Pengirim',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextFormField(
+                        controller: _pengirimController,
+                        decoration: const InputDecoration(
+                          // labelText: 'Pengirim Berkas',
+                          hintText: 'Masukkan nama pengirim berkas',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.person_outlined),
+                        ),
+                      ),
+
                       const SizedBox(height: 24),
                       ApiDropdownField(
                         label: 'Jenis Dokumen',
@@ -125,7 +200,11 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      // Dropdown User (sumber data dari /api/users/dropdown dengan parameter kode_user=YS)
+                      // Dropdown User Undangan (sumber data dari /api/users/dropdown dengan parameter kode_user=YS)
+                      Text(
+                        'Undangan kepada',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       Obx(() {
                         if (_usersDropdownController.isLoading.value &&
                             _usersDropdownController.items.isEmpty) {
@@ -175,13 +254,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                             return null;
                           },
                           decoration: const InputDecoration(
-                            labelText: 'Undangan Kepada',
+                            // labelText: 'Undangan Kepada',
                             hintText: 'Pilih undangan kepada',
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.person_outline),
                           ),
                         );
                       }),
+
                       const SizedBox(height: 16),
                       // Title field
                       TextFormField(
