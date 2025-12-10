@@ -21,7 +21,7 @@ class AuthService {
   }) async {
     try {
       _logger.d('Attempting login for user: $username');
-      
+
       final response = await _apiService.post(
         ApiConstants.login,
         data: {
@@ -29,26 +29,46 @@ class AuthService {
           'password': password,
         },
       );
+      final body = response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : <String, dynamic>{};
+      final bool ok = (body['success'] == true) ||
+          ((body['status'] is int) &&
+              (body['status'] >= 200 && body['status'] < 300)) ||
+          ((response.statusCode ?? 0) >= 200 &&
+              (response.statusCode ?? 0) < 300);
 
-      if (response.data['success'] == true) {
-        final data = response.data['data'];
-        final token = data['token'] as String;
-        final userData = data['user'] as Map<String, dynamic>;
+      if (ok) {
+        final data = body['data'] is Map<String, dynamic>
+            ? body['data'] as Map<String, dynamic>
+            : body;
+        final token = data['token'] as String?;
+        final userData = data['user'] as Map<String, dynamic>?;
 
-        // Save token and user data
+        if (token == null || userData == null) {
+          throw ApiException(
+            'Format respons tidak valid',
+            statusCode: response.statusCode ?? 0,
+            data: response.data,
+          );
+        }
+
         await _storageService.saveAuthToken(token);
         await _storageService.saveUserData(userData);
 
         _logger.i('Login successful for user: $username');
-        
         return {
           'success': true,
           'token': token,
           'user': UserModel.fromJson(userData),
         };
-      } else {
-        throw Exception(response.data['message'] ?? 'Login failed');
       }
+
+      throw ApiException(
+        (body['message'] as String?) ?? 'Login gagal',
+        statusCode: response.statusCode ?? 0,
+        data: response.data,
+      );
     } catch (e) {
       _logger.e('Login failed: $e');
       rethrow;
@@ -59,7 +79,7 @@ class AuthService {
   Future<void> logout() async {
     try {
       _logger.d('Logging out');
-      
+
       // Call logout API
       try {
         await _apiService.post(ApiConstants.logout);
@@ -83,17 +103,29 @@ class AuthService {
   Future<UserModel?> getCurrentUser() async {
     try {
       _logger.d('Fetching current user');
-      
+
       final response = await _apiService.get(ApiConstants.getUser);
 
-      if (response.data['success'] == true) {
-        final userData = response.data['data'] as Map<String, dynamic>;
-        await _storageService.saveUserData(userData);
-        
-        return UserModel.fromJson(userData);
-      }
-      
-      return null;
+      final body = response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : <String, dynamic>{};
+      final bool ok = (body['success'] == true) ||
+          ((body['status'] is int) &&
+              (body['status'] >= 200 && body['status'] < 300)) ||
+          ((response.statusCode ?? 0) >= 200 &&
+              (response.statusCode ?? 0) < 300);
+
+      if (!ok) return null;
+
+      final userData = (body['data'] is Map<String, dynamic>
+              ? body['data'] as Map<String, dynamic>
+              : body['user'] as Map<String, dynamic>?) ??
+          <String, dynamic>{};
+
+      if (userData.isEmpty) return null;
+
+      await _storageService.saveUserData(userData);
+      return UserModel.fromJson(userData);
     } catch (e) {
       _logger.e('Failed to get current user: $e');
       return null;

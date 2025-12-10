@@ -28,8 +28,23 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Verify password
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        $valid = false;
+        if ($user) {
+            try {
+                $valid = Hash::check($request->password, $user->password);
+            } catch (\Throwable $e) {
+                $valid = false;
+            }
+            if (!$valid) {
+                $legacy = ($user->password === $request->password) || ($user->password === md5($request->password));
+                if ($legacy) {
+                    $user->update(['password' => $request->password]);
+                    $valid = true;
+                }
+            }
+        }
+
+        if (!$user || !$valid) {
             if ($user) {
                 $user->incrementLoginAttempts($request->ip());
             }

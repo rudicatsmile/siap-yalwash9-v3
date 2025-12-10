@@ -3,6 +3,9 @@ import 'package:get/get.dart';
 import '../../../data/models/models.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../controllers/auth_controller.dart';
+import '../../../data/services/api_service.dart';
+import '../../controllers/dropdown_controller.dart';
+import '../../widgets/form/api_dropdown_field.dart';
 
 /// Document form screen for creating and editing documents
 class DocumentFormScreen extends StatefulWidget {
@@ -20,11 +23,25 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
   DocumentModel? _existingDocument;
   bool _isEditMode = false;
+  late final DropdownController _kategoriController;
+  late final DropdownController _jenisController;
+  late final DropdownController _kategoriLaporanController;
+  late final _UsersDropdownController _usersDropdownController;
 
   @override
   void initState() {
     super.initState();
+    _kategoriController = Get.put(DropdownController(), tag: 'kategori');
+    _jenisController = Get.put(DropdownController(), tag: 'jenis');
+    _kategoriLaporanController =
+        Get.put(DropdownController(), tag: 'kategori_laporan');
+    _usersDropdownController =
+        Get.put(_UsersDropdownController(), tag: 'users_dropdown');
     _initializeForm();
+    _kategoriController.loadTable('m_kategori_formulir');
+    _jenisController.loadTable('m_jenis_dokumen');
+    _kategoriLaporanController.loadTable('m_kategori_laporan');
+    _usersDropdownController.loadUsers();
   }
 
   void _initializeForm() {
@@ -48,7 +65,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditMode ? 'Edit Dokumen' : 'Buat Dokumen Baru'),
+        title: Text(
+            _isEditMode ? 'Edit Pengajuan Berkas' : 'Buat Pengajuan Berkas'),
       ),
       body: Obx(
         () => _isLoading.value
@@ -63,19 +81,120 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       // Information message
                       _buildInfoMessage(),
                       const SizedBox(height: 24),
+                      // Kategori Formulir: tampilkan "kode - deskripsi" dari m_kategori_formulir
+                      ApiDropdownField(
+                        label: 'Kategori Formulir',
+                        placeholder: 'Pilih Kategori Formulir',
+                        tableName: 'm_kategori_formulir',
+                        controller: _kategoriController,
+                        itemTextBuilder: (it) => it.deskripsi,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Kategori formulir harus dipilih';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      ApiDropdownField(
+                        label: 'Jenis Dokumen',
+                        placeholder: 'Pilih Jenis Dokumen',
+                        tableName: 'm_jenis_dokumen',
+                        controller: _jenisController,
+                        itemTextBuilder: (it) => it.deskripsi,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Jenis dokumen harus dipilih';
+                          }
+                          return null;
+                        },
+                      ),
 
+                      const SizedBox(height: 24),
+                      ApiDropdownField(
+                        label: 'Kategori Laporan',
+                        placeholder: 'Pilih Kategori Laporan',
+                        tableName: 'm_kategori_laporan',
+                        controller: _kategoriLaporanController,
+                        itemTextBuilder: (it) => it.deskripsi,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Kategori laporan harus dipilih';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      // Dropdown User (sumber data dari /api/users/dropdown dengan parameter kode_user=YS)
+                      Obx(() {
+                        if (_usersDropdownController.isLoading.value &&
+                            _usersDropdownController.items.isEmpty) {
+                          return const SizedBox(
+                            height: 56,
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+
+                        if (_usersDropdownController.error.isNotEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.errorColor.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppTheme.errorColor.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Text(
+                              _usersDropdownController.error.value,
+                              style:
+                                  const TextStyle(color: AppTheme.errorColor),
+                            ),
+                          );
+                        }
+
+                        return DropdownButtonFormField<String>(
+                          value: _usersDropdownController
+                                  .selectedUserId.value.isEmpty
+                              ? null
+                              : _usersDropdownController.selectedUserId.value,
+                          items: _usersDropdownController.items
+                              .map(
+                                (u) => DropdownMenuItem<String>(
+                                  value: u.id,
+                                  child: Text(u.namaLengkap),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) =>
+                              _usersDropdownController.select(val),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'User harus dipilih';
+                            }
+                            return null;
+                          },
+                          decoration: const InputDecoration(
+                            labelText: 'Undangan Kepada',
+                            hintText: 'Pilih undangan kepada',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.person_outline),
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 16),
                       // Title field
                       TextFormField(
                         controller: _titleController,
                         decoration: const InputDecoration(
-                          labelText: 'Judul Dokumen',
-                          hintText: 'Masukkan judul dokumen',
+                          labelText: 'Judul Berkas',
+                          hintText: 'Masukkan judul berkas',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.title),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Judul dokumen harus diisi';
+                            return 'Judul berkas harus diisi';
                           }
                           if (value.trim().length < 5) {
                             return 'Judul minimal 5 karakter';
@@ -137,8 +256,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           Expanded(
             child: Text(
               _isEditMode
-                  ? 'Anda dapat mengedit dokumen selama status masih pending dan belum disetujui.'
-                  : 'Dokumen akan diajukan dengan status pending setelah disimpan.',
+                  ? 'Anda dapat mengedit pengajuan berkas selama status masih pending dan belum disetujui.'
+                  : 'Pengajuan berkas akan diajukan dengan status pending setelah disimpan.',
               style: TextStyle(
                 fontSize: 13,
                 color: AppTheme.primaryColor,
@@ -164,7 +283,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Informasi Pengaju',
+              'Informasi User',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -173,7 +292,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
             const Divider(),
             _buildUserInfoRow('Nama', user.namaLengkap),
             _buildUserInfoRow('Jabatan', user.jabatan),
-            _buildUserInfoRow('Instansi', user.instansi),
+            _buildUserInfoRow('Instansi', user.instansi ?? '-'),
           ],
         ),
       ),
@@ -221,7 +340,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           child: ElevatedButton.icon(
             onPressed: _handleSubmit,
             icon: Icon(_isEditMode ? Icons.save : Icons.send),
-            label: Text(_isEditMode ? 'Simpan Perubahan' : 'Ajukan Dokumen'),
+            label: Text(_isEditMode ? 'Simpan Perubahan' : 'Ajukan Berkas'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
             ),
@@ -271,7 +390,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         Get.back(result: 'updated');
         Get.snackbar(
           'Berhasil',
-          'Dokumen berhasil diperbarui',
+          'Pengajuan berkas berhasil diperbarui',
           backgroundColor: AppTheme.statusApproved,
           colorText: Colors.white,
         );
@@ -283,7 +402,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         Get.back(result: 'created');
         Get.snackbar(
           'Berhasil',
-          'Dokumen berhasil diajukan',
+          'Pengajuan berkas berhasil diajukan',
           backgroundColor: AppTheme.statusApproved,
           colorText: Colors.white,
         );
@@ -303,11 +422,12 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   Future<bool> _showConfirmationDialog() async {
     final result = await Get.dialog<bool>(
       AlertDialog(
-        title: Text(_isEditMode ? 'Konfirmasi Perubahan' : 'Konfirmasi Pengajuan'),
+        title:
+            Text(_isEditMode ? 'Konfirmasi Perubahan' : 'Konfirmasi Pengajuan'),
         content: Text(
           _isEditMode
-              ? 'Apakah Anda yakin ingin menyimpan perubahan dokumen ini?'
-              : 'Apakah Anda yakin ingin mengajukan dokumen ini?',
+              ? 'Apakah Anda yakin ingin menyimpan perubahan berkas ini?'
+              : 'Apakah Anda yakin ingin mengajukan berkas ini?',
         ),
         actions: [
           TextButton(
@@ -358,4 +478,80 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       Get.back();
     }
   }
+}
+
+/// GetX controller untuk dropdown user yang mengambil data dari API `/api/users/dropdown`
+/// - Mengelola state loading/error
+/// - Menyimpan daftar user dan nilai yang dipilih
+/// - Melakukan inisialisasi data saat screen dibuka dan mendukung refresh
+class _UsersDropdownController extends GetxController {
+  final _api = ApiService();
+
+  // State
+  final RxBool isLoading = false.obs;
+  final RxString error = ''.obs;
+  final RxList<_UserOption> items = <_UserOption>[].obs;
+  final RxString selectedUserId = ''.obs;
+
+  /// Memuat data user dari API dengan filter `kode_user=YS`
+  Future<void> loadUsers({bool force = false}) async {
+    error.value = '';
+    isLoading.value = true;
+
+    try {
+      final resp = await _api.get(
+        '/api/users/dropdown',
+        queryParameters: {
+          'kode_user': 'YS',
+          'limit': 100,
+        },
+      );
+
+      final data = resp.data;
+      if (data is Map && data['success'] == true && data['data'] is List) {
+        final list = (data['data'] as List)
+            .map((e) => _UserOption(
+                  id: (e['id']?.toString() ?? '').trim(),
+                  namaLengkap: (e['nama_lengkap']?.toString() ?? '').trim(),
+                  username: (e['username']?.toString() ?? '').trim(),
+                  jabatan: e['jabatan']?.toString(),
+                ))
+            .where((u) => u.id.isNotEmpty && u.namaLengkap.isNotEmpty)
+            .toList();
+        items.assignAll(list);
+      } else {
+        items.clear();
+        error.value = 'Data pengguna tidak tersedia';
+      }
+    } catch (e) {
+      error.value = e.toString();
+      items.clear();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Menyimpan nilai user terpilih
+  void select(String? id) {
+    selectedUserId.value = (id ?? '').trim();
+  }
+
+  /// Melakukan refresh data dari API
+  Future<void> refreshUsers() async {
+    await loadUsers(force: true);
+  }
+}
+
+/// Representasi opsi user untuk dropdown
+class _UserOption {
+  final String id;
+  final String namaLengkap;
+  final String username;
+  final String? jabatan;
+  _UserOption({
+    required this.id,
+    required this.namaLengkap,
+    required this.username,
+    this.jabatan,
+  });
 }

@@ -43,26 +43,42 @@ class UserModel extends Equatable {
 
   /// Create UserModel from JSON
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    int _asInt(dynamic v, {int fallback = 0}) {
+      if (v is int) return v;
+      if (v is String) {
+        final parsed = int.tryParse(v.trim());
+        if (parsed != null) return parsed;
+      }
+      return fallback;
+    }
+
+    String _asString(dynamic v, {String fallback = ''}) {
+      if (v is String) return v;
+      if (v != null) return v.toString();
+      return fallback;
+    }
+
     return UserModel(
-      id: json['id'] ?? json['id_user'] ?? 0,
-      username: json['username'] ?? '',
-      namaLengkap: json['nama_lengkap'] ?? '',
-      jabatan: json['jabatan'] ?? '',
-      instansi: json['instansi'] ?? '',
-      departemenId: json['departemen_id'],
-      email: json['email'],
-      alamat: json['alamat'],
-      telp: json['telp'],
-      pengalaman: json['pengalaman'],
-      role: json['role'] != null 
-          ? UserRole.fromCode(json['role']) 
+      id: _asInt(json['id'] ?? json['id_user'] ?? 0),
+      username: _asString(json['username']),
+      namaLengkap: _asString(json['nama_lengkap']),
+      jabatan: _asString(json['jabatan']),
+      instansi: _asString(json['instansi']),
+      departemenId:
+          json['departemen_id'] != null ? _asInt(json['departemen_id']) : null,
+      email: json['email']?.toString(),
+      alamat: json['alamat']?.toString(),
+      telp: json['telp']?.toString(),
+      pengalaman: json['pengalaman']?.toString(),
+      role: json['role'] != null
+          ? UserRole.fromCode(json['role'].toString())
           : UserRole.user,
-      status: json['status'] ?? 1,
-      tglDaftar: json['tgl_daftar'] != null 
-          ? DateTime.tryParse(json['tgl_daftar']) 
+      status: _asInt(json['status'] ?? 1, fallback: 1),
+      tglDaftar: json['tgl_daftar'] != null
+          ? DateTime.tryParse(json['tgl_daftar'])
           : null,
-      terakhirLogin: json['terakhir_login'] != null 
-          ? DateTime.tryParse(json['terakhir_login']) 
+      terakhirLogin: json['terakhir_login'] != null
+          ? DateTime.tryParse(json['terakhir_login'])
           : null,
       token: json['token'],
       fcmToken: json['fcm_token'],
@@ -135,12 +151,13 @@ class UserModel extends Equatable {
   }
 
   bool get isActive => status == 1;
-  
+
   String get initials {
     final names = namaLengkap.split(' ');
     if (names.isEmpty) return '';
     if (names.length == 1) return names[0].substring(0, 1).toUpperCase();
-    return '${names[0].substring(0, 1)}${names[1].substring(0, 1)}'.toUpperCase();
+    return '${names[0].substring(0, 1)}${names[1].substring(0, 1)}'
+        .toUpperCase();
   }
 
   @override

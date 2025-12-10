@@ -16,11 +16,12 @@ class DataTab extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text('Dashboard SIAP'),
       ),
       body: Obx(
         () {
-          if (dashboardController.isLoading.value && dashboardController.documents.isEmpty) {
+          if (dashboardController.isLoading.value &&
+              dashboardController.documents.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -39,9 +40,11 @@ class DataTab extends StatelessWidget {
                     title: Text(doc.title),
                     subtitle: Text(doc.documentNumber),
                     trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppTheme.getStatusColor(doc.status).withOpacity(0.1),
+                        color: AppTheme.getStatusColor(doc.status)
+                            .withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: AppTheme.getStatusColor(doc.status),
@@ -79,7 +82,7 @@ class DataTab extends StatelessWidget {
                 });
               },
               icon: const Icon(Icons.add),
-              label: const Text('Buat Dokumen'),
+              label: const Text('Pengajuan Berkas'),
             );
           }
           return const SizedBox.shrink();

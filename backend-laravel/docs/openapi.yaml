@@ -1,0 +1,222 @@
+openapi: 3.0.0
+info:
+  title: SIAP API
+  version: 1.0.0
+  description: API documentation for SIAP (Sistem Informasi Administrasi Perkantoran)
+paths:
+  /api/tindakan-segera/dropdown:
+    get:
+      summary: Get dropdown data for Tindakan Segera
+      description: Retrieve a list of 'tindakan segera' items for dropdown usage. Supports searching and pagination. Public endpoint.
+      operationId: getTindakanSegeraDropdown
+      tags:
+        - Dropdowns
+      parameters:
+        - name: search
+          in: query
+          description: Filter by 'kode' or 'deskripsi'
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: per_page
+          in: query
+          description: Number of items per page (max 1000)
+          required: false
+          schema:
+            type: integer
+            default: 1000
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        value:
+                          type: string
+                          description: ID of the item
+                          example: "1"
+                        label:
+                          type: string
+                          description: Combined code and description
+                          example: "TS-01 - Segera Tangani"
+                        keterangan:
+                          type: string
+                          nullable: true
+                          description: Additional notes
+                          example: "Prioritas tinggi"
+                  message:
+                    type: string
+                    example: "Data tindakan segera berhasil diambil"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  data:
+                    type: array
+                    items: {}
+                  message:
+                    type: string
+                    example: "Terjadi kesalahan pada server"
+  /api/users/dropdown:
+    get:
+      summary: Get users dropdown
+      description: Retrieve users for dropdown. Supports search and pagination. Requires authentication.
+      operationId: getUsersDropdown
+      tags:
+        - Dropdowns
+      parameters:
+        - name: search
+          in: query
+          description: Filter by username or nama_lengkap
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Number of items to return (default 50, max 1000)
+          required: false
+          schema:
+            type: integer
+            default: 50
+        - name: page
+          in: query
+          description: Page number for pagination (default 1)
+          required: false
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        username:
+                          type: string
+                          example: "jdoe"
+                        nama_lengkap:
+                          type: string
+                          example: "John Doe"
+                        jabatan:
+                          type: string
+                          nullable: true
+                          example: "Staff"
+                  message:
+                    type: string
+                    nullable: true
+                    example: null
+        "401":
+          description: Unauthenticated
+        "500":
+          description: Server error
+  /api/general/dropdown:
+    get:
+      summary: Get general dropdown from dynamic table
+      description: Retrieve dropdown data from a table specified by `table_name`. Requires authentication and applies rate limiting.
+      operationId: getGeneralDropdown
+      tags:
+        - Dropdowns
+      parameters:
+        - name: table_name
+          in: query
+          description: Source table name (must contain columns `kode`, `deskripsi`, `keterangan`)
+          required: true
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Filter by `deskripsi`
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Number of items to return (default 10, max 1000)
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          description: If present and table has a `status` column, results are filtered to `status = 1`
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kode:
+                          type: string
+                        deskripsi:
+                          type: string
+                        keterangan:
+                          type: string
+                          nullable: true
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        example: 100
+                      limit:
+                        type: integer
+                        example: 10
+        "400":
+          description: Bad Request (missing or invalid parameters)
+        "404":
+          description: Not Found (table missing or incompatible structure)
+        "401":
+          description: Unauthenticated
+        "429":
+          description: Too Many Requests (rate limiting)
+        "500":
+          description: Server error
