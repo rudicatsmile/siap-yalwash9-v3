@@ -7,6 +7,7 @@ import '../../../data/services/api_service.dart';
 import '../../controllers/dropdown_controller.dart';
 import '../../controllers/last_no_surat_controller.dart';
 import '../../widgets/form/api_dropdown_field.dart';
+import '../../widgets/form/api_multi_select_field.dart';
 import 'package:siap/presentation/utils/doc_number_logic.dart';
 import 'package:intl/intl.dart';
 
@@ -69,6 +70,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   late final Worker _jenisItemsOnce;
   late final Worker _kategoriLaporanItemsOnce;
   late final Worker _part2SyncWorker;
+  final List<String> _selectedTujuanDisposisi = <String>[];
 
   // Mendapatkan deskripsi item terpilih dari DropdownController.
   // Digunakan untuk membedakan kategori: Dokumen, Undangan, Laporan.
@@ -788,7 +790,28 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      //Do Todo
+                      ApiMultiSelectField(
+                        label: 'Di tujukan',
+                        placeholder: 'Pilih tujuan disposisi',
+                        tableName: 'm_tujuan_disposisi',
+                        controller: _tujuanDisposisiController,
+                        selectedValues: _selectedTujuanDisposisi,
+                        itemTextBuilder: (it) => it.deskripsi,
+                        validator: (values) {
+                          if (values == null || values.isEmpty) {
+                            return 'Minimal pilih 1 tujuan disposisi';
+                          }
+                          return null;
+                        },
+                        onChanged: (vals) {
+                          _selectedTujuanDisposisi
+                            ..clear()
+                            ..addAll(vals);
+                          setState(() {});
+                        },
+                      ),
+
+                      //DO Todo
 
                       const SizedBox(height: 24),
 
@@ -953,6 +976,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         'tanggal_surat': _letterDateController.text.trim(),
         'perihal': _perihalController.text.trim(),
         'ringkasan': _ringkasanController.text.trim(),
+        'tujuan_disposisi': _selectedTujuanDisposisi,
         'status': 1, // Pending status
       };
 

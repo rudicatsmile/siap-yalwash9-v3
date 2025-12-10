@@ -66,4 +66,3 @@ class DropdownController extends GetxController {
     selectedKode.value = (kode ?? '').trim();
   }
 }
-
