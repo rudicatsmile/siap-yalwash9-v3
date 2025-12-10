@@ -20,10 +20,10 @@ class DocumentController extends Controller
     {
         $user = $request->user();
         $perPage = min($request->input('per_page', 15), 100);
-        
+
         // Base query
         $query = Document::with('user:id_user,username,nama_lengkap');
-        
+
         // Role-based filtering
         if ($user->isAdmin()) {
             // Admin: Access all documents within their institution
@@ -35,40 +35,40 @@ class DocumentController extends Controller
             // User: Only documents they created or assigned to them
             $query->where(function ($q) use ($user) {
                 $q->where('id_user', $user->id_user)
-                  ->orWhere('kode_user', $user->kode_user);
+                    ->orWhere('kode_user', $user->kode_user);
             });
         }
-        
+
         // Apply filters
         if ($request->filled('status')) {
             $query->status($request->status);
         }
-        
+
         if ($request->filled('sifat')) {
             $query->where('sifat', $request->sifat);
         }
-        
+
         if ($request->filled('search')) {
             $query->search($request->search);
         }
-        
+
         if ($request->filled('date_from')) {
             $query->where('tgl_surat', '>=', $request->date_from);
         }
-        
+
         if ($request->filled('date_to')) {
             $query->where('tgl_surat', '<=', $request->date_to);
         }
-        
+
         if ($request->filled('kategori_surat')) {
             $query->where('kategori_surat', $request->kategori_surat);
         }
-        
+
         // Order by date descending
         $query->orderBy('tgl_surat', 'desc');
-        
+
         $documents = $query->paginate($perPage);
-        
+
         return response()->json([
             'status' => 200,
             'data' => $documents->items(),
@@ -88,9 +88,9 @@ class DocumentController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        
+
         $document = Document::with('user:id_user,username,nama_lengkap')->find($id);
-        
+
         if (!$document) {
             return response()->json([
                 'status' => 404,
@@ -98,7 +98,7 @@ class DocumentController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 404);
         }
-        
+
         // Check authorization
         $canAccess = false;
         if ($user->isAdmin() && $document->id_instansi === $user->instansi) {
@@ -108,7 +108,7 @@ class DocumentController extends Controller
         } elseif ($document->id_user === $user->id_user) {
             $canAccess = true;
         }
-        
+
         if (!$canAccess) {
             return response()->json([
                 'status' => 403,
@@ -116,10 +116,10 @@ class DocumentController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 403);
         }
-        
+
         // Mark as read
         $document->markAsRead($user->isPimpinan());
-        
+
         // Log activity
         ActivityHistory::log(
             userId: $user->id_user,
@@ -127,7 +127,7 @@ class DocumentController extends Controller
             documentId: $document->id_sm,
             description: "Viewed document: {$document->no_surat}"
         );
-        
+
         return response()->json([
             'status' => 200,
             'data' => $document,
@@ -141,11 +141,11 @@ class DocumentController extends Controller
     public function store(StoreDocumentRequest $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Generate document number (simplified - you may want a more complex logic)
         $lastDoc = Document::whereYear('created_at', now()->year)->max('id_sm');
         $nextNumber = str_pad(($lastDoc + 1) ?: 1, 5, '0', STR_PAD_LEFT);
-        
+
         $document = Document::create([
             'no_surat' => $nextNumber,
             'tgl_ns' => now()->toDateString(),
@@ -165,7 +165,7 @@ class DocumentController extends Controller
             'tgl_sm' => now()->toDateString(),
             'status' => 'Dokumen',
         ]);
-        
+
         // Log activity
         ActivityHistory::log(
             userId: $user->id_user,
@@ -173,7 +173,7 @@ class DocumentController extends Controller
             documentId: $document->id_sm,
             description: "Created document: {$document->no_surat}"
         );
-        
+
         return response()->json([
             'status' => 201,
             'message' => 'Document created successfully',
@@ -188,9 +188,9 @@ class DocumentController extends Controller
     public function update(UpdateDocumentRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-        
+
         $document = Document::find($id);
-        
+
         if (!$document) {
             return response()->json([
                 'status' => 404,
@@ -198,7 +198,7 @@ class DocumentController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 404);
         }
-        
+
         // Check authorization
         $canUpdate = false;
         if ($user->isAdmin() && $document->id_instansi === $user->instansi) {
@@ -206,7 +206,7 @@ class DocumentController extends Controller
         } elseif ($document->id_user === $user->id_user && $document->canBeEdited()) {
             $canUpdate = true;
         }
-        
+
         if (!$canUpdate) {
             return response()->json([
                 'status' => 403,
@@ -214,9 +214,9 @@ class DocumentController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 403);
         }
-        
+
         $document->update($request->validated());
-        
+
         // Log activity
         ActivityHistory::log(
             userId: $user->id_user,
@@ -224,7 +224,7 @@ class DocumentController extends Controller
             documentId: $document->id_sm,
             description: "Updated document: {$document->no_surat}"
         );
-        
+
         return response()->json([
             'status' => 200,
             'message' => 'Document updated successfully',
@@ -239,7 +239,7 @@ class DocumentController extends Controller
     public function destroy(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        
+
         if (!$user->isAdmin()) {
             return response()->json([
                 'status' => 403,
@@ -247,9 +247,9 @@ class DocumentController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 403);
         }
-        
+
         $document = Document::find($id);
-        
+
         if (!$document) {
             return response()->json([
                 'status' => 404,
@@ -257,7 +257,7 @@ class DocumentController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 404);
         }
-        
+
         if (!$document->canBeDeleted()) {
             return response()->json([
                 'status' => 403,
@@ -265,9 +265,9 @@ class DocumentController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 403);
         }
-        
+
         $document->delete();
-        
+
         // Log activity
         ActivityHistory::log(
             userId: $user->id_user,
@@ -275,7 +275,7 @@ class DocumentController extends Controller
             documentId: $document->id_sm,
             description: "Deleted document: {$document->no_surat}"
         );
-        
+
         return response()->json([
             'status' => 200,
             'message' => 'Document deleted successfully',
@@ -289,7 +289,7 @@ class DocumentController extends Controller
     public function updateStatus(UpdateDocumentStatusRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-        
+
         if (!$user->isPimpinan() && !$user->isAdmin()) {
             return response()->json([
                 'status' => 403,
@@ -297,9 +297,9 @@ class DocumentController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 403);
         }
-        
+
         $document = Document::find($id);
-        
+
         if (!$document) {
             return response()->json([
                 'status' => 404,
@@ -307,7 +307,7 @@ class DocumentController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 404);
         }
-        
+
         // Check institution access for admin
         if ($user->isAdmin() && $document->id_instansi !== $user->instansi) {
             return response()->json([
@@ -316,16 +316,16 @@ class DocumentController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 403);
         }
-        
+
         $oldStatus = $document->status;
-        
+
         $document->update([
             'status' => $request->status,
             'disposisi' => $request->disposisi,
             'catatan' => $request->catatan,
             'tgl_disposisi' => now(),
         ]);
-        
+
         // Log activity
         ActivityHistory::log(
             userId: $user->id_user,
@@ -334,11 +334,33 @@ class DocumentController extends Controller
             description: "Changed status from {$oldStatus} to {$request->status}",
             metadata: ['old_status' => $oldStatus, 'new_status' => $request->status]
         );
-        
+
         return response()->json([
             'status' => 200,
             'message' => 'Document status updated successfully',
             'data' => $document->fresh(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    }
+
+    public function getLastNoSurat(Request $request): JsonResponse
+    {
+        $lastNoSurat = Document::query()
+            ->select('no_surat')
+            ->orderByRaw("CAST(TRIM(LEADING '0' FROM no_surat) AS UNSIGNED) DESC")
+            ->limit(1)
+            ->value('no_surat');
+        $numeric = $lastNoSurat ? (int) ltrim($lastNoSurat, '0') : 0;
+        $nextNumeric = $numeric + 1;
+        $padLength = $lastNoSurat ? strlen($lastNoSurat) : 6;
+        $nextNoSurat = str_pad((string) $nextNumeric, $padLength, '0', STR_PAD_LEFT);
+
+        return response()->json([
+            'status' => 200,
+            'data' => [
+                'last_no_surat' => $lastNoSurat,
+                'next_no_surat' => $nextNoSurat,
+            ],
             'timestamp' => now()->toIso8601String(),
         ]);
     }

@@ -47,15 +47,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Document routes
     Route::get('/documents', [DocumentController::class, 'index']);
-    Route::get('/documents/{id}', [DocumentController::class, 'show']);
+    Route::get('/documents/{id}', [DocumentController::class, 'show'])->whereNumber('id');
     Route::post('/documents', [DocumentController::class, 'store']);
-    Route::put('/documents/{id}', [DocumentController::class, 'update']);
-    Route::delete('/documents/{id}', [DocumentController::class, 'destroy']);
-    Route::put('/documents/{id}/status', [DocumentController::class, 'updateStatus']);
+    Route::put('/documents/{id}', [DocumentController::class, 'update'])->whereNumber('id');
+    Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->whereNumber('id');
+    Route::put('/documents/{id}/status', [DocumentController::class, 'updateStatus'])->whereNumber('id');
 
     // Meeting routes
     Route::get('/meetings', [MeetingController::class, 'index']);
-    Route::post('/meetings/{id}/decision', [MeetingController::class, 'decision']);
+    Route::post('/meetings/{id}/decision', [MeetingController::class, 'decision'])->whereNumber('id');
 
     // History routes
     Route::get('/history', [HistoryController::class, 'index']);
@@ -68,5 +68,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tindakan-segera/dropdown', [TindakanSegeraController::class, 'dropdown']);
     Route::get('/users/dropdown', [UsersController::class, 'dropdown']);
     Route::get('/general/dropdown', [GeneralDropdownController::class, 'dropdown'])->middleware('throttle:general_dropdown');
-
+    Route::get('/documents/last-no-surat', [DocumentController::class, 'getLastNoSurat']);
 });
