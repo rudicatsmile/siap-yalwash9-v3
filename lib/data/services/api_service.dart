@@ -16,6 +16,9 @@ class ApiService {
 
   /// Initialize API service
   void init() {
+    _logger.d('Initializing API Service');
+    _logger.d('Environment: ${Environment.current}');
+    _logger.d('API Base URL: ${Environment.apiBaseUrl}');
     _dio = Dio(
       BaseOptions(
         baseUrl: Environment.apiBaseUrl,
@@ -35,23 +38,25 @@ class ApiService {
           // Add auth token to headers if available
           final token = _storage.getAuthToken();
           if (token != null) {
-            options.headers[ApiConstants.headerAuthorization] = 
+            options.headers[ApiConstants.headerAuthorization] =
                 ApiConstants.bearerToken(token);
           }
-          
+
           _logger.d('Request: ${options.method} ${options.path}');
           _logger.d('Headers: ${options.headers}');
           _logger.d('Data: ${options.data}');
-          
+
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          _logger.d('Response: ${response.statusCode} ${response.requestOptions.path}');
+          _logger.d(
+              'Response: ${response.statusCode} ${response.requestOptions.path}');
           _logger.d('Data: ${response.data}');
           return handler.next(response);
         },
         onError: (error, handler) {
-          _logger.e('Error: ${error.response?.statusCode} ${error.requestOptions.path}');
+          _logger.e(
+              'Error: ${error.response?.statusCode} ${error.requestOptions.path}');
           _logger.e('Error message: ${error.message}');
           _logger.e('Error data: ${error.response?.data}');
           return handler.next(error);
@@ -59,7 +64,8 @@ class ApiService {
       ),
     );
 
-    _logger.i('API Service initialized with base URL: ${Environment.apiBaseUrl}');
+    _logger
+        .i('API Service initialized with base URL: ${Environment.apiBaseUrl}');
   }
 
   /// GET request
@@ -150,20 +156,20 @@ class ApiService {
           'Connection timeout. Please check your internet connection.',
           statusCode: 0,
         );
-      
+
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode ?? 0;
         final message = _getErrorMessage(error.response?.data);
-        
+
         return ApiException(
           message,
           statusCode: statusCode,
           data: error.response?.data,
         );
-      
+
       case DioExceptionType.cancel:
         return ApiException('Request cancelled', statusCode: 0);
-      
+
       case DioExceptionType.unknown:
         if (error.error.toString().contains('SocketException')) {
           return ApiException(
@@ -175,7 +181,7 @@ class ApiService {
           'Unexpected error occurred: ${error.message}',
           statusCode: 0,
         );
-      
+
       default:
         return ApiException(
           'An error occurred: ${error.message}',
@@ -187,7 +193,7 @@ class ApiService {
   /// Extract error message from response data
   String _getErrorMessage(dynamic data) {
     if (data == null) return 'An error occurred';
-    
+
     if (data is Map<String, dynamic>) {
       // Check for standard error structure
       if (data.containsKey('error')) {
@@ -198,13 +204,13 @@ class ApiService {
           return error;
         }
       }
-      
+
       // Check for message field
       if (data.containsKey('message')) {
         return data['message'] as String;
       }
     }
-    
+
     return 'An error occurred';
   }
 
@@ -230,7 +236,7 @@ class ApiService {
           },
         ),
       );
-      
+
       return response;
     } on DioException catch (e) {
       throw _handleDioError(e);

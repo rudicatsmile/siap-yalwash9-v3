@@ -50,6 +50,10 @@ class GeneralDropdownController extends Controller
 
             $query = DB::table($table)->select(['kode','deskripsi','keterangan']);
 
+            if ($table === 'm_tujuan_disposisi' && Schema::hasColumn($table, 'urut')) {
+                $query->orderBy('urut');
+            }
+
             if ($request->filled('status') && Schema::hasColumn($table, 'status')) {
                 $query->where('status', 1);
             }
