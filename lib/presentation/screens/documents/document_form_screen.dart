@@ -37,6 +37,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final _letterNumberPart1Controller = TextEditingController();
   final _letterNumberPart2Controller = TextEditingController();
   final _ringkasanController = TextEditingController();
+  final _pokokBahasanController = TextEditingController();
+  final _meetingDateController = TextEditingController();
+  final _meetingTimeController = TextEditingController();
+  DateTime? _selectedMeetingDate;
   static const List<String> _romanMonths = [
     'I',
     'II',
@@ -58,6 +62,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   late final DropdownController _jenisController;
   late final DropdownController _kategoriLaporanController;
   late final DropdownController _tujuanDisposisiController;
+  late final DropdownController _ruangRapatController;
+  late final DropdownController _pesertaRapatController;
+  late final DropdownController _pimpinanRapatController;
   late final _UsersDropdownController _usersDropdownController;
   late final LastNoSuratController _lastNoSuratController;
   // Workers to observe GetX state changes for last-no-surat fetching
@@ -71,6 +78,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   late final Worker _kategoriLaporanItemsOnce;
   late final Worker _part2SyncWorker;
   final List<String> _selectedTujuanDisposisi = <String>[];
+  final List<String> _selectedPesertaRapat = <String>[];
 
   // Mendapatkan deskripsi item terpilih dari DropdownController.
   // Digunakan untuk membedakan kategori: Dokumen, Undangan, Laporan.
@@ -167,6 +175,11 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         Get.put(DropdownController(), tag: 'kategori_laporan');
     _tujuanDisposisiController =
         Get.put(DropdownController(), tag: 'tujuan_disposisi');
+    _ruangRapatController = Get.put(DropdownController(), tag: 'ruang_rapat');
+    _pesertaRapatController =
+        Get.put(DropdownController(), tag: 'peserta_rapat');
+    _pimpinanRapatController =
+        Get.put(DropdownController(), tag: 'pimpinan_rapat');
     _usersDropdownController =
         Get.put(_UsersDropdownController(), tag: 'users_dropdown');
 
@@ -178,6 +191,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _jenisController.loadTable('m_jenis_dokumen');
     _kategoriLaporanController.loadTable('m_kategori_laporan');
     _tujuanDisposisiController.loadTable('m_tujuan_disposisi');
+    _ruangRapatController.loadTable('m_ruang_rapat');
+    _pesertaRapatController.loadTable('m_tujuan_disposisi');
+    _pimpinanRapatController.loadTable('m_tujuan_disposisi');
     _usersDropdownController.loadUsers();
     _lastNoSuratController.fetch();
 
@@ -289,6 +305,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _letterNumberPart1Controller.dispose();
     _letterNumberPart2Controller.dispose();
     _ringkasanController.dispose();
+    _pokokBahasanController.dispose();
+    _meetingDateController.dispose();
+    _meetingTimeController.dispose();
     // Dispose workers to avoid memory leaks
     _lastNoSuratResultWorker.dispose();
     _lastNoSuratErrorWorker.dispose();
@@ -811,9 +830,165 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         },
                       ),
 
-                      //DO Todo
+                      Text(
+                        'Waktu Rapat',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: TextFormField(
+                              controller: _meetingDateController,
+                              decoration: const InputDecoration(
+                                hintText: 'DD/MM/YYYY',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.calendar_today_outlined),
+                              ),
+                              validator: (value) {
+                                final v = (value ?? '').trim();
+                                if (v.isEmpty) {
+                                  return 'Tanggal rapat harus diisi';
+                                }
+                                try {
+                                  DateFormat('dd/MM/yyyy').parseStrict(v);
+                                } catch (_) {
+                                  return 'Format tanggal tidak valid (DD/MM/YYYY)';
+                                }
+                                return null;
+                              },
+                              onTap: () async {
+                                final initial =
+                                    _selectedMeetingDate ?? DateTime.now();
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: initial,
+                                  firstDate: DateTime(2000, 1, 1),
+                                  lastDate: DateTime(2100, 12, 31),
+                                );
+                                if (picked != null) {
+                                  _selectedMeetingDate = picked;
+                                  _meetingDateController.text =
+                                      DateFormat('dd/MM/yyyy').format(picked);
+                                  setState(() {});
+                                }
+                              },
+                              onChanged: (v) {
+                                try {
+                                  _selectedMeetingDate =
+                                      DateFormat('dd/MM/yyyy')
+                                          .parseStrict(v.trim());
+                                } catch (_) {
+                                  _selectedMeetingDate = null;
+                                }
+                                setState(() {});
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 5,
+                            child: TextFormField(
+                              controller: _meetingTimeController,
+                              decoration: const InputDecoration(
+                                hintText: 'Masukan waktu',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.access_time_outlined),
+                              ),
+                              validator: (value) {
+                                final v = (value ?? '').trim();
+                                if (v.isEmpty) {
+                                  return 'Waktu rapat harus diisi';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      ApiDropdownField(
+                        label: 'Ruang Rapat',
+                        placeholder: 'Pilih Ruang Rapat',
+                        tableName: 'm_ruang_rapat',
+                        controller: _ruangRapatController,
+                        // onChanged: (val) {
+                        //   _handleRuangRapatChanged(val);
+                        // },
+                        itemTextBuilder: (it) => it.deskripsi,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Ruang rapat harus dipilih';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      ApiMultiSelectField(
+                        label: 'Peserta Rapat',
+                        placeholder: 'Pilih Peserta rapat',
+                        tableName: 'm_tujuan_disposisi',
+                        controller: _pesertaRapatController,
+                        selectedValues: _selectedPesertaRapat,
+                        itemTextBuilder: (it) => it.deskripsi,
+                        validator: (values) {
+                          if (values == null || values.isEmpty) {
+                            return 'Minimal pilih 1 Peserta rapat';
+                          }
+                          return null;
+                        },
+                        onChanged: (vals) {
+                          _selectedPesertaRapat
+                            ..clear()
+                            ..addAll(vals);
+                          setState(() {});
+                        },
+                      ),
 
                       const SizedBox(height: 24),
+                      ApiDropdownField(
+                        label: 'Pimpinan',
+                        placeholder: 'Pilih Piminan rapat',
+                        tableName: 'm_tujuan_disposisi',
+                        controller: _pimpinanRapatController,
+                        itemTextBuilder: (it) => it.deskripsi,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Pimpinan rapat harus dipilih';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      //Buatkan textarea 'Pokok bahasan rapat
+
+                      Text(
+                        'Pokok Bahasan Rapat',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextFormField(
+                        controller: _pokokBahasanController,
+                        decoration: const InputDecoration(
+                          hintText: 'Masukkan pokok bahasan rapat',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.topic_outlined),
+                          alignLabelWithHint: true,
+                        ),
+                        maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
+                        validator: (value) {
+                          final v = (value ?? '').trim();
+                          if (v.isEmpty) {
+                            return 'Pokok bahasan rapat harus diisi';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
 
                       // User information display
                       _buildUserInfo(),
