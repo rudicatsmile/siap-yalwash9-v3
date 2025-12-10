@@ -455,7 +455,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       //   );
                       // }),
                       const SizedBox(height: 16),
-
+                      //Nomor dokumen dan Kode surat
                       Text(
                         'Nomor dokumen',
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -538,6 +538,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       ),
 
                       const SizedBox(height: 16),
+                      //Tanggal buat
                       Text(
                         'Tanggal buat',
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -554,7 +555,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         onChanged: _handleTodayDateChanged,
                       ),
 
-                      //Tambahkan TextFormFiled untuk input Pengirim berkas
+                      //Pengirim berkas
                       const SizedBox(height: 16),
                       Text(
                         'Pengirim',
@@ -571,6 +572,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       ),
 
                       const SizedBox(height: 24),
+                      //Jenis Dokumen
                       ApiDropdownField(
                         label: 'Jenis Dokumen',
                         placeholder: 'Pilih Jenis Dokumen',
@@ -589,6 +591,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       ),
 
                       const SizedBox(height: 24),
+                      //Kategori Laporan
                       ApiDropdownField(
                         label: 'Kategori Laporan',
                         placeholder: 'Pilih Kategori Laporan',
@@ -606,6 +609,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
+
                       // Dropdown User Undangan (sumber data dari /api/users/dropdown dengan parameter kode_user=YS)
                       Text(
                         'Undangan kepada',
@@ -668,7 +672,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         );
                       }),
 
-                      //Tambahkan input tanggal berinama 'Tanggal Surat', dengan default tanggal hari ini. Format tanggal dd-MM-yyyy
+                      //Tanggal Surat
                       Text(
                         'Tanggal Surat',
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -776,7 +780,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       ),
 
                       const SizedBox(height: 16),
-
+                      //Perihal
                       Text(
                         'Perihal',
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -792,6 +796,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      //Ringkasan
                       Text(
                         'Ringkasan',
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -809,6 +814,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       ),
                       const SizedBox(height: 12),
 
+                      //Di tujukan : Multi select
                       ApiMultiSelectField(
                         label: 'Di tujukan',
                         placeholder: 'Pilih tujuan disposisi',
@@ -830,6 +836,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         },
                       ),
 
+                      //Waktu rapat
                       Text(
                         'Waktu Rapat',
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -908,6 +915,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       ),
                       const SizedBox(height: 12),
 
+                      //Ruang rapat
                       ApiDropdownField(
                         label: 'Ruang Rapat',
                         placeholder: 'Pilih Ruang Rapat',
@@ -925,7 +933,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         },
                       ),
                       const SizedBox(height: 24),
-
+                      //Peserta rapat
                       ApiMultiSelectField(
                         label: 'Peserta Rapat',
                         placeholder: 'Pilih Peserta rapat',
@@ -948,6 +956,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       ),
 
                       const SizedBox(height: 24),
+                      //Pimpinan rapat
                       ApiDropdownField(
                         label: 'Pimpinan',
                         placeholder: 'Pilih Piminan rapat',
@@ -964,8 +973,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
                       const SizedBox(height: 24),
 
-                      //Buatkan textarea 'Pokok bahasan rapat
-
+                      //bahasan rapat
                       Text(
                         'Pokok Bahasan Rapat',
                         style: const TextStyle(fontWeight: FontWeight.bold),

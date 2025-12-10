@@ -18,8 +18,9 @@ class LastNoSuratResponse extends Equatable {
         ? json['status'] as int
         : int.tryParse(json['status']?.toString() ?? '') ?? 0;
     final String timestamp = json['timestamp']?.toString() ?? '';
-    final Map<String, dynamic> data =
-        (json['data'] is Map<String, dynamic>) ? json['data'] as Map<String, dynamic> : {};
+    final Map<String, dynamic> data = (json['data'] is Map<String, dynamic>)
+        ? json['data'] as Map<String, dynamic>
+        : {};
     final String last = data['last_no_surat']?.toString() ?? '';
     final String next = data['next_no_surat']?.toString() ?? '';
 
