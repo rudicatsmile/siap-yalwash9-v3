@@ -41,6 +41,21 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final _meetingDateController = TextEditingController();
   final _meetingTimeController = TextEditingController();
   DateTime? _selectedMeetingDate;
+  bool _showGroupIdentitasDokumen = true;
+  bool _showNomorDokumen = true;
+  bool _showTanggalBuat = true;
+  bool _showPengirim = true;
+  bool _showGroupRapat = false;
+  bool _showWaktuRapat = false;
+  bool _showRuangRapat = false;
+  bool _showPesertaRapat = false;
+  bool _showPimpinanRapat = false;
+  bool _showPokokBahasanRapat = false;
+  bool _showGroupLampirandanRingkasan = false;
+  bool _showGroupDitujukan = false;
+  bool _showJenisDokumen = false;
+  bool _showKategoriLaporan = false;
+  bool _showUndanganKepada = false;
   static const List<String> _romanMonths = [
     'I',
     'II',
@@ -102,44 +117,103 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     final kategoriDesc =
         _getSelectedDeskripsi(_kategoriController)?.toLowerCase().trim() ?? '';
     _resetDocNumberPart2();
+
+    /*
+  bool _showGroupIdentitasDokumen = true;
+  bool _showNomorDokumen = true;
+  bool _showTanggalBuat = true;
+  bool _showPengirim = true;
+  bool _showGroupRapat = true;
+  bool _showWaktuRapat = true;
+  bool _showRuangRapat = true;
+  bool _showPesertaRapat = true;
+  bool _showPimpinanRapat = true;
+  bool _showPokokBahasanRapat = true;
+  bool _showGroupLampirandanRingkasan = true;
+  bool _showGroupDitujukan = true;
+  bool _showJenisDokumen = true;
+  bool _showKategoriLaporan = true;
+  bool _showUndanganKepada = true;
+    */
     if (kategoriDesc.contains('undangan')) {
+      print('UND : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = true;
       _docNumberPart2Controller.text = 'UND';
+
+      setState(() {
+        _showJenisDokumen = false;
+        _showKategoriLaporan = false;
+        _showUndanganKepada = true;
+        _showGroupLampirandanRingkasan = true;
+        _showGroupDitujukan = false;
+        _showGroupRapat = false;
+      });
     } else if (kode == 'Rapat') {
+      print('RPT. : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = true;
       _docNumberPart2Controller.text = 'RPT';
+      setState(() {
+        _showJenisDokumen = false;
+        _showKategoriLaporan = false;
+        _showUndanganKepada = false;
+        _showGroupLampirandanRingkasan = false;
+        _showGroupDitujukan = false;
+        _showGroupRapat = true;
+      });
+      setState(() => _showKategoriLaporan = false);
+      setState(() => _showGroupDitujukan = false);
     } else if (kategoriDesc.contains('dokumen')) {
+      print('DOC : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = false;
       final jenisKode = _jenisController.selectedKode.value;
       if (jenisKode.isEmpty) {
-        Get.snackbar(
-          'Error',
-          'Jenis dokumen harus dipilih untuk menentukan nomor dokumen',
-          backgroundColor: AppTheme.errorColor,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-        );
+        // Get.snackbar(
+        //   'Error',
+        //   'Jenis dokumen harus dipilih untuk menentukan nomor dokumen',
+        //   backgroundColor: AppTheme.errorColor,
+        //   colorText: Colors.white,
+        //   snackPosition: SnackPosition.TOP,
+        // );
       } else {
         _docNumberPart2Controller.text = jenisKode;
       }
+
+      setState(() {
+        _showJenisDokumen = true;
+        _showKategoriLaporan = false;
+        _showUndanganKepada = false;
+        _showGroupLampirandanRingkasan = true;
+        _showGroupDitujukan = false;
+        _showGroupRapat = false;
+      });
     } else if (kategoriDesc.contains('laporan')) {
+      print('LAP : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = false;
       final laporanKode = _kategoriLaporanController.selectedKode.value;
       if (laporanKode.isEmpty) {
-        Get.snackbar(
-          'Error',
-          'Kategori laporan harus dipilih untuk menentukan nomor dokumen',
-          backgroundColor: AppTheme.errorColor,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-        );
+        // Get.snackbar(
+        //   'Error',
+        //   'Kategori laporan harus dipilih untuk menentukan nomor dokumen',
+        //   backgroundColor: AppTheme.errorColor,
+        //   colorText: Colors.white,
+        //   snackPosition: SnackPosition.TOP,
+        // );
       } else {
         _docNumberPart2Controller.text = laporanKode;
       }
+
+      setState(() {
+        _showJenisDokumen = false;
+        _showKategoriLaporan = true;
+        _showUndanganKepada = false;
+        _showGroupLampirandanRingkasan = true;
+        _showGroupDitujukan = true;
+        _showGroupRapat = false;
+      });
     } else {
       _isDocNumberPart2ReadOnly = false;
     }
-    setState(() {});
+    // setState(() {});
   }
 
   // Update nilai bagian kedua saat Jenis Dokumen berubah jika kategori adalah Dokumen.
@@ -360,6 +434,50 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     }
   }
 
+  /// Mengontrol visibilitas seluruh kelompok "Identitas Dokumen"
+  void setShowIdentitasDokumen(bool visible) {
+    setState(() => _showGroupIdentitasDokumen = visible);
+  }
+
+  /// Mengontrol visibilitas bagian "Nomor Dokumen"
+  void setShowNomorDokumen(bool visible) {
+    setState(() => _showNomorDokumen = visible);
+  }
+
+  /// Mengontrol visibilitas bagian "Tanggal Buat"
+  void setShowTanggalBuat(bool visible) {
+    setState(() => _showTanggalBuat = visible);
+  }
+
+  /// Mengontrol visibilitas bagian "Pengirim"
+  void setShowPengirim(bool visible) {
+    setState(() => _showPengirim = visible);
+  }
+
+  void setShowGroupRapat(bool visible) {
+    setState(() => _showGroupRapat = visible);
+  }
+
+  void setShowWaktuRapat(bool visible) {
+    setState(() => _showWaktuRapat = visible);
+  }
+
+  void setShowRuangRapat(bool visible) {
+    setState(() => _showRuangRapat = visible);
+  }
+
+  void setShowPesertaRapat(bool visible) {
+    setState(() => _showPesertaRapat = visible);
+  }
+
+  void setShowPimpinanRapat(bool visible) {
+    setState(() => _showPimpinanRapat = visible);
+  }
+
+  void setShowPokokBahasanRapat(bool visible) {
+    setState(() => _showPokokBahasanRapat = visible);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -455,222 +573,378 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       //   );
                       // }),
                       const SizedBox(height: 16),
-                      //Nomor dokumen dan Kode surat
-                      Text(
-                        'Nomor dokumen',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 6,
-                            child: TextFormField(
-                              controller: _docNumberPart1Controller,
-                              readOnly: true,
-                              decoration: const InputDecoration(
-                                // hintText: 'Nomor',
-                                border: OutlineInputBorder(),
-                                prefixIcon:
-                                    Icon(Icons.confirmation_number_outlined),
-                              ),
-                              // Validate that auto-filled or edited number is digits-only
-                              validator: (value) {
-                                final v = (value ?? '').trim();
-                                if (v.isEmpty) {
-                                  return 'Nomor dokumen harus diisi';
-                                }
-                                final isDigits = RegExp(r'^\d+$').hasMatch(v);
-                                if (!isDigits) {
-                                  return 'Nomor dokumen berupa angka';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 7,
-                            child: TextFormField(
-                              readOnly: _isDocNumberPart2ReadOnly,
-                              controller: _docNumberPart2Controller,
-                              decoration: const InputDecoration(
-                                // hintText: 'Bagian 2',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.tag_outlined),
-                              ),
-                              // validator: (value) {
-                              //   final kategoriDesc =
-                              //       _getSelectedDeskripsi(_kategoriController)
-                              //               ?.toLowerCase()
-                              //               .trim() ??
-                              //           '';
-                              //   final v = (value ?? '').trim();
-                              //   if (kategoriDesc.contains('undangan')) {
-                              //     if (v != 'UND') {
-                              //       return 'Nomor dokumen Undangan harus bernilai UND';
-                              //     }
-                              //     return null;
-                              //   }
-                              //   if (kategoriDesc.contains('rapat')) {
-                              //     if (v != 'RPT') {
-                              //       return 'Nomor dokumen Rapat harus bernilai RPT';
-                              //     }
-                              //     return null;
-                              //   }
-                              //   if (kategoriDesc.contains('dokumen')) {
-                              //     if (v.isEmpty) {
-                              //       return 'Jenis dokumen harus dipilih';
-                              //     }
-                              //     return null;
-                              //   }
-                              //   if (kategoriDesc.contains('laporan')) {
-                              //     if (v.isEmpty) {
-                              //       return 'Kategori laporan harus dipilih';
-                              //     }
-                              //     return null;
-                              //   }
-                              //   // Default: allow empty or user-defined
-                              //   return null;
-                              // },
-                            ),
-                          ),
-                        ],
-                      ),
+                      // Wrap(
+                      //   spacing: 8,
+                      //   runSpacing: 8,
+                      //   children: [
+                      //     FilterChip(
+                      //       label: const Text('Identitas Dokumen'),
+                      //       selected: _showGroupIdentitasDokumen,
+                      //       onSelected: (v) {
+                      //         setState(() => _showGroupIdentitasDokumen = v);
+                      //       },
+                      //     ),
+                      //     FilterChip(
+                      //       label: const Text('Nomor Dokumen'),
+                      //       selected: _showNomorDokumen,
+                      //       onSelected: (v) {
+                      //         setState(() => _showNomorDokumen = v);
+                      //       },
+                      //     ),
+                      //     FilterChip(
+                      //       label: const Text('Tanggal Buat'),
+                      //       selected: _showTanggalBuat,
+                      //       onSelected: (v) {
+                      //         setState(() => _showTanggalBuat = v);
+                      //       },
+                      //     ),
+                      //     FilterChip(
+                      //       label: const Text('Pengirim'),
+                      //       selected: _showPengirim,
+                      //       onSelected: (v) {
+                      //         setState(() => _showPengirim = v);
+                      //       },
+                      //     ),
+                      //   ],
+                      // ),
 
-                      const SizedBox(height: 16),
-                      //Tanggal buat
-                      Text(
-                        'Tanggal buat',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextFormField(
-                        controller: _todayDateController,
-                        readOnly: true,
-                        decoration: const InputDecoration(
-                          // labelText: 'Tanggal Hari Ini',
-                          hintText: 'dd-mm-yyyy',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.calendar_today_outlined),
-                        ),
-                        onChanged: _handleTodayDateChanged,
-                      ),
-
-                      //Pengirim berkas
-                      const SizedBox(height: 16),
-                      Text(
-                        'Pengirim',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextFormField(
-                        controller: _pengirimController,
-                        decoration: const InputDecoration(
-                          // labelText: 'Pengirim Berkas',
-                          hintText: 'Masukkan nama pengirim berkas',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.person_outlined),
-                        ),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        transitionBuilder: (child, anim) =>
+                            SizeTransition(sizeFactor: anim, child: child),
+                        child: _showGroupIdentitasDokumen
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 250),
+                                    transitionBuilder: (child, anim) =>
+                                        SizeTransition(
+                                      sizeFactor: anim,
+                                      child: child,
+                                    ),
+                                    child: _showNomorDokumen
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                'Nomor dokumen',
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    flex: 6,
+                                                    child: TextFormField(
+                                                      controller:
+                                                          _docNumberPart1Controller,
+                                                      readOnly: true,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                        prefixIcon: Icon(Icons
+                                                            .confirmation_number_outlined),
+                                                      ),
+                                                      validator: (value) {
+                                                        final v = (value ?? '')
+                                                            .trim();
+                                                        if (v.isEmpty) {
+                                                          return 'Nomor dokumen harus diisi';
+                                                        }
+                                                        final isDigits =
+                                                            RegExp(r'^\d+$')
+                                                                .hasMatch(v);
+                                                        if (!isDigits) {
+                                                          return 'Nomor dokumen berupa angka';
+                                                        }
+                                                        return null;
+                                                      },
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    flex: 7,
+                                                    child: TextFormField(
+                                                      readOnly:
+                                                          _isDocNumberPart2ReadOnly,
+                                                      controller:
+                                                          _docNumberPart2Controller,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                        prefixIcon: Icon(
+                                                            Icons.tag_outlined),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 250),
+                                    transitionBuilder: (child, anim) =>
+                                        SizeTransition(
+                                      sizeFactor: anim,
+                                      child: child,
+                                    ),
+                                    child: _showTanggalBuat
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                'Tanggal buat',
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              TextFormField(
+                                                controller:
+                                                    _todayDateController,
+                                                readOnly: true,
+                                                decoration:
+                                                    const InputDecoration(
+                                                  hintText: 'dd-mm-yyyy',
+                                                  border: OutlineInputBorder(),
+                                                  prefixIcon: Icon(Icons
+                                                      .calendar_today_outlined),
+                                                ),
+                                                onChanged:
+                                                    _handleTodayDateChanged,
+                                              ),
+                                            ],
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 250),
+                                    transitionBuilder: (child, anim) =>
+                                        SizeTransition(
+                                      sizeFactor: anim,
+                                      child: child,
+                                    ),
+                                    child: _showPengirim
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                'Pengirim',
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              TextFormField(
+                                                controller: _pengirimController,
+                                                decoration:
+                                                    const InputDecoration(
+                                                  hintText:
+                                                      'Masukkan nama pengirim berkas',
+                                                  border: OutlineInputBorder(),
+                                                  prefixIcon: Icon(
+                                                      Icons.person_outlined),
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
                       ),
 
                       const SizedBox(height: 24),
-                      //Jenis Dokumen
-                      ApiDropdownField(
-                        label: 'Jenis Dokumen',
-                        placeholder: 'Pilih Jenis Dokumen',
-                        tableName: 'm_jenis_dokumen',
-                        controller: _jenisController,
-                        onChanged: (val) {
-                          _handleJenisDokumenChanged(val);
-                        },
-                        itemTextBuilder: (it) => it.deskripsi,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Jenis dokumen harus dipilih';
-                          }
-                          return null;
-                        },
+                      // Wrap(
+                      //   spacing: 8,
+                      //   runSpacing: 8,
+                      //   children: [
+                      //     FilterChip(
+                      //       label: const Text('Jenis Dokumen'),
+                      //       selected: _showJenisDokumen,
+                      //       onSelected: (v) {
+                      //         setState(() => _showJenisDokumen = v);
+                      //       },
+                      //     ),
+                      //   ],
+                      // ),
+
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        transitionBuilder: (child, anim) =>
+                            SizeTransition(sizeFactor: anim, child: child),
+                        child: _showJenisDokumen
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ApiDropdownField(
+                                    label: 'Jenis Dokumen',
+                                    placeholder: 'Pilih Jenis Dokumen',
+                                    tableName: 'm_jenis_dokumen',
+                                    controller: _jenisController,
+                                    onChanged: (val) {
+                                      _handleJenisDokumenChanged(val);
+                                    },
+                                    itemTextBuilder: (it) => it.deskripsi,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Jenis dokumen harus dipilih';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
                       ),
 
                       const SizedBox(height: 24),
-                      //Kategori Laporan
-                      ApiDropdownField(
-                        label: 'Kategori Laporan',
-                        placeholder: 'Pilih Kategori Laporan',
-                        tableName: 'm_kategori_laporan',
-                        controller: _kategoriLaporanController,
-                        onChanged: (val) {
-                          _handleKategoriLaporanChanged(val);
-                        },
-                        itemTextBuilder: (it) => it.deskripsi,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Kategori laporan harus dipilih';
-                          }
-                          return null;
-                        },
+                      // Wrap(
+                      //   spacing: 8,
+                      //   runSpacing: 8,
+                      //   children: [
+                      //     FilterChip(
+                      //       label: const Text('Kategori Laporan'),
+                      //       selected: _showKategoriLaporan,
+                      //       onSelected: (v) {
+                      //         setState(() => _showKategoriLaporan = v);
+                      //       },
+                      //     ),
+                      //   ],
+                      // ),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        transitionBuilder: (child, anim) =>
+                            SizeTransition(sizeFactor: anim, child: child),
+                        child: _showKategoriLaporan
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ApiDropdownField(
+                                    label: 'Kategori Laporan',
+                                    placeholder: 'Pilih Kategori Laporan',
+                                    tableName: 'm_kategori_laporan',
+                                    controller: _kategoriLaporanController,
+                                    onChanged: (val) {
+                                      _handleKategoriLaporanChanged(val);
+                                    },
+                                    itemTextBuilder: (it) => it.deskripsi,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Kategori laporan harus dipilih';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
                       ),
                       const SizedBox(height: 16),
 
                       // Dropdown User Undangan (sumber data dari /api/users/dropdown dengan parameter kode_user=YS)
-                      Text(
-                        'Undangan kepada',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Obx(() {
-                        if (_usersDropdownController.isLoading.value &&
-                            _usersDropdownController.items.isEmpty) {
-                          return const SizedBox(
-                            height: 56,
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-
-                        if (_usersDropdownController.error.isNotEmpty) {
-                          return Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppTheme.errorColor.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppTheme.errorColor.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Text(
-                              _usersDropdownController.error.value,
-                              style:
-                                  const TextStyle(color: AppTheme.errorColor),
-                            ),
-                          );
-                        }
-
-                        return DropdownButtonFormField<String>(
-                          value: _usersDropdownController
-                                  .selectedUserId.value.isEmpty
-                              ? null
-                              : _usersDropdownController.selectedUserId.value,
-                          items: _usersDropdownController.items
-                              .map(
-                                (u) => DropdownMenuItem<String>(
-                                  value: u.id,
-                                  child: Text(u.namaLengkap),
-                                ),
+                      // Wrap(
+                      //   spacing: 8,
+                      //   runSpacing: 8,
+                      //   children: [
+                      //     FilterChip(
+                      //       label: const Text('Undangan Kepada'),
+                      //       selected: _showUndanganKepada,
+                      //       onSelected: (v) {
+                      //         setState(() => _showUndanganKepada = v);
+                      //       },
+                      //     ),
+                      //   ],
+                      // ),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        transitionBuilder: (child, anim) =>
+                            SizeTransition(sizeFactor: anim, child: child),
+                        child: _showUndanganKepada
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Undangan kepada',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  Obx(() {
+                                    if (_usersDropdownController
+                                            .isLoading.value &&
+                                        _usersDropdownController
+                                            .items.isEmpty) {
+                                      return const SizedBox(
+                                        height: 56,
+                                        child: Center(
+                                            child: CircularProgressIndicator()),
+                                      );
+                                    }
+                                    if (_usersDropdownController
+                                        .error.isNotEmpty) {
+                                      return Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.errorColor
+                                              .withOpacity(0.08),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: AppTheme.errorColor
+                                                .withOpacity(0.3),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _usersDropdownController.error.value,
+                                          style: const TextStyle(
+                                              color: AppTheme.errorColor),
+                                        ),
+                                      );
+                                    }
+                                    return DropdownButtonFormField<String>(
+                                      value: _usersDropdownController
+                                              .selectedUserId.value.isEmpty
+                                          ? null
+                                          : _usersDropdownController
+                                              .selectedUserId.value,
+                                      items: _usersDropdownController.items
+                                          .map(
+                                            (u) => DropdownMenuItem<String>(
+                                              value: u.id,
+                                              child: Text(u.namaLengkap),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (val) =>
+                                          _usersDropdownController.select(val),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'User harus dipilih';
+                                        }
+                                        return null;
+                                      },
+                                      decoration: const InputDecoration(
+                                        hintText: 'Pilih undangan kepada',
+                                        border: OutlineInputBorder(),
+                                        prefixIcon: Icon(Icons.person_outline),
+                                      ),
+                                    );
+                                  }),
+                                ],
                               )
-                              .toList(),
-                          onChanged: (val) =>
-                              _usersDropdownController.select(val),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'User harus dipilih';
-                            }
-                            return null;
-                          },
-                          decoration: const InputDecoration(
-                            // labelText: 'Undangan Kepada',
-                            hintText: 'Pilih undangan kepada',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.person_outline),
-                          ),
-                        );
-                      }),
+                            : const SizedBox.shrink(),
+                      ),
 
                       //Tanggal Surat
                       Text(
@@ -723,7 +997,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         },
                       ),
 
-                      //Tambahkan Nomor surat yang terdiri dari 2 buah textfield, yaitu bagian 1 dan bagian 2.
                       //Bagian 1: Nomor surat yang diinput oleh pengguna
                       //Bagian 2: Gabungan kata dan angka yang tergantung dari bulan controller _todayDateController
                       Text(
@@ -780,223 +1053,451 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       ),
 
                       const SizedBox(height: 16),
-                      //Perihal
-                      Text(
-                        'Perihal',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextFormField(
-                        controller: _perihalController,
-                        decoration: const InputDecoration(
-                          // labelText: 'Perihal',
-                          hintText: 'Masukkan perihal surat',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.subject_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
 
-                      //Ringkasan
-                      Text(
-                        'Ringkasan',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextFormField(
-                        controller: _ringkasanController,
-                        decoration: const InputDecoration(
-                          hintText: 'Masukkan ringkasan',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.notes_outlined),
-                          alignLabelWithHint: true,
-                        ),
-                        maxLines: 4,
-                        textCapitalization: TextCapitalization.sentences,
-                      ),
-                      const SizedBox(height: 12),
+                      // Wrap(
+                      //   spacing: 8,
+                      //   runSpacing: 8,
+                      //   children: [
+                      //     FilterChip(
+                      //       label: const Text('Lampiran & Ringkasan'),
+                      //       selected: _showGroupLampirandanRingkasan,
+                      //       onSelected: (v) {
+                      //         setState(
+                      //             () => _showGroupLampirandanRingkasan = v);
+                      //       },
+                      //     ),
+                      //   ],
+                      // ),
 
-                      //Di tujukan : Multi select
-                      ApiMultiSelectField(
-                        label: 'Di tujukan',
-                        placeholder: 'Pilih tujuan disposisi',
-                        tableName: 'm_tujuan_disposisi',
-                        controller: _tujuanDisposisiController,
-                        selectedValues: _selectedTujuanDisposisi,
-                        itemTextBuilder: (it) => it.deskripsi,
-                        validator: (values) {
-                          if (values == null || values.isEmpty) {
-                            return 'Minimal pilih 1 tujuan disposisi';
-                          }
-                          return null;
-                        },
-                        onChanged: (vals) {
-                          _selectedTujuanDisposisi
-                            ..clear()
-                            ..addAll(vals);
-                          setState(() {});
-                        },
-                      ),
-
-                      //Waktu rapat
-                      Text(
-                        'Waktu Rapat',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 5,
-                            child: TextFormField(
-                              controller: _meetingDateController,
-                              decoration: const InputDecoration(
-                                hintText: 'DD/MM/YYYY',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.calendar_today_outlined),
-                              ),
-                              validator: (value) {
-                                final v = (value ?? '').trim();
-                                if (v.isEmpty) {
-                                  return 'Tanggal rapat harus diisi';
-                                }
-                                try {
-                                  DateFormat('dd/MM/yyyy').parseStrict(v);
-                                } catch (_) {
-                                  return 'Format tanggal tidak valid (DD/MM/YYYY)';
-                                }
-                                return null;
-                              },
-                              onTap: () async {
-                                final initial =
-                                    _selectedMeetingDate ?? DateTime.now();
-                                final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: initial,
-                                  firstDate: DateTime(2000, 1, 1),
-                                  lastDate: DateTime(2100, 12, 31),
-                                );
-                                if (picked != null) {
-                                  _selectedMeetingDate = picked;
-                                  _meetingDateController.text =
-                                      DateFormat('dd/MM/yyyy').format(picked);
-                                  setState(() {});
-                                }
-                              },
-                              onChanged: (v) {
-                                try {
-                                  _selectedMeetingDate =
-                                      DateFormat('dd/MM/yyyy')
-                                          .parseStrict(v.trim());
-                                } catch (_) {
-                                  _selectedMeetingDate = null;
-                                }
-                                setState(() {});
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 5,
-                            child: TextFormField(
-                              controller: _meetingTimeController,
-                              decoration: const InputDecoration(
-                                hintText: 'Masukan waktu',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.access_time_outlined),
-                              ),
-                              validator: (value) {
-                                final v = (value ?? '').trim();
-                                if (v.isEmpty) {
-                                  return 'Waktu rapat harus diisi';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      //Ruang rapat
-                      ApiDropdownField(
-                        label: 'Ruang Rapat',
-                        placeholder: 'Pilih Ruang Rapat',
-                        tableName: 'm_ruang_rapat',
-                        controller: _ruangRapatController,
-                        // onChanged: (val) {
-                        //   _handleRuangRapatChanged(val);
-                        // },
-                        itemTextBuilder: (it) => it.deskripsi,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Ruang rapat harus dipilih';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      //Peserta rapat
-                      ApiMultiSelectField(
-                        label: 'Peserta Rapat',
-                        placeholder: 'Pilih Peserta rapat',
-                        tableName: 'm_tujuan_disposisi',
-                        controller: _pesertaRapatController,
-                        selectedValues: _selectedPesertaRapat,
-                        itemTextBuilder: (it) => it.deskripsi,
-                        validator: (values) {
-                          if (values == null || values.isEmpty) {
-                            return 'Minimal pilih 1 Peserta rapat';
-                          }
-                          return null;
-                        },
-                        onChanged: (vals) {
-                          _selectedPesertaRapat
-                            ..clear()
-                            ..addAll(vals);
-                          setState(() {});
-                        },
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        transitionBuilder: (child, anim) =>
+                            SizeTransition(sizeFactor: anim, child: child),
+                        child: _showGroupLampirandanRingkasan
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Perihal',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  TextFormField(
+                                    controller: _perihalController,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Masukkan perihal surat',
+                                      border: OutlineInputBorder(),
+                                      prefixIcon: Icon(Icons.subject_outlined),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Ringkasan',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  TextFormField(
+                                    controller: _ringkasanController,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Masukkan ringkasan',
+                                      border: OutlineInputBorder(),
+                                      prefixIcon: Icon(Icons.notes_outlined),
+                                      alignLabelWithHint: true,
+                                    ),
+                                    maxLines: 4,
+                                    textCapitalization:
+                                        TextCapitalization.sentences,
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
                       ),
 
-                      const SizedBox(height: 24),
-                      //Pimpinan rapat
-                      ApiDropdownField(
-                        label: 'Pimpinan',
-                        placeholder: 'Pilih Piminan rapat',
-                        tableName: 'm_tujuan_disposisi',
-                        controller: _pimpinanRapatController,
-                        itemTextBuilder: (it) => it.deskripsi,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Pimpinan rapat harus dipilih';
-                          }
-                          return null;
-                        },
+                      // Wrap(
+                      //   spacing: 8,
+                      //   runSpacing: 8,
+                      //   children: [
+                      //     FilterChip(
+                      //       label: const Text('Ditujukan'),
+                      //       selected: _showGroupDitujukan,
+                      //       onSelected: (v) {
+                      //         setState(() => _showGroupDitujukan = v);
+                      //       },
+                      //     ),
+                      //   ],
+                      // ),
+
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        transitionBuilder: (child, anim) =>
+                            SizeTransition(sizeFactor: anim, child: child),
+                        child: _showGroupDitujukan
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ApiMultiSelectField(
+                                    label: 'Di tujukan',
+                                    placeholder: 'Pilih tujuan disposisi',
+                                    tableName: 'm_tujuan_disposisi',
+                                    controller: _tujuanDisposisiController,
+                                    selectedValues: _selectedTujuanDisposisi,
+                                    itemTextBuilder: (it) => it.deskripsi,
+                                    validator: (values) {
+                                      if (values == null || values.isEmpty) {
+                                        return 'Minimal pilih 1 tujuan disposisi';
+                                      }
+                                      return null;
+                                    },
+                                    onChanged: (vals) {
+                                      _selectedTujuanDisposisi
+                                        ..clear()
+                                        ..addAll(vals);
+                                      setState(() {});
+                                    },
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
                       ),
 
-                      const SizedBox(height: 24),
+                      // Wrap(
+                      //   spacing: 8,
+                      //   runSpacing: 8,
+                      //   children: [
+                      //     FilterChip(
+                      //       label: const Text('Rapat'),
+                      //       selected: _showGroupRapat,
+                      //       onSelected: (v) {
+                      //         setState(() => _showGroupRapat = v);
+                      //       },
+                      //     ),
+                      //     FilterChip(
+                      //       label: const Text('Waktu Rapat'),
+                      //       selected: _showWaktuRapat,
+                      //       onSelected: (v) {
+                      //         setState(() => _showWaktuRapat = v);
+                      //       },
+                      //     ),
+                      //     FilterChip(
+                      //       label: const Text('Ruang Rapat'),
+                      //       selected: _showRuangRapat,
+                      //       onSelected: (v) {
+                      //         setState(() => _showRuangRapat = v);
+                      //       },
+                      //     ),
+                      //     FilterChip(
+                      //       label: const Text('Peserta Rapat'),
+                      //       selected: _showPesertaRapat,
+                      //       onSelected: (v) {
+                      //         setState(() => _showPesertaRapat = v);
+                      //       },
+                      //     ),
+                      //     FilterChip(
+                      //       label: const Text('Pimpinan Rapat'),
+                      //       selected: _showPimpinanRapat,
+                      //       onSelected: (v) {
+                      //         setState(() => _showPimpinanRapat = v);
+                      //       },
+                      //     ),
+                      //     FilterChip(
+                      //       label: const Text('Pokok Bahasan'),
+                      //       selected: _showPokokBahasanRapat,
+                      //       onSelected: (v) {
+                      //         setState(() => _showPokokBahasanRapat = v);
+                      //       },
+                      //     ),
+                      //   ],
+                      // ),
 
-                      //bahasan rapat
-                      Text(
-                        'Pokok Bahasan Rapat',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        transitionBuilder: (child, anim) =>
+                            SizeTransition(sizeFactor: anim, child: child),
+                        child: _showGroupRapat
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 250),
+                                    transitionBuilder: (child, anim) =>
+                                        SizeTransition(
+                                      sizeFactor: anim,
+                                      child: child,
+                                    ),
+                                    child: _showWaktuRapat
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Waktu Rapat',
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    flex: 5,
+                                                    child: TextFormField(
+                                                      controller:
+                                                          _meetingDateController,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                        hintText: 'DD/MM/YYYY',
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                        prefixIcon: Icon(Icons
+                                                            .calendar_today_outlined),
+                                                      ),
+                                                      validator: (value) {
+                                                        final v = (value ?? '')
+                                                            .trim();
+                                                        if (v.isEmpty) {
+                                                          return 'Tanggal rapat harus diisi';
+                                                        }
+                                                        try {
+                                                          DateFormat(
+                                                                  'dd/MM/yyyy')
+                                                              .parseStrict(v);
+                                                        } catch (_) {
+                                                          return 'Format tanggal tidak valid (DD/MM/YYYY)';
+                                                        }
+                                                        return null;
+                                                      },
+                                                      onTap: () async {
+                                                        final initial =
+                                                            _selectedMeetingDate ??
+                                                                DateTime.now();
+                                                        final picked =
+                                                            await showDatePicker(
+                                                          context: context,
+                                                          initialDate: initial,
+                                                          firstDate: DateTime(
+                                                              2000, 1, 1),
+                                                          lastDate: DateTime(
+                                                              2100, 12, 31),
+                                                        );
+                                                        if (picked != null) {
+                                                          _selectedMeetingDate =
+                                                              picked;
+                                                          _meetingDateController
+                                                              .text = DateFormat(
+                                                                  'dd/MM/yyyy')
+                                                              .format(picked);
+                                                          setState(() {});
+                                                        }
+                                                      },
+                                                      onChanged: (v) {
+                                                        try {
+                                                          _selectedMeetingDate =
+                                                              DateFormat(
+                                                                      'dd/MM/yyyy')
+                                                                  .parseStrict(
+                                                                      v.trim());
+                                                        } catch (_) {
+                                                          _selectedMeetingDate =
+                                                              null;
+                                                        }
+                                                        setState(() {});
+                                                      },
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    flex: 5,
+                                                    child: TextFormField(
+                                                      controller:
+                                                          _meetingTimeController,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                        hintText:
+                                                            'Masukan waktu',
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                        prefixIcon: Icon(Icons
+                                                            .access_time_outlined),
+                                                      ),
+                                                      validator: (value) {
+                                                        final v = (value ?? '')
+                                                            .trim();
+                                                        if (v.isEmpty) {
+                                                          return 'Waktu rapat harus diisi';
+                                                        }
+                                                        return null;
+                                                      },
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 12),
+                                            ],
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 250),
+                                    transitionBuilder: (child, anim) =>
+                                        SizeTransition(
+                                      sizeFactor: anim,
+                                      child: child,
+                                    ),
+                                    child: _showRuangRapat
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              ApiDropdownField(
+                                                label: 'Ruang Rapat',
+                                                placeholder:
+                                                    'Pilih Ruang Rapat',
+                                                tableName: 'm_ruang_rapat',
+                                                controller:
+                                                    _ruangRapatController,
+                                                itemTextBuilder: (it) =>
+                                                    it.deskripsi,
+                                                validator: (value) {
+                                                  if (value == null ||
+                                                      value.isEmpty) {
+                                                    return 'Ruang rapat harus dipilih';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                              const SizedBox(height: 24),
+                                            ],
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 250),
+                                    transitionBuilder: (child, anim) =>
+                                        SizeTransition(
+                                      sizeFactor: anim,
+                                      child: child,
+                                    ),
+                                    child: _showPesertaRapat
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              ApiMultiSelectField(
+                                                label: 'Peserta Rapat',
+                                                placeholder:
+                                                    'Pilih Peserta rapat',
+                                                tableName: 'm_tujuan_disposisi',
+                                                controller:
+                                                    _pesertaRapatController,
+                                                selectedValues:
+                                                    _selectedPesertaRapat,
+                                                itemTextBuilder: (it) =>
+                                                    it.deskripsi,
+                                                validator: (values) {
+                                                  if (values == null ||
+                                                      values.isEmpty) {
+                                                    return 'Minimal pilih 1 Peserta rapat';
+                                                  }
+                                                  return null;
+                                                },
+                                                onChanged: (vals) {
+                                                  _selectedPesertaRapat
+                                                    ..clear()
+                                                    ..addAll(vals);
+                                                  setState(() {});
+                                                },
+                                              ),
+                                              const SizedBox(height: 24),
+                                            ],
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 250),
+                                    transitionBuilder: (child, anim) =>
+                                        SizeTransition(
+                                      sizeFactor: anim,
+                                      child: child,
+                                    ),
+                                    child: _showPimpinanRapat
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              ApiDropdownField(
+                                                label: 'Pimpinan',
+                                                placeholder:
+                                                    'Pilih Piminan rapat',
+                                                tableName: 'm_tujuan_disposisi',
+                                                controller:
+                                                    _pimpinanRapatController,
+                                                itemTextBuilder: (it) =>
+                                                    it.deskripsi,
+                                                validator: (value) {
+                                                  if (value == null ||
+                                                      value.isEmpty) {
+                                                    return 'Pimpinan rapat harus dipilih';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                              const SizedBox(height: 24),
+                                            ],
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 250),
+                                    transitionBuilder: (child, anim) =>
+                                        SizeTransition(
+                                      sizeFactor: anim,
+                                      child: child,
+                                    ),
+                                    child: _showPokokBahasanRapat
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Pokok Bahasan Rapat',
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              TextFormField(
+                                                controller:
+                                                    _pokokBahasanController,
+                                                decoration:
+                                                    const InputDecoration(
+                                                  hintText:
+                                                      'Masukkan pokok bahasan rapat',
+                                                  border: OutlineInputBorder(),
+                                                  prefixIcon: Icon(
+                                                      Icons.topic_outlined),
+                                                  alignLabelWithHint: true,
+                                                ),
+                                                maxLines: 4,
+                                                textCapitalization:
+                                                    TextCapitalization
+                                                        .sentences,
+                                                validator: (value) {
+                                                  final v =
+                                                      (value ?? '').trim();
+                                                  if (v.isEmpty) {
+                                                    return 'Pokok bahasan rapat harus diisi';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                              const SizedBox(height: 12),
+                                            ],
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
                       ),
-                      TextFormField(
-                        controller: _pokokBahasanController,
-                        decoration: const InputDecoration(
-                          hintText: 'Masukkan pokok bahasan rapat',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.topic_outlined),
-                          alignLabelWithHint: true,
-                        ),
-                        maxLines: 4,
-                        textCapitalization: TextCapitalization.sentences,
-                        validator: (value) {
-                          final v = (value ?? '').trim();
-                          if (v.isEmpty) {
-                            return 'Pokok bahasan rapat harus diisi';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
 
                       // User information display
                       _buildUserInfo(),
