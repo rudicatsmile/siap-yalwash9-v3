@@ -10,6 +10,12 @@ import '../../widgets/form/api_dropdown_field.dart';
 import '../../widgets/form/api_multi_select_field.dart';
 import 'package:siap/presentation/utils/doc_number_logic.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:dio/dio.dart' as dio;
+import '../../../core/constants/api_constants.dart';
+import 'dart:typed_data';
+import 'dart:async';
 
 /// Document form screen for creating and editing documents
 class DocumentFormScreen extends StatefulWidget {
@@ -56,6 +62,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   bool _showJenisDokumen = false;
   bool _showKategoriLaporan = false;
   bool _showUndanganKepada = false;
+  bool _showGroupUploadImages = true;
   static const List<String> _romanMonths = [
     'I',
     'II',
@@ -95,6 +102,162 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final List<String> _selectedTujuanDisposisi = <String>[];
   final List<String> _selectedPesertaRapat = <String>[];
 
+  final ImagePicker _imagePicker = ImagePicker();
+  final ApiService _api = ApiService();
+  final List<_UploadItem> _uploadItems = <_UploadItem>[];
+
+  Future<void> _pickImagesFromGallery() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: true,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    for (final f in result.files) {
+      final name = f.name.toLowerCase();
+      final size = f.size;
+      final bytes = f.bytes;
+      final path = f.path;
+      if (!_isSupportedImage(name)) {
+        Get.snackbar('Error', 'Format gambar tidak didukung: $name',
+            backgroundColor: AppTheme.errorColor, colorText: Colors.white);
+        continue;
+      }
+      if (size > 5 * 1024 * 1024) {
+        Get.snackbar('Error', 'Ukuran gambar melebihi 5MB: $name',
+            backgroundColor: AppTheme.errorColor, colorText: Colors.white);
+        continue;
+      }
+      final item = _UploadItem(
+        name: f.name,
+        size: size,
+        bytes: bytes,
+        path: path,
+      );
+      setState(() => _uploadItems.add(item));
+      unawaited(_startUpload(item));
+    }
+  }
+
+  Future<void> _takePhotoWithCamera() async {
+    final x = await _imagePicker.pickImage(source: ImageSource.camera);
+    if (x == null) return;
+    final name = x.name.toLowerCase();
+    final size = await x.length();
+    final bytes = await x.readAsBytes();
+    if (!_isSupportedImage(name)) {
+      Get.snackbar('Error', 'Format gambar tidak didukung: $name',
+          backgroundColor: AppTheme.errorColor, colorText: Colors.white);
+      return;
+    }
+    if (size > 5 * 1024 * 1024) {
+      Get.snackbar('Error', 'Ukuran gambar melebihi 5MB',
+          backgroundColor: AppTheme.errorColor, colorText: Colors.white);
+      return;
+    }
+    final item = _UploadItem(
+      name: x.name,
+      size: size,
+      bytes: bytes,
+      path: x.path,
+    );
+    setState(() => _uploadItems.add(item));
+    unawaited(_startUpload(item));
+  }
+
+  bool _isSupportedImage(String filename) {
+    return filename.endsWith('.jpg') ||
+        filename.endsWith('.jpeg') ||
+        filename.endsWith('.png') ||
+        filename.endsWith('.webp');
+  }
+
+  Future<void> _startUpload(_UploadItem item) async {
+    item.uploading = true;
+    item.error = null;
+    item.cancelToken = dio.CancelToken();
+    setState(() {});
+    try {
+      final form = dio.FormData.fromMap({});
+      if (item.bytes != null) {
+        form.files.add(
+          MapEntry(
+            'file',
+            dio.MultipartFile.fromBytes(item.bytes!, filename: item.name),
+          ),
+        );
+      } else if (item.path != null) {
+        form.files.add(
+          MapEntry(
+            'file',
+            await dio.MultipartFile.fromFile(item.path!, filename: item.name),
+          ),
+        );
+      } else {
+        throw Exception('File tidak ditemukan');
+      }
+      final res = await _api.post(
+        ApiConstants.uploads,
+        data: form,
+        options: dio.Options(headers: {
+          'Content-Type': 'multipart/form-data',
+        }),
+        cancelToken: item.cancelToken,
+        onSendProgress: (sent, total) {
+          item.progress = total == 0 ? 0 : sent / total;
+          setState(() {});
+        },
+      );
+      final data = res.data is Map<String, dynamic>
+          ? (res.data as Map<String, dynamic>)
+          : <String, dynamic>{};
+      item.success = true;
+      item.uploading = false;
+      item.tempId = (data['data'] is Map<String, dynamic>)
+          ? (data['data']['id']?.toString())
+          : null;
+      item.tempUrl = (data['data'] is Map<String, dynamic>)
+          ? (data['data']['url'] as String?)
+          : null;
+      setState(() {});
+    } on dio.DioException catch (e) {
+      item.uploading = false;
+      item.success = false;
+      if (dio.CancelToken.isCancel(e)) {
+        item.error = 'Dibatalkan';
+      } else {
+        item.error = e.message ?? e.toString();
+      }
+      setState(() {});
+    } catch (e) {
+      item.uploading = false;
+      item.success = false;
+      item.error = e.toString();
+      setState(() {});
+    }
+  }
+
+  void _cancelUpload(_UploadItem item) {
+    if (item.cancelToken != null && !item.cancelToken!.isCancelled) {
+      item.cancelToken!.cancel('User canceled');
+    }
+  }
+
+  void _cancelAllUploads() {
+    for (final it in _uploadItems) {
+      if (it.uploading) {
+        _cancelUpload(it);
+      }
+    }
+  }
+
+  void _removeUpload(_UploadItem item) {
+    if (item.uploading) {
+      _cancelUpload(item);
+    }
+    setState(() => _uploadItems.remove(item));
+  }
+
   // Mendapatkan deskripsi item terpilih dari DropdownController.
   // Digunakan untuk membedakan kategori: Dokumen, Undangan, Laporan.
   String? _getSelectedDeskripsi(DropdownController ctrl) {
@@ -102,6 +265,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     final match = ctrl.items.where((it) => it.kode == kode);
     if (match.isEmpty) return null;
     return match.first.deskripsi;
+  }
+
+  //create function _getSelectedKode(DropdownController ctrl)
+  // Mendapatkan kode item terpilih dari DropdownController.
+  // Digunakan untuk membedakan kategori: Dokumen, Undangan, Laporan.
+  String? _getSelectedKode(DropdownController ctrl) {
+    return ctrl.selectedKode.value;
   }
 
   // Mereset nilai bagian kedua nomor dokumen saat kategori berganti.
@@ -114,9 +284,12 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   // - Undangan: diset statis 'UND' dan readonly
   // - Laporan: menggunakan kode dari dropdown Kategori Laporan
   void _handleKategoriChanged(String? kode) {
+    final kategoriKode = _getSelectedKode(_kategoriController);
     final kategoriDesc =
         _getSelectedDeskripsi(_kategoriController)?.toLowerCase().trim() ?? '';
     _resetDocNumberPart2();
+
+    print('kategoriKode: $kategoriKode');
 
     /*
   bool _showGroupIdentitasDokumen = true;
@@ -135,7 +308,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   bool _showKategoriLaporan = true;
   bool _showUndanganKepada = true;
     */
-    if (kategoriDesc.contains('undangan')) {
+    if (kategoriKode == 'Undangan') {
       print('UND : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = true;
       _docNumberPart2Controller.text = 'UND';
@@ -147,8 +320,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showGroupLampirandanRingkasan = true;
         _showGroupDitujukan = false;
         _showGroupRapat = false;
+        _showGroupUploadImages = true;
       });
-    } else if (kode == 'Rapat') {
+    } else if (kategoriKode == 'Rapat') {
       print('RPT. : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = true;
       _docNumberPart2Controller.text = 'RPT';
@@ -159,10 +333,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showGroupLampirandanRingkasan = false;
         _showGroupDitujukan = false;
         _showGroupRapat = true;
+        _showWaktuRapat = true;
+        _showRuangRapat = true;
+        _showPesertaRapat = true;
+        _showPimpinanRapat = true;
+        _showPokokBahasanRapat = true;
+        _showGroupUploadImages = false;
       });
-      setState(() => _showKategoriLaporan = false);
-      setState(() => _showGroupDitujukan = false);
-    } else if (kategoriDesc.contains('dokumen')) {
+    } else if (kategoriKode == 'Dokumen') {
       print('DOC : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = false;
       final jenisKode = _jenisController.selectedKode.value;
@@ -185,8 +363,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showGroupLampirandanRingkasan = true;
         _showGroupDitujukan = false;
         _showGroupRapat = false;
+        _showGroupUploadImages = true;
       });
-    } else if (kategoriDesc.contains('laporan')) {
+    } else if (kategoriKode == 'Laporan') {
       print('LAP : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = false;
       final laporanKode = _kategoriLaporanController.selectedKode.value;
@@ -209,6 +388,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showGroupLampirandanRingkasan = true;
         _showGroupDitujukan = true;
         _showGroupRapat = false;
+        _showGroupUploadImages = true;
       });
     } else {
       _isDocNumberPart2ReadOnly = false;
@@ -354,6 +534,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}';
     _selectedLetterDate = now;
     _letterDateController.text = DateFormat('dd-MM-yyyy').format(now);
+    _selectedMeetingDate = now;
+    _meetingDateController.text = DateFormat('dd/MM/yyyy').format(now);
     _computeLetterNumberPart2();
   }
 
@@ -456,6 +638,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
   void setShowGroupRapat(bool visible) {
     setState(() => _showGroupRapat = visible);
+  }
+
+  void setShowGroupUploadImages(bool visible) {
+    setState(() => _showGroupUploadImages = visible);
   }
 
   void setShowWaktuRapat(bool visible) {
@@ -572,7 +758,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       //     ),
                       //   );
                       // }),
-                      const SizedBox(height: 16),
                       // Wrap(
                       //   spacing: 8,
                       //   runSpacing: 8,
@@ -756,6 +941,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                       Icons.person_outlined),
                                                 ),
                                               ),
+                                              const SizedBox(height: 16),
                                             ],
                                           )
                                         : const SizedBox.shrink(),
@@ -765,7 +951,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                             : const SizedBox.shrink(),
                       ),
 
-                      const SizedBox(height: 24),
                       // Wrap(
                       //   spacing: 8,
                       //   runSpacing: 8,
@@ -804,12 +989,12 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                       return null;
                                     },
                                   ),
+                                  const SizedBox(height: 16),
                                 ],
                               )
                             : const SizedBox.shrink(),
                       ),
 
-                      const SizedBox(height: 24),
                       // Wrap(
                       //   spacing: 8,
                       //   runSpacing: 8,
@@ -847,11 +1032,11 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                       return null;
                                     },
                                   ),
+                                  const SizedBox(height: 16),
                                 ],
                               )
                             : const SizedBox.shrink(),
                       ),
-                      const SizedBox(height: 16),
 
                       // Dropdown User Undangan (sumber data dari /api/users/dropdown dengan parameter kode_user=YS)
                       // Wrap(
@@ -941,6 +1126,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                       ),
                                     );
                                   }),
+                                  const SizedBox(height: 16),
                                 ],
                               )
                             : const SizedBox.shrink(),
@@ -996,6 +1182,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                           _handleTodayDateChanged(v);
                         },
                       ),
+                      const SizedBox(height: 16),
 
                       //Bagian 1: Nomor surat yang diinput oleh pengguna
                       //Bagian 2: Gabungan kata dan angka yang tergantung dari bulan controller _todayDateController
@@ -1051,7 +1238,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 16),
 
                       // Wrap(
@@ -1069,6 +1255,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       //   ],
                       // ),
 
+                      //Group Lampiran & Ringkasan
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 250),
                         transitionBuilder: (child, anim) =>
@@ -1128,6 +1315,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       //   ],
                       // ),
 
+                      //Group Ditujukan
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 250),
                         transitionBuilder: (child, anim) =>
@@ -1210,6 +1398,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       //   ],
                       // ),
 
+                      //Group Rapat
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 250),
                         transitionBuilder: (child, anim) =>
@@ -1331,7 +1520,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                   ),
                                                 ],
                                               ),
-                                              const SizedBox(height: 12),
+                                              const SizedBox(height: 16),
                                             ],
                                           )
                                         : const SizedBox.shrink(),
@@ -1365,7 +1554,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                   return null;
                                                 },
                                               ),
-                                              const SizedBox(height: 24),
+                                              const SizedBox(height: 16),
                                             ],
                                           )
                                         : const SizedBox.shrink(),
@@ -1407,7 +1596,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                   setState(() {});
                                                 },
                                               ),
-                                              const SizedBox(height: 24),
+                                              const SizedBox(height: 16),
                                             ],
                                           )
                                         : const SizedBox.shrink(),
@@ -1441,7 +1630,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                   return null;
                                                 },
                                               ),
-                                              const SizedBox(height: 24),
+                                              const SizedBox(height: 16),
                                             ],
                                           )
                                         : const SizedBox.shrink(),
@@ -1499,8 +1688,228 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                             : const SizedBox.shrink(),
                       ),
 
+                      // Upload gambar (multi-file, preview, progress, cancel)
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        transitionBuilder: (child, anim) =>
+                            SizeTransition(sizeFactor: anim, child: child),
+                        child: _showGroupUploadImages
+                            ? Card(
+                                elevation: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
+                                        children: [
+                                          const Text(
+                                            'Lampiran Berkas',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: [
+                                              TextButton.icon(
+                                                onPressed:
+                                                    _pickImagesFromGallery,
+                                                icon: const Icon(Icons
+                                                    .photo_library_outlined),
+                                                label: const Text('Galeri'),
+                                              ),
+                                              TextButton.icon(
+                                                onPressed: _takePhotoWithCamera,
+                                                icon: const Icon(Icons
+                                                    .photo_camera_outlined),
+                                                label: const Text('Kamera'),
+                                              ),
+                                              if (_uploadItems
+                                                  .any((it) => it.uploading))
+                                                TextButton.icon(
+                                                  onPressed: _cancelAllUploads,
+                                                  icon: const Icon(Icons
+                                                      .pause_circle_outline),
+                                                  label: const Text(
+                                                      'Batalkan semua'),
+                                                ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      // Content and Preview gambar
+                                      LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final width = constraints.maxWidth;
+                                          final crossAxisCount = width >= 1000
+                                              ? 5
+                                              : width >= 800
+                                                  ? 4
+                                                  : width >= 600
+                                                      ? 3
+                                                      : 2;
+                                          return GridView.builder(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            gridDelegate:
+                                                SliverGridDelegateWithFixedCrossAxisCount(
+                                              crossAxisCount: crossAxisCount,
+                                              crossAxisSpacing: 8,
+                                              mainAxisSpacing: 8,
+                                              childAspectRatio: 1,
+                                            ),
+                                            itemCount: _uploadItems.length,
+                                            itemBuilder: (context, index) {
+                                              final it = _uploadItems[index];
+                                              return Container(
+                                                decoration: BoxDecoration(
+                                                  border: Border.all(
+                                                    color: it.success
+                                                        ? Colors.green
+                                                            .withOpacity(0.5)
+                                                        : it.uploading
+                                                            ? AppTheme
+                                                                .primaryColor
+                                                                .withOpacity(
+                                                                    0.5)
+                                                            : AppTheme
+                                                                .errorColor
+                                                                .withOpacity(
+                                                                    0.5),
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Column(
+                                                  children: [
+                                                    Expanded(
+                                                      child: ClipRRect(
+                                                        borderRadius:
+                                                            const BorderRadius
+                                                                .only(
+                                                          topLeft:
+                                                              Radius.circular(
+                                                                  8),
+                                                          topRight:
+                                                              Radius.circular(
+                                                                  8),
+                                                        ),
+                                                        child: it.bytes != null
+                                                            ? Image.memory(
+                                                                it.bytes!,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                width: double
+                                                                    .infinity,
+                                                              )
+                                                            : const Center(
+                                                                child: Icon(Icons
+                                                                    .image)),
+                                                      ),
+                                                    ),
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            it.name,
+                                                            maxLines: 1,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                          Text(
+                                                              '${(it.size / (1024 * 1024)).toStringAsFixed(2)} MB',
+                                                              style: const TextStyle(
+                                                                  fontSize: 12,
+                                                                  color: Colors
+                                                                      .grey)),
+                                                          const SizedBox(
+                                                              height: 6),
+                                                          if (it.uploading)
+                                                            LinearProgressIndicator(
+                                                                value: it
+                                                                    .progress),
+                                                          if (it.error != null)
+                                                            Text(
+                                                              it.error!,
+                                                              style: const TextStyle(
+                                                                  fontSize: 12,
+                                                                  color: AppTheme
+                                                                      .errorColor),
+                                                            ),
+                                                          if (it.success &&
+                                                              it.tempUrl !=
+                                                                  null)
+                                                            Text(
+                                                              'Terupload',
+                                                              style: const TextStyle(
+                                                                  fontSize: 12,
+                                                                  color: Colors
+                                                                      .green),
+                                                            ),
+                                                          const SizedBox(
+                                                              height: 6),
+                                                          Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .end,
+                                                            children: [
+                                                              if (it.uploading)
+                                                                IconButton(
+                                                                  icon: const Icon(
+                                                                      Icons
+                                                                          .pause_circle_outline),
+                                                                  tooltip:
+                                                                      'Batalkan',
+                                                                  onPressed: () =>
+                                                                      _cancelUpload(
+                                                                          it),
+                                                                ),
+                                                              IconButton(
+                                                                icon: const Icon(
+                                                                    Icons
+                                                                        .delete_outline),
+                                                                tooltip:
+                                                                    'Hapus',
+                                                                onPressed: () =>
+                                                                    _removeUpload(
+                                                                        it),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+
                       // User information display
-                      _buildUserInfo(),
+                      //_buildUserInfo(),
                       const SizedBox(height: 32),
 
                       // Action buttons
@@ -1534,8 +1943,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           Expanded(
             child: Text(
               _isEditMode
-                  ? 'Anda dapat mengedit pengajuan berkas selama status masih pending dan belum disetujui.'
-                  : 'Pengajuan berkas akan diajukan dengan status pending setelah disimpan.',
+                  ? 'Anda dapat mengedit pengajuan berkas selama status belum di proses kepala bagian umum.'
+                  : 'Pengajuan berkas akan diajukan ke kepala bagian umum setelah disimpan.',
               style: TextStyle(
                 fontSize: 13,
                 color: AppTheme.primaryColor,
@@ -1835,5 +2244,33 @@ class _UserOption {
     required this.namaLengkap,
     required this.username,
     this.jabatan,
+  });
+}
+
+class _UploadItem {
+  final String name;
+  final int size;
+  final Uint8List? bytes;
+  final String? path;
+  double progress;
+  bool uploading;
+  bool success;
+  String? error;
+  String? tempId;
+  String? tempUrl;
+  dio.CancelToken? cancelToken;
+
+  _UploadItem({
+    required this.name,
+    required this.size,
+    this.bytes,
+    this.path,
+    this.progress = 0,
+    this.uploading = false,
+    this.success = false,
+    this.error,
+    this.tempId,
+    this.tempUrl,
+    this.cancelToken,
   });
 }

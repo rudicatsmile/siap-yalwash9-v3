@@ -16,6 +16,7 @@ class ApiConstants {
   static String documentDetail(int id) => '/api/documents/$id';
   static String updateDocumentStatus(int id) => '/api/documents/$id/status';
   static const String documentsLastNoSurat = '/api/documents/last-no-surat';
+  static const String uploads = '/api/uploads/images';
 
   // API Endpoints - Meetings
   static const String meetings = '/api/meetings';
