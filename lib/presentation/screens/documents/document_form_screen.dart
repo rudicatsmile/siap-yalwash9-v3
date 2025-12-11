@@ -105,6 +105,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   final ApiService _api = ApiService();
   final List<_UploadItem> _uploadItems = <_UploadItem>[];
+  String? _uploadValidationError;
 
   Future<void> _pickImagesFromGallery() async {
     final result = await FilePicker.platform.pickFiles(
@@ -290,26 +291,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _resetDocNumberPart2();
 
     print('kategoriKode: $kategoriKode');
+    print('kategoriDesc: $kategoriDesc');
 
-    /*
-  bool _showGroupIdentitasDokumen = true;
-  bool _showNomorDokumen = true;
-  bool _showTanggalBuat = true;
-  bool _showPengirim = true;
-  bool _showGroupRapat = true;
-  bool _showWaktuRapat = true;
-  bool _showRuangRapat = true;
-  bool _showPesertaRapat = true;
-  bool _showPimpinanRapat = true;
-  bool _showPokokBahasanRapat = true;
-  bool _showGroupLampirandanRingkasan = true;
-  bool _showGroupDitujukan = true;
-  bool _showJenisDokumen = true;
-  bool _showKategoriLaporan = true;
-  bool _showUndanganKepada = true;
-    */
     if (kategoriKode == 'Undangan') {
-      print('UND : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = true;
       _docNumberPart2Controller.text = 'UND';
 
@@ -323,7 +307,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showGroupUploadImages = true;
       });
     } else if (kategoriKode == 'Rapat') {
-      print('RPT. : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = true;
       _docNumberPart2Controller.text = 'RPT';
       setState(() {
@@ -341,7 +324,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showGroupUploadImages = false;
       });
     } else if (kategoriKode == 'Dokumen') {
-      print('DOC : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = false;
       final jenisKode = _jenisController.selectedKode.value;
       if (jenisKode.isEmpty) {
@@ -366,7 +348,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showGroupUploadImages = true;
       });
     } else if (kategoriKode == 'Laporan') {
-      print('LAP : kategoriDesc: $kategoriDesc');
       _isDocNumberPart2ReadOnly = false;
       final laporanKode = _kategoriLaporanController.selectedKode.value;
       if (laporanKode.isEmpty) {
@@ -642,6 +623,29 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
   void setShowGroupUploadImages(bool visible) {
     setState(() => _showGroupUploadImages = visible);
+  }
+
+  bool _isUploadRequiredForSelectedCategory() {
+    final kode = _getSelectedKode(_kategoriController);
+    return kode == 'Dokumen' || kode == 'Undangan' || kode == 'Laporan';
+  }
+
+  bool _validateUploadRequirement() {
+    if (_isUploadRequiredForSelectedCategory() && _uploadItems.isEmpty) {
+      _uploadValidationError =
+          'Lampiran gambar wajib diunggah untuk kategori yang dipilih';
+      setState(() {});
+      Get.snackbar(
+        'Error',
+        _uploadValidationError!,
+        backgroundColor: AppTheme.errorColor,
+        colorText: Colors.white,
+      );
+      return false;
+    }
+    _uploadValidationError = null;
+    setState(() {});
+    return true;
   }
 
   void setShowWaktuRapat(bool visible) {
@@ -1743,6 +1747,18 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                           ),
                                         ],
                                       ),
+                                      if (_uploadValidationError != null)
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 8),
+                                          child: Text(
+                                            _uploadValidationError!,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppTheme.errorColor,
+                                            ),
+                                          ),
+                                        ),
                                       const SizedBox(height: 12),
                                       // Content and Preview gambar
                                       LayoutBuilder(
@@ -2051,6 +2067,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (!_validateUploadRequirement()) {
       return;
     }
 
