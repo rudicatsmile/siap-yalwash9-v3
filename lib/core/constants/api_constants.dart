@@ -18,6 +18,7 @@ class ApiConstants {
   static const String documentsLastNoSurat = '/api/documents/last-no-surat';
   static const String uploads = '/api/uploads/images';
   static const String suratMasuk = '/api/surat-masuk';
+  static const String lampiranUpload = '/api/lampiran/upload';
 
   // API Endpoints - Meetings
   static const String meetings = '/api/meetings';

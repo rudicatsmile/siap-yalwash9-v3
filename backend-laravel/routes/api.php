@@ -73,4 +73,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Surat Masuk (tbl_sm)
     Route::post('/surat-masuk', [SuratMasukController::class, 'store']);
+    // Upload Lampiran (tbl_lampiran)
+    Route::post('/lampiran/upload', [SuratMasukController::class, 'uploadLampiran']);
 });

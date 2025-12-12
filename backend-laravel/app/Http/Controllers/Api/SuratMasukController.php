@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSuratMasukRequest;
 use App\Models\Document;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class SuratMasukController extends Controller
 {
@@ -55,5 +58,79 @@ class SuratMasukController extends Controller
             ], 500);
         }
     }
-}
 
+    /**
+     * Upload lampiran file dan simpan metadata ke tabel tbl_lampiran.
+     *
+     * Menerima file multipart dan parameter:
+     * - no_surat: string (wajib)
+     * - tgl_surat: date (wajib, format Y-m-d)
+     *
+     * token_lampiran di-generate: md5("{id_user}-{no_surat_part1}-{tgl_surat_ymd}")
+     * nama_berkas diambil dari original filename, ukuran dari size file.
+     */
+    public function uploadLampiran(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        try {
+            $validated = $request->validate([
+                'file' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
+                'no_surat' => 'required|string',
+                'tgl_surat' => 'required|date',
+            ]);
+
+            $file = $request->file('file');
+            $originalName = $file->getClientOriginalName();
+            $size = $file->getSize();
+            $noSurat = $validated['no_surat'];
+            $tglSurat = date('Y-m-d', strtotime($validated['tgl_surat']));
+
+            $part1 = explode('/', $noSurat)[0] ?? $noSurat;
+            $token = md5(($user->id_user ?? '0') . '-' . $part1 . '-' . $tglSurat);
+
+            $path = $file->store('lampiran', 'public');
+            $id = DB::table('tbl_lampiran')->insertGetId([
+                'no_surat' => $noSurat,
+                'token_lampiran' => $token,
+                'nama_berkas' => $originalName,
+                'ukuran' => $size,
+            ]);
+
+            Log::info('Lampiran uploaded', [
+                'user_id' => $user->id_user ?? null,
+                'no_surat' => $noSurat,
+                'id_lampiran' => $id,
+                'path' => $path,
+            ]);
+
+            return response()->json([
+                'status' => 201,
+                'message' => 'Lampiran berhasil diunggah',
+                'data' => [
+                    'id' => $id,
+                    'url' => asset('storage/' . $path),
+                ],
+                'timestamp' => now()->toIso8601String(),
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 422,
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors(),
+                'timestamp' => now()->toIso8601String(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Lampiran upload failed', [
+                'error' => $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ]);
+            return response()->json([
+                'status' => 500,
+                'message' => 'Gagal mengunggah lampiran',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+                'timestamp' => now()->toIso8601String(),
+            ], 500);
+        }
+    }
+}

@@ -111,17 +111,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final _logger = Logger();
 
   Future<void> _pickImagesFromGallery() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: true,
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
-    for (final f in result.files) {
-      final name = f.name.toLowerCase();
-      final size = f.size;
-      final bytes = f.bytes;
-      final path = f.path;
+    final images = await _imagePicker.pickMultiImage();
+    if (images == null || images.isEmpty) return;
+    for (final x in images) {
+      final name = x.name.toLowerCase();
+      final size = await x.length();
+      final bytes = await x.readAsBytes();
+      final path = x.path;
       if (!_isSupportedImage(name)) {
         Get.snackbar('Error', 'Format gambar tidak didukung: $name',
             backgroundColor: AppTheme.errorColor, colorText: Colors.white);
@@ -133,7 +129,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         continue;
       }
       final item = _UploadItem(
-        name: f.name,
+        name: x.name,
         size: size,
         bytes: bytes,
         path: path,
@@ -1860,83 +1856,93 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                     .image)),
                                                       ),
                                                     ),
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              8),
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          Text(
-                                                            it.name,
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                          ),
-                                                          Text(
-                                                              '${(it.size / (1024 * 1024)).toStringAsFixed(2)} MB',
-                                                              style: const TextStyle(
-                                                                  fontSize: 12,
-                                                                  color: Colors
-                                                                      .grey)),
-                                                          const SizedBox(
-                                                              height: 6),
-                                                          if (it.uploading)
-                                                            LinearProgressIndicator(
-                                                                value: it
-                                                                    .progress),
-                                                          if (it.error != null)
-                                                            Text(
-                                                              it.error!,
-                                                              style: const TextStyle(
-                                                                  fontSize: 12,
-                                                                  color: AppTheme
-                                                                      .errorColor),
-                                                            ),
-                                                          if (it.success &&
-                                                              it.tempUrl !=
-                                                                  null)
-                                                            Text(
-                                                              'Terupload',
-                                                              style: const TextStyle(
-                                                                  fontSize: 12,
-                                                                  color: Colors
-                                                                      .green),
-                                                            ),
-                                                          const SizedBox(
-                                                              height: 6),
-                                                          Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .end,
+                                                    Flexible(
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(8),
+                                                        child:
+                                                            SingleChildScrollView(
+                                                          child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
                                                             children: [
+                                                              Text(
+                                                                it.name,
+                                                                maxLines: 1,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                              ),
+                                                              Text(
+                                                                  '${(it.size / (1024 * 1024)).toStringAsFixed(2)} MB',
+                                                                  style: const TextStyle(
+                                                                      fontSize:
+                                                                          12,
+                                                                      color: Colors
+                                                                          .grey)),
+                                                              const SizedBox(
+                                                                  height: 6),
                                                               if (it.uploading)
-                                                                IconButton(
-                                                                  icon: const Icon(
-                                                                      Icons
-                                                                          .pause_circle_outline),
-                                                                  tooltip:
-                                                                      'Batalkan',
-                                                                  onPressed: () =>
-                                                                      _cancelUpload(
-                                                                          it),
+                                                                LinearProgressIndicator(
+                                                                    value: it
+                                                                        .progress),
+                                                              if (it.error !=
+                                                                  null)
+                                                                Text(
+                                                                  it.error!,
+                                                                  style: const TextStyle(
+                                                                      fontSize:
+                                                                          12,
+                                                                      color: AppTheme
+                                                                          .errorColor),
                                                                 ),
-                                                              IconButton(
-                                                                icon: const Icon(
-                                                                    Icons
-                                                                        .delete_outline),
-                                                                tooltip:
-                                                                    'Hapus',
-                                                                onPressed: () =>
-                                                                    _removeUpload(
-                                                                        it),
+                                                              if (it.success &&
+                                                                  it.tempUrl !=
+                                                                      null)
+                                                                Text(
+                                                                  'Terupload',
+                                                                  style: const TextStyle(
+                                                                      fontSize:
+                                                                          12,
+                                                                      color: Colors
+                                                                          .green),
+                                                                ),
+                                                              const SizedBox(
+                                                                  height: 6),
+                                                              Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .end,
+                                                                children: [
+                                                                  if (it
+                                                                      .uploading)
+                                                                    IconButton(
+                                                                      icon: const Icon(
+                                                                          Icons
+                                                                              .pause_circle_outline),
+                                                                      tooltip:
+                                                                          'Batalkan',
+                                                                      onPressed:
+                                                                          () =>
+                                                                              _cancelUpload(it),
+                                                                    ),
+                                                                  IconButton(
+                                                                    icon: const Icon(
+                                                                        Icons
+                                                                            .delete_outline),
+                                                                    tooltip:
+                                                                        'Hapus',
+                                                                    onPressed: () =>
+                                                                        _removeUpload(
+                                                                            it),
+                                                                  ),
+                                                                ],
                                                               ),
                                                             ],
                                                           ),
-                                                        ],
+                                                        ),
                                                       ),
                                                     ),
                                                   ],
@@ -2144,35 +2150,23 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       final ringkasanValue = ringkasanText.isEmpty ? '-----' : ringkasanText;
 
       final payload = {
-        // 'tgl_ns': tgl,
         'no_asal':
             '${_letterNumberPart1Controller.text.trim()}/${_letterNumberPart2Controller.text.trim()}',
         'tgl_no_asal': ymd,
         'tgl_no_asal2': ymd,
         'tgl_surat': dmy,
-        'pengirim': _pengirimController.text
-            .trim(), //Nama lembaga. ex : SMP , SMK DP2 etc
+        'pengirim': _pengirimController.text.trim(),
         'penerima': penerimaValue,
-        'perihal': ringkasanValue, //Ringkasan (Penjelasan pengajuan)
-        // 'token_lampiran': lampiranIds.join(','),
-        // 'id_user' : '',
-        // 'kode_user' : '',
-        // 'tgl_sm': ymd,
-        // 'lampiran': lampiranUrls.join(','),
+        'perihal': ringkasanValue,
         'status': statusValue,
         'sifat': 'Biasa',
-        // 'id_instansi' : '',
-
-        'dibaca_pimpinan': (kategoriKode == 'Nota Dinas')
-            ? '8'
-            : '0', //if dropdown status = Nota Dinas, maka dibaca_pimpinan = 8 [Wakil pimpinan]
+        'dibaca_pimpinan': (kategoriKode == 'Nota Dinas') ? '8' : '0',
         'dibaca': (kategoriKode == 'Nota Dinas')
             ? '2'
             : (kategoriKode == 'Memo' ? '1' : '1'),
         'id_user_approved': (kategoriKode == 'Memo') ? user?.id ?? '0' : '0',
         'kode_user_approved':
             (kategoriKode == 'Memo') ? user?.kodeUser ?? '' : '',
-
         'tgl_agenda_rapat': _meetingDateController.text.trim(),
         'jam_rapat': _meetingTimeController.text.trim(),
         'ruang_rapat': _getSelectedDeskripsi(_ruangRapatController) ?? 'null',
@@ -2184,13 +2178,11 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
             .join('<br>'),
         'instruksi_kerja': 'null',
         'disposisi_memo': 'null',
-        // 'ditujukan': _tujuanDisposisiController.toString(),
         'ditujukan': _getSelectedDescriptions(
                 _tujuanDisposisiController, _selectedTujuanDisposisi)
             .join('<br>'),
         'kategori_berkas': _docNumberPart2Controller.text.trim(),
         'kategori_undangan': _usersDropdownController.selectedUserId.value,
-
         'kategori_laporan': _getSelectedKode(_kategoriLaporanController) ?? '',
         'kategori_surat': _docNumberPart2Controller.text.trim(),
         'klasifikasi_surat': _letterNumberPart2Controller.text.trim(),
@@ -2207,6 +2199,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           .toList();
       _logger.i('Submit SuratMasuk payload: $payload');
       _logger.d('Upload items: $uploadMeta');
+
+      // Upload lampiran ke backend (tbl_lampiran)
+      final noSurat = _docNumberPart1Controller.text.trim();
+      await _uploadLampiranForSubmission(noSurat, ymd);
 
       final smCtrl = Get.isRegistered<SuratMasukController>()
           ? Get.find<SuratMasukController>()
@@ -2229,6 +2225,56 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       );
     } finally {
       _isLoading.value = false;
+    }
+  }
+
+  Future<void> _uploadLampiranForSubmission(String noSurat, String ymd) async {
+    for (final it in _uploadItems) {
+      final nameLower = it.name.toLowerCase();
+      if (!_isSupportedImage(nameLower)) {
+        _logger.w('Skip lampiran (format tidak didukung): ${it.name}');
+        continue;
+      }
+      if (it.size > 5 * 1024 * 1024) {
+        _logger.w('Skip lampiran (ukuran > 5MB): ${it.name}');
+        continue;
+      }
+      final form = dio.FormData.fromMap({
+        'no_surat': noSurat,
+        'tgl_surat': ymd,
+        'nama_berkas': it.name,
+        'ukuran': it.size,
+      });
+      try {
+        if (it.bytes != null) {
+          form.files.add(
+            MapEntry(
+              'file',
+              dio.MultipartFile.fromBytes(it.bytes!, filename: it.name),
+            ),
+          );
+        } else if (it.path != null) {
+          form.files.add(
+            MapEntry(
+              'file',
+              await dio.MultipartFile.fromFile(it.path!, filename: it.name),
+            ),
+          );
+        } else {
+          _logger.w('Skip lampiran (no bytes/path): ${it.name}');
+          continue;
+        }
+        final res = await _api.post(
+          ApiConstants.lampiranUpload,
+          data: form,
+          options: dio.Options(headers: {
+            'Content-Type': 'multipart/form-data',
+          }),
+        );
+        _logger.i('Lampiran tersimpan: ${res.data}');
+      } catch (e) {
+        _logger.e('Gagal menyimpan lampiran ${it.name}: $e');
+      }
     }
   }
 
