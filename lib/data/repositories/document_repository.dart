@@ -20,25 +20,38 @@ class DocumentRepository {
     int limit = 20,
   }) async {
     try {
-      _logger.d('Fetching documents with filters');
-      
+      _logger.d('GET /api/documents - start');
+
       final queryParams = <String, dynamic>{
         'page': page,
-        'limit': limit,
+        'per_page': limit,
         if (role != null) 'role': role.code,
         if (userId != null) 'user_id': userId,
         if (departemenId != null) 'departemen_id': departemenId,
         if (status != null) 'status': status,
         if (statusRapat != null) 'status_rapat': statusRapat,
       };
+      _logger.i({'endpoint': ApiConstants.documents, 'query': queryParams});
 
       final response = await _apiService.get(
         ApiConstants.documents,
         queryParameters: queryParams,
       );
+      final body = response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : <String, dynamic>{};
+      final bool ok = (body['success'] == true) ||
+          ((body['status'] is int) &&
+              (body['status'] >= 200 && body['status'] < 300)) ||
+          ((response.statusCode ?? 0) >= 200 &&
+              (response.statusCode ?? 0) < 300);
+      _logger.i({'status': response.statusCode, 'ok': ok});
 
-      if (response.data['success'] == true) {
-        final List<dynamic> data = response.data['data'];
+      final List<dynamic> data = (body['data'] is List)
+          ? (body['data'] as List)
+          : (response.data is List ? (response.data as List) : <dynamic>[]);
+      _logger.d({'count': data.length});
+      if (ok && data.isNotEmpty) {
         return data.map((json) => DocumentModel.fromJson(json)).toList();
       }
 
@@ -53,7 +66,7 @@ class DocumentRepository {
   Future<DocumentModel?> getDocumentById(int id) async {
     try {
       _logger.d('Fetching document with ID: $id');
-      
+
       final response = await _apiService.get(
         ApiConstants.documentDetail(id),
       );
@@ -73,7 +86,7 @@ class DocumentRepository {
   Future<DocumentModel> createDocument(Map<String, dynamic> data) async {
     try {
       _logger.d('Creating new document');
-      
+
       final response = await _apiService.post(
         ApiConstants.documents,
         data: data,
@@ -92,10 +105,11 @@ class DocumentRepository {
   }
 
   /// Update document
-  Future<DocumentModel> updateDocument(int id, Map<String, dynamic> data) async {
+  Future<DocumentModel> updateDocument(
+      int id, Map<String, dynamic> data) async {
     try {
       _logger.d('Updating document $id');
-      
+
       final response = await _apiService.put(
         ApiConstants.documentDetail(id),
         data: data,
@@ -117,7 +131,7 @@ class DocumentRepository {
   Future<void> deleteDocument(int id) async {
     try {
       _logger.d('Deleting document $id');
-      
+
       await _apiService.delete(ApiConstants.documentDetail(id));
       _logger.i('Document deleted successfully');
     } catch (e) {
@@ -135,7 +149,7 @@ class DocumentRepository {
   }) async {
     try {
       _logger.d('Updating document status: $id -> $status');
-      
+
       final response = await _apiService.put(
         ApiConstants.updateDocumentStatus(id),
         data: {
@@ -163,7 +177,7 @@ class DocumentRepository {
   }) async {
     try {
       _logger.d('Fetching meeting documents');
-      
+
       final queryParams = <String, dynamic>{
         if (role != null) 'role': role.code,
       };
@@ -193,7 +207,7 @@ class DocumentRepository {
   }) async {
     try {
       _logger.d('Making meeting decision for document $id');
-      
+
       final response = await _apiService.post(
         ApiConstants.meetingDecision(id),
         data: {
@@ -223,7 +237,7 @@ class DocumentRepository {
   }) async {
     try {
       _logger.d('Fetching document history for user $userId');
-      
+
       final queryParams = <String, dynamic>{
         'user_id': userId,
         'limit': limit,

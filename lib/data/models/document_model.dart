@@ -43,37 +43,100 @@ class DocumentModel extends Equatable {
 
   /// Create DocumentModel from JSON
   factory DocumentModel.fromJson(Map<String, dynamic> json) {
+    int _asInt(dynamic v, {int fallback = 0}) {
+      if (v is int) return v;
+      if (v is String) {
+        final parsed = int.tryParse(v.trim());
+        if (parsed != null) return parsed;
+      }
+      return fallback;
+    }
+
+    String _asString(dynamic v, {String fallback = ''}) {
+      if (v is String) return v;
+      if (v != null) return v.toString();
+      return fallback;
+    }
+
+    int _mapStatus(dynamic v) {
+      if (v is int) return v;
+      final s = _asString(v).toLowerCase().trim();
+      switch (s) {
+        case 'ditolak':
+          return DocumentStatus.rejected.code;
+        case 'diajukan':
+        case 'dokumen':
+          return DocumentStatus.pending.code;
+        case 'diteruskan ke koordinator':
+          return DocumentStatus.forwardedToCoordinator.code;
+        case 'disetujui':
+          return DocumentStatus.approved.code;
+        case 'rapat koordinator':
+        case 'rapat':
+          return DocumentStatus.coordinatorMeeting.code;
+        case 'diteruskan ke pimpinan utama':
+          return DocumentStatus.forwardedToMainLeader.code;
+        case 'dikembalikan':
+          return DocumentStatus.returned.code;
+        default:
+          return DocumentStatus.pending.code;
+      }
+    }
+
+    int _mapMeetingStatus(dynamic v) {
+      if (v is int) return v;
+      final s = _asString(v).toLowerCase().trim();
+      switch (s) {
+        case 'dijadwalkan rapat':
+        case 'dijadwalkan':
+          return MeetingStatus.scheduled.code;
+        default:
+          return MeetingStatus.noMeeting.code;
+      }
+    }
+
     return DocumentModel(
-      id: json['id'] ?? 0,
-      documentNumber: json['document_number'] ?? json['documentNumber'] ?? '',
-      title: json['title'] ?? '',
-      description: json['description'],
-      userId: json['user_id'] ?? json['userId'] ?? 0,
-      userName: json['user_name'] ?? json['userName'],
+      id: _asInt(json['id'] ?? json['id_sm'] ?? 0),
+      documentNumber: _asString(
+        json['document_number'] ?? json['documentNumber'] ?? json['no_surat'],
+      ),
+      title: _asString(json['title'] ?? json['perihal']),
+      description: json['description'] ?? json['catatan'],
+      userId: _asInt(json['user_id'] ?? json['userId'] ?? json['id_user'] ?? 0),
+      userName: json['user_name'] ??
+          json['userName'] ??
+          (json['user'] is Map<String, dynamic>
+              ? (json['user']['nama_lengkap']?.toString())
+              : null),
       departemenId: json['departemen_id'] ?? json['departemenId'],
       departemenName: json['departemen_name'] ?? json['departemenName'],
-      status: DocumentStatus.fromCode(json['status'] ?? 1),
-      statusRapat: MeetingStatus.fromCode(json['status_rapat'] ?? json['statusRapat'] ?? 0),
-      submittedAt: json['submitted_at'] != null 
-          ? DateTime.parse(json['submitted_at']) 
-          : json['submittedAt'] != null 
-              ? DateTime.parse(json['submittedAt']) 
-              : DateTime.now(),
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.tryParse(json['updated_at']) 
-          : json['updatedAt'] != null 
-              ? DateTime.tryParse(json['updatedAt']) 
+      status: DocumentStatus.fromCode(_mapStatus(json['status'])),
+      statusRapat:
+          MeetingStatus.fromCode(_mapMeetingStatus(json['status_rapat'] ?? json['statusRapat'])),
+      submittedAt: json['submitted_at'] != null
+          ? DateTime.parse(json['submitted_at'])
+          : json['submittedAt'] != null
+              ? DateTime.parse(json['submittedAt'])
+              : json['tgl_sm'] != null
+                  ? DateTime.parse(json['tgl_sm'])
+                  : json['created_at'] != null
+                      ? DateTime.parse(json['created_at'])
+                      : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'])
+          : json['updatedAt'] != null
+              ? DateTime.tryParse(json['updatedAt'])
               : null,
       approvedBy: json['approved_by'] ?? json['approvedBy'],
       approverName: json['approver_name'] ?? json['approverName'],
-      approvedAt: json['approved_at'] != null 
-          ? DateTime.tryParse(json['approved_at']) 
-          : json['approvedAt'] != null 
-              ? DateTime.tryParse(json['approvedAt']) 
+      approvedAt: json['approved_at'] != null
+          ? DateTime.tryParse(json['approved_at'])
+          : json['approvedAt'] != null
+              ? DateTime.tryParse(json['approvedAt'])
               : null,
-      notes: json['notes'],
-      attachments: json['attachments'] != null 
-          ? List<String>.from(json['attachments']) 
+      notes: json['notes'] ?? json['catatan'],
+      attachments: json['attachments'] != null
+          ? List<String>.from(json['attachments'])
           : null,
     );
   }

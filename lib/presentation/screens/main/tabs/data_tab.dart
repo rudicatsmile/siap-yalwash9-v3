@@ -11,7 +11,7 @@ class DataTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dashboardController = Get.put(DashboardController());
+    final dashboardController = Get.put(DashboardController(), permanent: true);
     final authController = Get.find<AuthController>();
 
     return Scaffold(
@@ -26,7 +26,7 @@ class DataTab extends StatelessWidget {
           }
 
           if (dashboardController.documents.isEmpty) {
-            return const Center(child: Text('Belum ada dokumen'));
+            return const Center(child: Text('Belum ada berkas'));
           }
 
           return RefreshIndicator(
