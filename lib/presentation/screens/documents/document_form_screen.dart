@@ -16,6 +16,8 @@ import 'package:dio/dio.dart' as dio;
 import '../../../core/constants/api_constants.dart';
 import 'dart:typed_data';
 import 'dart:async';
+import '../../controllers/surat_masuk_controller.dart';
+import 'package:logger/logger.dart';
 
 /// Document form screen for creating and editing documents
 class DocumentFormScreen extends StatefulWidget {
@@ -106,6 +108,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final ApiService _api = ApiService();
   final List<_UploadItem> _uploadItems = <_UploadItem>[];
   String? _uploadValidationError;
+  final _logger = Logger();
 
   Future<void> _pickImagesFromGallery() async {
     final result = await FilePicker.platform.pickFiles(
@@ -268,6 +271,17 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     return match.first.deskripsi;
   }
 
+  List<String> _getSelectedDescriptions(
+    DropdownController ctrl,
+    List<String> selected,
+  ) {
+    final set = selected.toSet();
+    return ctrl.items
+        .where((it) => set.contains(it.kode))
+        .map((it) => it.deskripsi)
+        .toList();
+  }
+
   //create function _getSelectedKode(DropdownController ctrl)
   // Mendapatkan kode item terpilih dari DropdownController.
   // Digunakan untuk membedakan kategori: Dokumen, Undangan, Laporan.
@@ -290,8 +304,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _getSelectedDeskripsi(_kategoriController)?.toLowerCase().trim() ?? '';
     _resetDocNumberPart2();
 
-    print('kategoriKode: $kategoriKode');
-    print('kategoriDesc: $kategoriDesc');
+    // print('kategoriKode: $kategoriKode');
+    // print('kategoriDesc: $kategoriDesc');
 
     if (kategoriKode == 'Undangan') {
       _isDocNumberPart2ReadOnly = true;
@@ -402,7 +416,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     super.initState();
 
     final user = authController.currentUser.value;
-    _pengirimController.text = user?.instansi ?? '';
+    _pengirimController.text = user?.instansiName ?? '';
 
     _kategoriController = Get.put(DropdownController(), tag: 'kategori');
     _jenisController = Get.put(DropdownController(), tag: 'jenis');
@@ -422,6 +436,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         Get.put(LastNoSuratController(), tag: 'last_no_surat');
 
     _initializeForm();
+    Get.put(SuratMasukController(), permanent: true);
     _kategoriController.loadTable('m_kategori_formulir');
     _jenisController.loadTable('m_jenis_dokumen');
     _kategoriLaporanController.loadTable('m_kategori_laporan');
@@ -859,8 +874,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                   Expanded(
                                                     flex: 7,
                                                     child: TextFormField(
-                                                      readOnly:
-                                                          _isDocNumberPart2ReadOnly,
+                                                      readOnly: true,
                                                       controller:
                                                           _docNumberPart2Controller,
                                                       decoration:
@@ -936,6 +950,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                               ),
                                               TextFormField(
                                                 controller: _pengirimController,
+                                                readOnly: true,
                                                 decoration:
                                                     const InputDecoration(
                                                   hintText:
@@ -1280,6 +1295,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                       border: OutlineInputBorder(),
                                       prefixIcon: Icon(Icons.subject_outlined),
                                     ),
+                                    validator: (value) {
+                                      final v = (value ?? '').trim();
+                                      if (v.length < 5) {
+                                        return 'Perihal minimal 5 karakter';
+                                      }
+                                      return null;
+                                    },
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
@@ -1295,6 +1317,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                       prefixIcon: Icon(Icons.notes_outlined),
                                       alignLabelWithHint: true,
                                     ),
+                                    validator: (value) {
+                                      final v = (value ?? '').trim();
+                                      if (v.length < 5) {
+                                        return 'Ringkasan minimal 5 karakter';
+                                      }
+                                      return null;
+                                    },
                                     maxLines: 4,
                                     textCapitalization:
                                         TextCapitalization.sentences,
@@ -2081,43 +2110,116 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _isLoading.value = true;
 
     try {
-      // Prepare document data
-      // ignore: unused_local_variable
-      final documentData = {
-        'title': _titleController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'tanggal_surat': _letterDateController.text.trim(),
-        'perihal': _perihalController.text.trim(),
-        'ringkasan': _ringkasanController.text.trim(),
-        'tujuan_disposisi': _selectedTujuanDisposisi,
-        'status': 1, // Pending status
+      final kategoriKode = _getSelectedKode(_kategoriController) ?? 'Dokumen';
+      DateTime tgl;
+      try {
+        tgl = DateFormat('dd-MM-yyyy')
+            .parseStrict(_letterDateController.text.trim());
+      } catch (_) {
+        tgl = DateTime.now();
+      }
+      final dmy = DateFormat('dd-MM-yyyy').format(tgl);
+      final ymd = DateFormat('yyyy-MM-dd').format(tgl);
+      final penerima = _selectedTujuanDisposisi.join(',');
+      final lampiranUrls = _uploadItems
+          .where((it) => it.success && it.tempUrl != null)
+          .map((it) => it.tempUrl!)
+          .toList();
+      final lampiranIds = _uploadItems
+          .where((it) => it.success && it.tempId != null)
+          .map((it) => it.tempId!)
+          .toList();
+
+      final statusValue = (kategoriKode == 'Rapat') ? 'Rapat' : 'Dokumen';
+
+      final user = authController.currentUser.value;
+
+      //tulis ke log user?.id dan user?.kodeUser
+      _logger.i('user?.id: ${user?.id}');
+      _logger.i('user?.kodeUser: ${user?.kodeUser}');
+
+      final penerimaText = _perihalController.text.trim();
+      final penerimaValue = penerimaText.isEmpty ? '-----' : penerimaText;
+      final ringkasanText = _ringkasanController.text.trim();
+      final ringkasanValue = ringkasanText.isEmpty ? '-----' : ringkasanText;
+
+      final payload = {
+        // 'tgl_ns': tgl,
+        'no_asal':
+            '${_letterNumberPart1Controller.text.trim()}/${_letterNumberPart2Controller.text.trim()}',
+        'tgl_no_asal': ymd,
+        'tgl_no_asal2': ymd,
+        'tgl_surat': dmy,
+        'pengirim': _pengirimController.text
+            .trim(), //Nama lembaga. ex : SMP , SMK DP2 etc
+        'penerima': penerimaValue,
+        'perihal': ringkasanValue, //Ringkasan (Penjelasan pengajuan)
+        // 'token_lampiran': lampiranIds.join(','),
+        // 'id_user' : '',
+        // 'kode_user' : '',
+        // 'tgl_sm': ymd,
+        // 'lampiran': lampiranUrls.join(','),
+        'status': statusValue,
+        'sifat': 'Biasa',
+        // 'id_instansi' : '',
+
+        'dibaca_pimpinan': (kategoriKode == 'Nota Dinas')
+            ? '8'
+            : '0', //if dropdown status = Nota Dinas, maka dibaca_pimpinan = 8 [Wakil pimpinan]
+        'dibaca': (kategoriKode == 'Nota Dinas')
+            ? '2'
+            : (kategoriKode == 'Memo' ? '1' : '1'),
+        'id_user_approved': (kategoriKode == 'Memo') ? user?.id ?? '0' : '0',
+        'kode_user_approved':
+            (kategoriKode == 'Memo') ? user?.kodeUser ?? '' : '',
+
+        'tgl_agenda_rapat': _meetingDateController.text.trim(),
+        'jam_rapat': _meetingTimeController.text.trim(),
+        'ruang_rapat': _getSelectedDeskripsi(_ruangRapatController) ?? 'null',
+        'bahasan_rapat': _pokokBahasanController.text.trim(),
+        'pimpinan_rapat':
+            _getSelectedDeskripsi(_pimpinanRapatController) ?? 'null',
+        'peserta_rapat': _getSelectedDescriptions(
+                _pesertaRapatController, _selectedPesertaRapat)
+            .join('<br>'),
+        'instruksi_kerja': 'null',
+        'disposisi_memo': 'null',
+        // 'ditujukan': _tujuanDisposisiController.toString(),
+        'ditujukan': _getSelectedDescriptions(
+                _tujuanDisposisiController, _selectedTujuanDisposisi)
+            .join('<br>'),
+        'kategori_berkas': _docNumberPart2Controller.text.trim(),
+        'kategori_undangan': _usersDropdownController.selectedUserId.value,
+
+        'kategori_laporan': _getSelectedKode(_kategoriLaporanController) ?? '',
+        'kategori_surat': _docNumberPart2Controller.text.trim(),
+        'klasifikasi_surat': _letterNumberPart2Controller.text.trim(),
       };
 
-      if (_isEditMode) {
-        // Update existing document
-        // TODO: Call document repository update method
-        await Future.delayed(const Duration(seconds: 1)); // Simulate API call
+      final uploadMeta = _uploadItems
+          .map((it) => {
+                'name': it.name,
+                'size': it.size,
+                'success': it.success,
+                'tempId': it.tempId,
+                'tempUrl': it.tempUrl,
+              })
+          .toList();
+      _logger.i('Submit SuratMasuk payload: $payload');
+      _logger.d('Upload items: $uploadMeta');
 
-        Get.back(result: 'updated');
-        Get.snackbar(
-          'Berhasil',
-          'Pengajuan berkas berhasil diperbarui',
-          backgroundColor: AppTheme.statusApproved,
-          colorText: Colors.white,
-        );
-      } else {
-        // Create new document
-        // TODO: Call document repository create method
-        await Future.delayed(const Duration(seconds: 1)); // Simulate API call
+      final smCtrl = Get.isRegistered<SuratMasukController>()
+          ? Get.find<SuratMasukController>()
+          : Get.put(SuratMasukController(), permanent: true);
+      await smCtrl.submit(payload);
 
-        Get.back(result: 'created');
-        Get.snackbar(
-          'Berhasil',
-          'Pengajuan berkas berhasil diajukan',
-          backgroundColor: AppTheme.statusApproved,
-          colorText: Colors.white,
-        );
-      }
+      Get.back(result: 'created');
+      Get.snackbar(
+        'Berhasil',
+        'Pengajuan berkas berhasil diajukan',
+        backgroundColor: AppTheme.statusApproved,
+        colorText: Colors.white,
+      );
     } catch (e) {
       Get.snackbar(
         'Error',

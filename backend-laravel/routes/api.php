@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\TipeSuratController;
 use App\Http\Controllers\Api\TindakanSegeraController;
 use App\Http\Controllers\Api\GeneralDropdownController;
 use App\Http\Controllers\Api\UsersController;
+use App\Http\Controllers\Api\SuratMasukController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -69,4 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/dropdown', [UsersController::class, 'dropdown']);
     Route::get('/general/dropdown', [GeneralDropdownController::class, 'dropdown'])->middleware('throttle:general_dropdown');
     Route::get('/documents/last-no-surat', [DocumentController::class, 'getLastNoSurat']);
+
+    // Surat Masuk (tbl_sm)
+    Route::post('/surat-masuk', [SuratMasukController::class, 'store']);
 });

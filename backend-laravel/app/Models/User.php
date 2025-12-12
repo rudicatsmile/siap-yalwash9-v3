@@ -101,6 +101,20 @@ class User extends Authenticatable
     }
 
     /**
+     * Relasi ke tabel m_instansi berdasarkan kode pada kolom 'instansi'.
+     *
+     * Menggunakan belongsTo karena user memiliki satu instansi
+     * yang direferensikan oleh kolom 'instansi' (kode), sedangkan
+     * tabel m_instansi menggunakan kolom 'kode' sebagai key unik.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function instansiRef()
+    {
+        return $this->belongsTo(Instansi::class, 'instansi', 'kode');
+    }
+
+    /**
      * Check if user account is blocked.
      */
     public function isBlocked(): bool

@@ -15,9 +15,15 @@ class AuthController extends Controller
     /**
      * Handle user login.
      */
+    /**
+     * Handle user login and return token with user profile.
+     *
+     * Response includes 'instansi_name' from related m_instansi (deskripsi),
+     * loaded via eager loading for performance.
+     */
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::where('username', $request->username)->first();
+        $user = User::with('instansiRef')->where('username', $request->username)->first();
 
         // Check if account is blocked
         if ($user && $user->isBlocked()) {
@@ -91,6 +97,7 @@ class AuthController extends Controller
                     'role' => $user->role,
                     'level' => $user->level,
                     'instansi' => $user->instansi,
+                    'instansi_name' => $user->instansiRef?->deskripsi,
                     'kode_user' => $user->kode_user,
                 ],
             ],

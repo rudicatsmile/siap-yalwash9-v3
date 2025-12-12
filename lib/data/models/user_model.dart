@@ -1,13 +1,15 @@
 import 'package:equatable/equatable.dart';
 import '../../core/constants/app_constants.dart';
 
-/// User model representing user data from tbl_user
+/// User model representing user data from tbl_user, including 'instansi_name' to store institution name
 class UserModel extends Equatable {
   final int id;
   final String username;
+  final String kodeUser;
   final String namaLengkap;
   final String jabatan;
   final String instansi;
+  final String instansiName;
   final int? departemenId;
   final String? email;
   final String? alamat;
@@ -24,9 +26,11 @@ class UserModel extends Equatable {
   const UserModel({
     required this.id,
     required this.username,
+    required this.kodeUser,
     required this.namaLengkap,
     required this.jabatan,
     required this.instansi,
+    this.instansiName = '',
     this.departemenId,
     this.email,
     this.alamat,
@@ -61,9 +65,11 @@ class UserModel extends Equatable {
     return UserModel(
       id: _asInt(json['id'] ?? json['id_user'] ?? 0),
       username: _asString(json['username']),
+      kodeUser: _asString(json['kode_user']),
       namaLengkap: _asString(json['nama_lengkap']),
       jabatan: _asString(json['jabatan']),
       instansi: _asString(json['instansi']),
+      instansiName: _asString(json['instansi_name']),
       departemenId:
           json['departemen_id'] != null ? _asInt(json['departemen_id']) : null,
       email: json['email']?.toString(),
@@ -91,9 +97,11 @@ class UserModel extends Equatable {
     return {
       'id': id,
       'username': username,
+      'kode_user': kodeUser,
       'nama_lengkap': namaLengkap,
       'jabatan': jabatan,
       'instansi': instansi,
+      'instansi_name': instansiName,
       'departemen_id': departemenId,
       'email': email,
       'alamat': alamat,
@@ -113,9 +121,11 @@ class UserModel extends Equatable {
   UserModel copyWith({
     int? id,
     String? username,
+    String? kodeUser,
     String? namaLengkap,
     String? jabatan,
     String? instansi,
+    String? instansiName,
     int? departemenId,
     String? email,
     String? alamat,
@@ -132,9 +142,11 @@ class UserModel extends Equatable {
     return UserModel(
       id: id ?? this.id,
       username: username ?? this.username,
+      kodeUser: kodeUser ?? this.kodeUser,
       namaLengkap: namaLengkap ?? this.namaLengkap,
       jabatan: jabatan ?? this.jabatan,
       instansi: instansi ?? this.instansi,
+      instansiName: instansiName ?? this.instansiName,
       departemenId: departemenId ?? this.departemenId,
       email: email ?? this.email,
       alamat: alamat ?? this.alamat,
@@ -164,9 +176,11 @@ class UserModel extends Equatable {
   List<Object?> get props => [
         id,
         username,
+        kodeUser,
         namaLengkap,
         jabatan,
         instansi,
+        instansiName,
         departemenId,
         email,
         alamat,

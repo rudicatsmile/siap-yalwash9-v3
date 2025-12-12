@@ -20,7 +20,7 @@ class UsersController extends Controller
             $limit = min($limit, 1000);
 
             $query = User::query()
-                ->select(['id_user as id', 'username', 'nama_lengkap', 'jabatan']);
+                ->select(['kode_user as id', 'username', 'nama_lengkap', 'jabatan']);
 
             if ($request->filled('search')) {
                 $s = $request->input('search');
@@ -54,7 +54,7 @@ class UsersController extends Controller
 
             $data = $items->map(function ($u) {
                 return [
-                    'id' => (int) $u->id,
+                    'id' => (string) $u->id,
                     'username' => (string) $u->username,
                     'nama_lengkap' => (string) $u->nama_lengkap,
                     'jabatan' => $u->jabatan,
