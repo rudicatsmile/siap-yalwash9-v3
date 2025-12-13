@@ -90,6 +90,7 @@ class Document extends Model
         'id_status_rapat',
         'kode_user_ditujukan_memo',
         'kategori_surat',
+        'kode_berkas',
         'klasifikasi_surat',
         'disposisi_ktu_leader',
     ];
@@ -102,12 +103,12 @@ class Document extends Model
     protected function casts(): array
     {
         return [
-            'tgl_ns' => 'date',
-            'tgl_no_asal' => 'date',
-            'tgl_no_asal2' => 'date',
-            'tgl_surat' => 'date',
-            'tgl_sm' => 'date',
-            'tgl_ajuan' => 'datetime',
+            //'tgl_ns' => 'date',
+            // 'tgl_no_asal' => 'date',
+            // 'tgl_no_asal2' => 'date',
+            // 'tgl_surat' => 'date',
+            // 'tgl_sm' => 'date',
+            // 'tgl_ajuan' => 'datetime',
             'tgl_ajuan_delegate' => 'datetime',
             'tgl_disposisi' => 'datetime',
             'tgl_approved' => 'datetime',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/models.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../controllers/auth_controller.dart';
 import '../../widgets/common/confirmation_dialog.dart';
 
@@ -34,7 +35,8 @@ class MeetingDetailScreen extends StatelessWidget {
             _buildInfoCard([
               _buildInfoRow('Nomor Dokumen', document.documentNumber),
               _buildInfoRow('Judul', document.title),
-              if (document.description != null && document.description!.isNotEmpty)
+              if (document.description != null &&
+                  document.description!.isNotEmpty)
                 _buildInfoRow('Deskripsi', document.description!),
               _buildInfoRow('Status', document.status.displayName),
             ]),
@@ -322,13 +324,6 @@ class MeetingDetailScreen extends StatelessWidget {
   }
 
   String _formatDateTime(dynamic date) {
-    DateTime? dt;
-    if (date is DateTime) {
-      dt = date;
-    } else if (date != null) {
-      dt = DateTime.tryParse(date.toString());
-    }
-    if (dt == null) return '-';
-    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    return DateFormatter.formatDdMMyyyyHHmm(date);
   }
 }

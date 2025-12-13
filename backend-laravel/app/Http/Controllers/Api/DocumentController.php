@@ -162,6 +162,8 @@ class DocumentController extends Controller
             'perihal' => $request->perihal,
             'sifat' => $request->sifat,
             'kategori_surat' => $request->kategori_surat,
+            'kategori_berkas' => $request->kategori_berkas,
+            'kode_berkas' => $request->kode_berkas,
             'klasifikasi_surat' => $request->klasifikasi_surat,
             'lampiran' => $request->lampiran,
             'token_lampiran' => $request->token_lampiran,

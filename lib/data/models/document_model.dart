@@ -21,6 +21,59 @@ class DocumentModel extends Equatable {
   final DateTime? approvedAt;
   final String? notes;
   final List<String>? attachments;
+  final String? instansiId;
+  final String? sifat;
+  final String? kodeUser;
+  final String? kodeUserApproved;
+  final int? idUserApproved;
+  final String? tglSurat;
+  final String? noAsal;
+  final String? pengirim;
+  final String? penerima;
+  final String? perihal;
+  final String? kategoriBerkas;
+  final String? kategoriSurat;
+  final String? kodeBerkas;
+  final String? klasifikasiSurat;
+  final String? idStatusRapat;
+  final String? tglAgendaRapat;
+  final String? jamRapat;
+  final String? ruangRapat;
+  final DateTime? createdAt;
+  final DateTime? deletedAt;
+
+  /// ID instansi yang meng-approve dokumen rapat
+  final int? idInstansiApproved;
+
+  /// ID user sebagai pimpinan disposisi (leader) untuk rapat
+  final int? idUserDisposisiLeader;
+
+  /// Catatan disposisi terkait dokumen/rapat
+  final String? disposisi;
+
+  /// Penanda tangan rapat (nama atau identitas)
+  final String? penandaTanganRapat;
+
+  /// Tembusan rapat (pihak yang mendapatkan salinan)
+  final String? tembusanRapat;
+
+  /// Bahasan rapat (topik/agenda bahasan)
+  final String? bahasanRapat;
+
+  /// Pimpinan rapat (nama pimpinan rapat)
+  final String? pimpinanRapat;
+
+  /// Peserta rapat (list nama/identitas peserta)
+  final List<String>? pesertaRapat;
+
+  /// Pihak/instansi yang dituju oleh dokumen/rapat
+  final String? ditujukan;
+
+  /// Instruksi kerja yang dihasilkan dari rapat
+  final String? instruksiKerja;
+
+  /// Disposisi memo terkait rapat/dokumen
+  final String? disposisiMemo;
 
   const DocumentModel({
     required this.id,
@@ -41,6 +94,37 @@ class DocumentModel extends Equatable {
     this.approvedAt,
     this.notes,
     this.attachments,
+    this.instansiId,
+    this.sifat,
+    this.kodeUser,
+    this.kodeUserApproved,
+    this.idUserApproved,
+    this.tglSurat,
+    this.noAsal,
+    this.pengirim,
+    this.penerima,
+    this.perihal,
+    this.kategoriBerkas,
+    this.kategoriSurat,
+    this.kodeBerkas,
+    this.klasifikasiSurat,
+    this.idStatusRapat,
+    this.tglAgendaRapat,
+    this.jamRapat,
+    this.ruangRapat,
+    this.createdAt,
+    this.deletedAt,
+    this.idInstansiApproved,
+    this.idUserDisposisiLeader,
+    this.disposisi,
+    this.penandaTanganRapat,
+    this.tembusanRapat,
+    this.bahasanRapat,
+    this.pimpinanRapat,
+    this.pesertaRapat,
+    this.ditujukan,
+    this.instruksiKerja,
+    this.disposisiMemo,
   });
 
   /// Create DocumentModel from JSON
@@ -103,6 +187,7 @@ class DocumentModel extends Equatable {
         json['document_number'] ?? json['documentNumber'] ?? json['no_surat'],
       ),
       title: _asString(json['title'] ?? json['perihal']),
+      perihal: _asString(json['perihal'] ?? json['title']),
       description: json['description'] ?? json['catatan'],
       userId: _asInt(json['user_id'] ?? json['userId'] ?? json['id_user'] ?? 0),
       userName: json['user_name'] ??
@@ -134,11 +219,68 @@ class DocumentModel extends Equatable {
           ? DateTime.tryParse(json['approved_at'])
           : json['approvedAt'] != null
               ? DateTime.tryParse(json['approvedAt'])
-              : null,
+              : json['tgl_approved'] != null
+                  ? DateTime.tryParse(json['tgl_approved'])
+                  : null,
       notes: json['notes'] ?? json['catatan'],
       attachments: json['attachments'] != null
           ? List<String>.from(json['attachments'])
           : null,
+      instansiId: _asString(json['id_instansi']),
+      sifat: _asString(json['sifat']),
+      kodeUser: _asString(json['kode_user']),
+      kodeUserApproved: _asString(json['kode_user_approved']),
+      idUserApproved: _asInt(json['id_user_approved']),
+      tglSurat: _asString(json['tgl_surat']),
+      noAsal: _asString(json['no_asal']),
+      pengirim: _asString(json['pengirim']),
+      penerima: _asString(json['penerima']),
+      kategoriBerkas: _asString(json['kategori_berkas']),
+      kategoriSurat: _asString(json['kategori_surat']),
+      kodeBerkas: _asString(json['kode_berkas']),
+      klasifikasiSurat: _asString(json['klasifikasi_surat']),
+      idStatusRapat: _asString(json['id_status_rapat']),
+      tglAgendaRapat: _asString(json['tgl_agenda_rapat']),
+      jamRapat: _asString(json['jam_rapat']),
+      ruangRapat: _asString(json['ruang_rapat']),
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      deletedAt: json['deleted_at'] != null
+          ? DateTime.tryParse(json['deleted_at'])
+          : null,
+      idInstansiApproved:
+          _asInt(json['id_instansi_approved'] ?? json['idInstansiApproved']),
+      idUserDisposisiLeader: _asInt(
+          json['id_user_disposisi_leader'] ?? json['idUserDisposisiLeader']),
+      disposisi: _asString(json['disposisi']),
+      penandaTanganRapat:
+          _asString(json['penanda_tangan_rapat'] ?? json['penandaTanganRapat']),
+      tembusanRapat: _asString(json['tembusan_rapat'] ?? json['tembusanRapat']),
+      bahasanRapat: _asString(json['bahasan_rapat'] ?? json['bahasanRapat']),
+      pimpinanRapat: _asString(json['pimpinan_rapat'] ?? json['pimpinanRapat']),
+      pesertaRapat: (() {
+        final raw = json['peserta_rapat'] ?? json['pesertaRapat'];
+        if (raw is List) {
+          return raw
+              .map((e) => e?.toString() ?? '')
+              .where((e) => e.isNotEmpty)
+              .toList();
+        } else if (raw is String) {
+          final s = raw.trim();
+          if (s.isEmpty) return null;
+          return s
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+        return null;
+      })(),
+      ditujukan: _asString(json['ditujukan']),
+      instruksiKerja:
+          _asString(json['instruksi_kerja'] ?? json['instruksiKerja']),
+      disposisiMemo: _asString(json['disposisi_memo'] ?? json['disposisiMemo']),
     );
   }
 
@@ -148,6 +290,7 @@ class DocumentModel extends Equatable {
       'id': id,
       'document_number': documentNumber,
       'title': title,
+      'perihal': perihal ?? title,
       'description': description,
       'user_id': userId,
       'user_name': userName,
@@ -163,6 +306,36 @@ class DocumentModel extends Equatable {
       'approved_at': approvedAt?.toIso8601String(),
       'notes': notes,
       'attachments': attachments,
+      'id_instansi': instansiId,
+      'sifat': sifat,
+      'kode_user': kodeUser,
+      'kode_user_approved': kodeUserApproved,
+      'id_user_approved': idUserApproved,
+      'tgl_surat': tglSurat,
+      'no_asal': noAsal,
+      'pengirim': pengirim,
+      'penerima': penerima,
+      'kategori_berkas': kategoriBerkas,
+      'kategori_surat': kategoriSurat,
+      'kode_berkas': kodeBerkas,
+      'klasifikasi_surat': klasifikasiSurat,
+      'id_status_rapat': idStatusRapat,
+      'tgl_agenda_rapat': tglAgendaRapat,
+      'jam_rapat': jamRapat,
+      'ruang_rapat': ruangRapat,
+      'created_at': createdAt?.toIso8601String(),
+      'deleted_at': deletedAt?.toIso8601String(),
+      'id_instansi_approved': idInstansiApproved,
+      'id_user_disposisi_leader': idUserDisposisiLeader,
+      'disposisi': disposisi,
+      'penanda_tangan_rapat': penandaTanganRapat,
+      'tembusan_rapat': tembusanRapat,
+      'bahasan_rapat': bahasanRapat,
+      'pimpinan_rapat': pimpinanRapat,
+      'peserta_rapat': pesertaRapat,
+      'ditujukan': ditujukan,
+      'instruksi_kerja': instruksiKerja,
+      'disposisi_memo': disposisiMemo,
     };
   }
 
@@ -171,6 +344,7 @@ class DocumentModel extends Equatable {
     int? id,
     String? documentNumber,
     String? title,
+    String? perihal,
     String? description,
     int? userId,
     String? userName,
@@ -185,11 +359,42 @@ class DocumentModel extends Equatable {
     DateTime? approvedAt,
     String? notes,
     List<String>? attachments,
+    String? instansiId,
+    String? sifat,
+    String? kodeUser,
+    String? kodeUserApproved,
+    int? idUserApproved,
+    String? tglSurat,
+    String? noAsal,
+    String? pengirim,
+    String? penerima,
+    String? kategoriBerkas,
+    String? kategoriSurat,
+    String? kodeBerkas,
+    String? klasifikasiSurat,
+    String? idStatusRapat,
+    String? tglAgendaRapat,
+    String? jamRapat,
+    String? ruangRapat,
+    DateTime? createdAt,
+    DateTime? deletedAt,
+    int? idInstansiApproved,
+    int? idUserDisposisiLeader,
+    String? disposisi,
+    String? penandaTanganRapat,
+    String? tembusanRapat,
+    String? bahasanRapat,
+    String? pimpinanRapat,
+    List<String>? pesertaRapat,
+    String? ditujukan,
+    String? instruksiKerja,
+    String? disposisiMemo,
   }) {
     return DocumentModel(
       id: id ?? this.id,
       documentNumber: documentNumber ?? this.documentNumber,
       title: title ?? this.title,
+      perihal: perihal ?? this.perihal,
       description: description ?? this.description,
       userId: userId ?? this.userId,
       userName: userName ?? this.userName,
@@ -204,6 +409,37 @@ class DocumentModel extends Equatable {
       approvedAt: approvedAt ?? this.approvedAt,
       notes: notes ?? this.notes,
       attachments: attachments ?? this.attachments,
+      instansiId: instansiId ?? this.instansiId,
+      sifat: sifat ?? this.sifat,
+      kodeUser: kodeUser ?? this.kodeUser,
+      kodeUserApproved: kodeUserApproved ?? this.kodeUserApproved,
+      idUserApproved: idUserApproved ?? this.idUserApproved,
+      tglSurat: tglSurat ?? this.tglSurat,
+      noAsal: noAsal ?? this.noAsal,
+      pengirim: pengirim ?? this.pengirim,
+      penerima: penerima ?? this.penerima,
+      kategoriBerkas: kategoriBerkas ?? this.kategoriBerkas,
+      kategoriSurat: kategoriSurat ?? this.kategoriSurat,
+      kodeBerkas: kodeBerkas ?? this.kodeBerkas,
+      klasifikasiSurat: klasifikasiSurat ?? this.klasifikasiSurat,
+      idStatusRapat: idStatusRapat ?? this.idStatusRapat,
+      tglAgendaRapat: tglAgendaRapat ?? this.tglAgendaRapat,
+      jamRapat: jamRapat ?? this.jamRapat,
+      ruangRapat: ruangRapat ?? this.ruangRapat,
+      createdAt: createdAt ?? this.createdAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      idInstansiApproved: idInstansiApproved ?? this.idInstansiApproved,
+      idUserDisposisiLeader:
+          idUserDisposisiLeader ?? this.idUserDisposisiLeader,
+      disposisi: disposisi ?? this.disposisi,
+      penandaTanganRapat: penandaTanganRapat ?? this.penandaTanganRapat,
+      tembusanRapat: tembusanRapat ?? this.tembusanRapat,
+      bahasanRapat: bahasanRapat ?? this.bahasanRapat,
+      pimpinanRapat: pimpinanRapat ?? this.pimpinanRapat,
+      pesertaRapat: pesertaRapat ?? this.pesertaRapat,
+      ditujukan: ditujukan ?? this.ditujukan,
+      instruksiKerja: instruksiKerja ?? this.instruksiKerja,
+      disposisiMemo: disposisiMemo ?? this.disposisiMemo,
     );
   }
 
@@ -220,6 +456,7 @@ class DocumentModel extends Equatable {
         id,
         documentNumber,
         title,
+        perihal,
         description,
         userId,
         userName,
@@ -235,5 +472,35 @@ class DocumentModel extends Equatable {
         approvedAt,
         notes,
         attachments,
+        instansiId,
+        sifat,
+        kodeUser,
+        kodeUserApproved,
+        idUserApproved,
+        tglSurat,
+        noAsal,
+        pengirim,
+        penerima,
+        kategoriBerkas,
+        kategoriSurat,
+        kodeBerkas,
+        klasifikasiSurat,
+        idStatusRapat,
+        tglAgendaRapat,
+        jamRapat,
+        ruangRapat,
+        createdAt,
+        deletedAt,
+        idInstansiApproved,
+        idUserDisposisiLeader,
+        disposisi,
+        penandaTanganRapat,
+        tembusanRapat,
+        bahasanRapat,
+        pimpinanRapat,
+        pesertaRapat,
+        ditujukan,
+        instruksiKerja,
+        disposisiMemo,
       ];
 }

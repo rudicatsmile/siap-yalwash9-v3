@@ -560,13 +560,6 @@ class DocumentDetailScreen extends StatelessWidget {
   }
 
   String _formatDateTime(dynamic date) {
-    DateTime? dt;
-    if (date is DateTime) {
-      dt = date;
-    } else if (date != null) {
-      dt = DateTime.tryParse(date.toString());
-    }
-    if (dt == null) return '-';
-    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    return DateFormatter.formatDdMMyyyyHHmm(date);
   }
 }

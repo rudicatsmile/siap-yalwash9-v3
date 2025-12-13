@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 /// Application-wide constants
 class AppConstants {
   // Application Info
@@ -143,4 +144,33 @@ enum NavigationTab {
   final String label;
   
   const NavigationTab(this.tabIndex, this.label);
+}
+
+class DateFormatter {
+  static DateTime? _parse(dynamic date) {
+    if (date is DateTime) return date;
+    final s = date?.toString();
+    if (s == null || s.isEmpty) return null;
+    final iso = DateTime.tryParse(s);
+    if (iso != null) return iso;
+    try {
+      return DateFormat('dd/MM/yyyy HH:mm').parseStrict(s);
+    } catch (_) {}
+    try {
+      return DateFormat('dd/MM/yyyy').parseStrict(s);
+    } catch (_) {}
+    return null;
+  }
+
+  static String formatDdMMyyyyHHmm(dynamic date) {
+    final dt = _parse(date);
+    if (dt == null) return '-';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  static String formatDdMMyyyy(dynamic date) {
+    final dt = _parse(date);
+    if (dt == null) return '-';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
 }

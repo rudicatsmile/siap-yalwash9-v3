@@ -30,6 +30,8 @@ class StoreDocumentRequest extends FormRequest
             'sifat' => ['required', 'in:Segera,Biasa,Rahasia'],
             'kategori_surat' => ['required', 'string', 'max:100'],
             'klasifikasi_surat' => ['required', 'string', 'max:100'],
+            'kategori_berkas' => ['nullable', 'string', 'max:100'],
+            'kode_berkas' => ['nullable', 'string', 'max:100'],
             'lampiran' => ['nullable', 'string', 'max:255'],
             'token_lampiran' => ['nullable', 'string', 'max:100'],
         ];

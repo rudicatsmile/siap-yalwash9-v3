@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -73,14 +72,15 @@ return new class extends Migration
             $table->string('id_status_rapat', 50)->default('1');
             $table->string('kode_user_ditujukan_memo', 100)->nullable();
             $table->string('kategori_surat', 100);
+            $table->string('kode_berkas', 100);
             $table->string('klasifikasi_surat', 100);
             $table->text('disposisi_ktu_leader')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Foreign key
             $table->foreign('id_user')->references('id_user')->on('users')->onDelete('cascade');
-            
+
             // Indexes for performance
             $table->index('id_user');
             $table->index('id_instansi');

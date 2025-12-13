@@ -2197,20 +2197,22 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       final user = authController.currentUser.value;
 
       //tulis ke log user?.id dan user?.kodeUser
-      _logger.i('user?.id: ${user?.id}');
-      _logger.i('user?.kodeUser: ${user?.kodeUser}');
+      // _logger.i('user?.id: ${user?.id}');
+      // _logger.i('user?.kodeUser: ${user?.kodeUser}');
 
       final penerimaText = _perihalController.text.trim();
       final penerimaValue = penerimaText.isEmpty ? '-----' : penerimaText;
       final ringkasanText = _ringkasanController.text.trim();
       final ringkasanValue = ringkasanText.isEmpty ? '-----' : ringkasanText;
 
+      //tulis ke log kategoriKode
+      print('kategoriKode: $kategoriKode');
       final payload = {
         'no_asal':
             '${_letterNumberPart1Controller.text.trim()}/${_letterNumberPart2Controller.text.trim()}',
         'tgl_no_asal': ymd,
         'tgl_no_asal2': ymd,
-        'tgl_surat': dmy,
+        'tgl_surat': ymd,
         'pengirim': _pengirimController.text.trim(),
         'penerima': penerimaValue,
         'perihal': ringkasanValue,
@@ -2223,7 +2225,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         'id_user_approved': (kategoriKode == 'Memo') ? user?.id ?? '0' : '0',
         'kode_user_approved':
             (kategoriKode == 'Memo') ? user?.kodeUser ?? '' : '',
-        'tgl_agenda_rapat': _meetingDateController.text.trim(),
+        'tgl_agenda_rapat': DateFormat('yyyy-MM-dd').format(
+          DateFormat('dd/MM/yyyy')
+              .parseStrict(_meetingDateController.text.trim()),
+        ),
         'jam_rapat': _meetingTimeController.text.trim(),
         'ruang_rapat': _getSelectedDeskripsi(_ruangRapatController) ?? 'null',
         'bahasan_rapat': _pokokBahasanController.text.trim(),
@@ -2241,6 +2246,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         'kategori_undangan': _usersDropdownController.selectedUserId.value,
         'kategori_laporan': _getSelectedKode(_kategoriLaporanController) ?? '',
         'kategori_surat': _docNumberPart2Controller.text.trim(),
+        'kode_berkas': kategoriKode,
+        //kategori_kode
         'klasifikasi_surat': _letterNumberPart2Controller.text.trim(),
       };
 
@@ -2354,9 +2361,34 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         final doc = results.first;
         _existingDocument = doc;
         _editingDocumentId = doc.id;
+
+        //Nomor Dokumen
         _docNumberPart1Controller.text = doc.documentNumber;
-        _ringkasanController.text = doc.title;
-        _perihalController.text = doc.description ?? '';
+        _docNumberPart2Controller.text = doc.kategoriBerkas ?? '';
+
+        //Tanggal Buat
+        final rawTglSurat = doc.tglSurat?.trim();
+        if (rawTglSurat != null && rawTglSurat.isNotEmpty) {
+          final dt = DateTime.tryParse(rawTglSurat);
+          _letterDateController.text =
+              dt != null ? DateFormat('dd-MM-yyyy').format(dt) : rawTglSurat;
+        } else {
+          _letterDateController.text = '17-11-2025';
+        }
+        _logger.i('Tanggal Buat: ${doc.tglSurat}');
+
+        //Nomor Surat
+        String noSuratBerkas = doc.noAsal ?? '';
+        String noSuratPart = noSuratBerkas.split('/')[0];
+        _letterNumberPart1Controller.text = noSuratPart;
+        _letterNumberPart2Controller.text = doc.klasifikasiSurat ?? '';
+
+        //Pengirim
+        _pengirimController.text = doc.pengirim ?? '';
+
+        //Perihal dan Ringkasan
+        _ringkasanController.text = doc.penerima ?? '';
+        _perihalController.text = doc.perihal ?? '';
       }
     } catch (e) {
       Get.snackbar(
