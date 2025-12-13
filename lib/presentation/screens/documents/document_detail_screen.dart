@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/models.dart';
+import '../../../data/repositories/document_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../controllers/auth_controller.dart';
@@ -18,7 +19,7 @@ class DocumentDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detail Dokumen'),
+        title: const Text('Detail Berkas'),
         actions: [
           if (user != null && _canPerformActions(document, user))
             IconButton(
@@ -42,7 +43,8 @@ class DocumentDetailScreen extends StatelessWidget {
             _buildInfoCard([
               _buildInfoRow('Nomor Dokumen', document.documentNumber),
               _buildInfoRow('Judul', document.title),
-              if (document.description != null && document.description!.isNotEmpty)
+              if (document.description != null &&
+                  document.description!.isNotEmpty)
                 _buildInfoRow('Deskripsi', document.description!),
               _buildInfoRow('Status', document.status.displayName),
               if (document.hasMeeting)
@@ -318,7 +320,8 @@ class DocumentDetailScreen extends StatelessWidget {
               ),
             ),
             ElevatedButton.icon(
-              onPressed: () => _handleScheduleMeeting(document, isCoordinator: true),
+              onPressed: () =>
+                  _handleScheduleMeeting(document, isCoordinator: true),
               icon: const Icon(Icons.event),
               label: const Text('Jadwalkan Rapat'),
               style: ElevatedButton.styleFrom(
@@ -380,7 +383,8 @@ class DocumentDetailScreen extends StatelessWidget {
 
     // Role-based action permissions
     return user.role.canApproveDocuments &&
-        ((user.role == UserRole.generalHead && document.status == DocumentStatus.pending) ||
+        ((user.role == UserRole.generalHead &&
+                document.status == DocumentStatus.pending) ||
             (user.role == UserRole.coordinator &&
                 document.status == DocumentStatus.forwardedToCoordinator) ||
             (user.role == UserRole.mainLeader &&
@@ -405,14 +409,24 @@ class DocumentDetailScreen extends StatelessWidget {
       itemName: document.title,
     );
     if (confirmed) {
-      // Call document repository delete method
-      Get.back(result: 'deleted');
-      Get.snackbar(
-        'Berhasil',
-        'Dokumen berhasil dihapus',
-        backgroundColor: AppTheme.statusApproved,
-        colorText: Colors.white,
-      );
+      try {
+        final repo = DocumentRepository();
+        await repo.deleteDocument(document.id);
+        Get.back(result: 'deleted');
+        Get.snackbar(
+          'Berhasil',
+          'Dokumen berhasil dihapus',
+          backgroundColor: AppTheme.statusApproved,
+          colorText: Colors.white,
+        );
+      } catch (e) {
+        Get.snackbar(
+          'Error',
+          'Gagal menghapus dokumen: $e',
+          backgroundColor: AppTheme.errorColor,
+          colorText: Colors.white,
+        );
+      }
     }
   }
 
@@ -449,7 +463,8 @@ class DocumentDetailScreen extends StatelessWidget {
   Future<void> _handleReturn(DocumentModel document) async {
     final confirmed = await ConfirmationDialog.show(
       title: 'Kembalikan Dokumen',
-      message: 'Apakah Anda yakin ingin mengembalikan dokumen "${document.title}"?',
+      message:
+          'Apakah Anda yakin ingin mengembalikan dokumen "${document.title}"?',
     );
     if (confirmed) {
       // Call document repository return method (status = 20)
@@ -468,7 +483,8 @@ class DocumentDetailScreen extends StatelessWidget {
   }) async {
     final confirmed = await ConfirmationDialog.show(
       title: 'Jadwalkan Rapat',
-      message: 'Apakah Anda yakin ingin menjadwalkan rapat untuk dokumen "${document.title}"?',
+      message:
+          'Apakah Anda yakin ingin menjadwalkan rapat untuk dokumen "${document.title}"?',
     );
     if (confirmed) {
       // Call document repository schedule meeting method
@@ -485,7 +501,8 @@ class DocumentDetailScreen extends StatelessWidget {
   Future<void> _handleForwardToCoordinator(DocumentModel document) async {
     final confirmed = await ConfirmationDialog.show(
       title: 'Teruskan ke Koordinator',
-      message: 'Apakah Anda yakin ingin meneruskan dokumen "${document.title}" ke Koordinator?',
+      message:
+          'Apakah Anda yakin ingin meneruskan dokumen "${document.title}" ke Koordinator?',
     );
     if (confirmed) {
       // Call document repository forward method (status = 2)
@@ -533,7 +550,14 @@ class DocumentDetailScreen extends StatelessWidget {
     }
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  String _formatDateTime(dynamic date) {
+    DateTime? dt;
+    if (date is DateTime) {
+      dt = date;
+    } else if (date != null) {
+      dt = DateTime.tryParse(date.toString());
+    }
+    if (dt == null) return '-';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }

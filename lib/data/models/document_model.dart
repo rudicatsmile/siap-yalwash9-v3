@@ -13,7 +13,8 @@ class DocumentModel extends Equatable {
   final String? departemenName;
   final DocumentStatus status;
   final MeetingStatus statusRapat;
-  final DateTime submittedAt;
+  final String? dibaca;
+  final String submittedAt;
   final DateTime? updatedAt;
   final int? approvedBy;
   final String? approverName;
@@ -32,6 +33,7 @@ class DocumentModel extends Equatable {
     this.departemenName,
     required this.status,
     required this.statusRapat,
+    this.dibaca,
     required this.submittedAt,
     this.updatedAt,
     this.approvedBy,
@@ -111,17 +113,16 @@ class DocumentModel extends Equatable {
       departemenId: json['departemen_id'] ?? json['departemenId'],
       departemenName: json['departemen_name'] ?? json['departemenName'],
       status: DocumentStatus.fromCode(_mapStatus(json['status'])),
-      statusRapat:
-          MeetingStatus.fromCode(_mapMeetingStatus(json['status_rapat'] ?? json['statusRapat'])),
-      submittedAt: json['submitted_at'] != null
-          ? DateTime.parse(json['submitted_at'])
-          : json['submittedAt'] != null
-              ? DateTime.parse(json['submittedAt'])
-              : json['tgl_sm'] != null
-                  ? DateTime.parse(json['tgl_sm'])
-                  : json['created_at'] != null
-                      ? DateTime.parse(json['created_at'])
-                      : DateTime.now(),
+      statusRapat: MeetingStatus.fromCode(
+          _mapMeetingStatus(json['status_rapat'] ?? json['statusRapat'])),
+      dibaca: _asString(json['dibaca']),
+      submittedAt: _asString(
+        json['submitted_at'] ??
+            json['submittedAt'] ??
+            json['tgl_sm'] ??
+            json['created_at'] ??
+            DateTime.now().toIso8601String(),
+      ),
       updatedAt: json['updated_at'] != null
           ? DateTime.tryParse(json['updated_at'])
           : json['updatedAt'] != null
@@ -154,7 +155,8 @@ class DocumentModel extends Equatable {
       'departemen_name': departemenName,
       'status': status.code,
       'status_rapat': statusRapat.code,
-      'submitted_at': submittedAt.toIso8601String(),
+      'dibaca': dibaca,
+      'submitted_at': submittedAt,
       'updated_at': updatedAt?.toIso8601String(),
       'approved_by': approvedBy,
       'approver_name': approverName,
@@ -176,7 +178,7 @@ class DocumentModel extends Equatable {
     String? departemenName,
     DocumentStatus? status,
     MeetingStatus? statusRapat,
-    DateTime? submittedAt,
+    String? submittedAt,
     DateTime? updatedAt,
     int? approvedBy,
     String? approverName,
@@ -208,6 +210,10 @@ class DocumentModel extends Equatable {
   bool get canEdit => status.canEdit;
   bool get isFinal => status.isFinal;
   bool get hasMeeting => statusRapat == MeetingStatus.scheduled;
+  bool get isRead {
+    final s = dibaca?.toLowerCase().trim();
+    return s == '1' || s == 'true';
+  }
 
   @override
   List<Object?> get props => [
@@ -221,6 +227,7 @@ class DocumentModel extends Equatable {
         departemenName,
         status,
         statusRapat,
+        dibaca,
         submittedAt,
         updatedAt,
         approvedBy,

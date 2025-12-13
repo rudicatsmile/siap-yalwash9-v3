@@ -321,7 +321,14 @@ class MeetingDetailScreen extends StatelessWidget {
     }
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  String _formatDateTime(dynamic date) {
+    DateTime? dt;
+    if (date is DateTime) {
+      dt = date;
+    } else if (date != null) {
+      dt = DateTime.tryParse(date.toString());
+    }
+    if (dt == null) return '-';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }

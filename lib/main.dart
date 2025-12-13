@@ -16,16 +16,16 @@ import 'routes/app_routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize storage
   await StorageService().init();
-  
+
   // Initialize API service
   ApiService().init();
-  
+
   // Initialize AuthController
   Get.put(AuthController());
-  
+
   runApp(const SiapApp());
 }
 
@@ -58,7 +58,16 @@ class SiapApp extends StatelessWidget {
         ),
         GetPage(
           name: AppRoutes.documentForm,
-          page: () => const DocumentFormScreen(),
+          page: () {
+            final args = Get.arguments;
+            String? noSurat;
+            if (args is Map<String, dynamic>) {
+              noSurat = args['no_surat']?.toString();
+            } else if (args is String) {
+              noSurat = args;
+            }
+            return DocumentFormScreen(noSurat: noSurat);
+          },
         ),
         GetPage(
           name: AppRoutes.meetingList,

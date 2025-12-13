@@ -10,6 +10,8 @@ use App\Models\Document;
 use App\Models\ActivityHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
 
 class DocumentController extends Controller
 {
@@ -66,6 +68,9 @@ class DocumentController extends Controller
 
         // Order by date descending
         $query->orderBy('tgl_surat', 'desc');
+        $sql = $query->toSql();
+        $rawSql = Str::replaceArray('?', $query->getBindings(), $sql);
+
 
         $documents = $query->paginate($perPage);
 
@@ -78,6 +83,7 @@ class DocumentController extends Controller
                 'total' => $documents->total(),
                 'last_page' => $documents->lastPage(),
             ],
+            'debug_sql' => $rawSql,
             'timestamp' => now()->toIso8601String(),
         ]);
     }
@@ -240,13 +246,14 @@ class DocumentController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isAdmin()) {
-            return response()->json([
-                'status' => 403,
-                'message' => 'Only administrators can delete documents',
-                'timestamp' => now()->toIso8601String(),
-            ], 403);
-        }
+        //Semua bisa menghapus sesuai kepemilikan berkas nya
+        // if (!$user->isAdmin()) {
+        //     return response()->json([
+        //         'status' => 403,
+        //         'message' => 'Only administrators can delete documents',
+        //         'timestamp' => now()->toIso8601String(),
+        //     ], 403);
+        // }
 
         $document = Document::find($id);
 

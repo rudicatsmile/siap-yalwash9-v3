@@ -113,12 +113,12 @@ class Document extends Model
             'tgl_approved' => 'datetime',
             'tgl_delegasi_rapat' => 'datetime',
             'tgl_hasil_rapat' => 'datetime',
-            'dibaca' => 'boolean',
-            'dibaca_pimpinan' => 'boolean',
-            'is_notes_pimpinan' => 'boolean',
-            'status_tu' => 'boolean',
-            'status_instansi' => 'boolean',
-            'delegasi_pimpinan' => 'boolean',
+            // 'dibaca' => 'boolean',
+            // 'dibaca_pimpinan' => 'boolean',
+            // 'is_notes_pimpinan' => 'boolean',
+            // 'status_tu' => 'boolean',
+            // 'status_instansi' => 'boolean',
+            // 'delegasi_pimpinan' => 'boolean',
             'id_user_approved' => 'integer',
         ];
     }
@@ -170,8 +170,8 @@ class Document extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('no_surat', 'like', "%{$search}%")
-              ->orWhere('pengirim', 'like', "%{$search}%")
-              ->orWhere('perihal', 'like', "%{$search}%");
+                ->orWhere('pengirim', 'like', "%{$search}%")
+                ->orWhere('perihal', 'like', "%{$search}%");
         });
     }
 
