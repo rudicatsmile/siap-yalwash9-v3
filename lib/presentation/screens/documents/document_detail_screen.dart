@@ -409,6 +409,15 @@ class DocumentDetailScreen extends StatelessWidget {
       itemName: document.title,
     );
     if (confirmed) {
+      if (document.dibaca != '1') {
+        Get.snackbar(
+          'Hapus berkas',
+          'Berkas tidak dapat dihapus.',
+          backgroundColor: AppTheme.warningColor.withOpacity(0.9),
+          colorText: Colors.white,
+        );
+        return;
+      }
       try {
         final repo = DocumentRepository();
         await repo.deleteDocument(document.id);

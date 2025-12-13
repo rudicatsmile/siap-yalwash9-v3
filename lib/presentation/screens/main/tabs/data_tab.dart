@@ -69,10 +69,14 @@ class DataTab extends StatelessWidget {
                             switch (value) {
                               case 'view':
                                 try {
-                                  await Get.toNamed(
+                                  final result = await Get.toNamed(
                                     AppRoutes.documentDetail,
                                     arguments: doc,
                                   );
+                                  if (result == 'deleted') {
+                                    await dashboardController
+                                        .refreshDocuments();
+                                  }
                                 } catch (e) {
                                   Get.snackbar(
                                     'Error',
@@ -107,7 +111,7 @@ class DataTab extends StatelessWidget {
                                 try {
                                   if (doc.dibaca != '1') {
                                     Get.snackbar(
-                                      'Tidak Bisa Dihapus',
+                                      'Hapus berkas',
                                       'Berkas tidak dapat dihapus.',
                                       backgroundColor: AppTheme.warningColor
                                           .withOpacity(0.9),
@@ -156,8 +160,13 @@ class DataTab extends StatelessWidget {
                     ),
                     onTap: () async {
                       try {
-                        await Get.toNamed(AppRoutes.documentDetail,
-                            arguments: doc);
+                        final result = await Get.toNamed(
+                          AppRoutes.documentDetail,
+                          arguments: doc,
+                        );
+                        if (result == 'deleted') {
+                          await dashboardController.refreshDocuments();
+                        }
                       } catch (e) {
                         Get.snackbar(
                           'Error',
