@@ -68,6 +68,7 @@ class DocumentController extends Controller
 
         // Order by date descending
         $query->orderBy('tgl_surat', 'desc');
+        $query->orderBy('id_sm', 'asc');
         $sql = $query->toSql();
         $rawSql = Str::replaceArray('?', $query->getBindings(), $sql);
 

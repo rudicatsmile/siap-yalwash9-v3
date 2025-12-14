@@ -23,7 +23,8 @@ class StoreDocumentRequest extends FormRequest
     {
         return [
             'no_asal' => ['required', 'string', 'max:100'],
-            'tgl_surat' => ['required', 'date', 'before_or_equal:today'],
+            // 'tgl_surat' => ['required', 'date', 'before_or_equal:today'],
+            'tgl_surat' => ['required', 'date'],
             'pengirim' => ['required', 'string', 'max:255'],
             'penerima' => ['required', 'string', 'max:255'],
             'perihal' => ['required', 'string', 'min:10'],

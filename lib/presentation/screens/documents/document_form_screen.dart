@@ -109,6 +109,34 @@ String? getKodeFromDocPimpinanRapat({
 }
 // (fungsi getDataFromDocPesertaRapat dihapus; gunakan getDataFromDocDitujukan untuk input String)
 
+String? getKodeFromDocRuangRapat({
+  required String? raw,
+  required List<DropdownItem> items,
+  Logger? logger,
+}) {
+  try {
+    if (raw == null) return null;
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+    if (items.isEmpty) {
+      logger?.w('Items ruang rapat belum ter-load, skip mapping sementara');
+      return null;
+    }
+    final match = items.firstWhere(
+      (it) => it.deskripsi.trim().toLowerCase() == s.toLowerCase(),
+      orElse: () => DropdownItem(kode: '', deskripsi: ''),
+    );
+    if (match.kode.isEmpty) {
+      logger?.w('Ruang rapat tidak dikenali, lewati: "$s"');
+      return null;
+    }
+    return match.kode.trim();
+  } catch (e) {
+    logger?.e('Gagal parse doc.ruangRapat: $e');
+    return null;
+  }
+}
+
 /// Document form screen for creating and editing documents
 class DocumentFormScreen extends StatefulWidget {
   final String? noSurat;
@@ -2562,6 +2590,36 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
               .w('kategori_surat kosong/null, skip preselect kategori laporan');
         }
 
+        //Default Undangan kepada
+        final kund = doc.kategoriUndangan?.trim();
+        if (kund != null && kund.isNotEmpty) {
+          if (_usersDropdownController.items.isNotEmpty) {
+            final exists =
+                _usersDropdownController.items.any((it) => it.id == kund);
+            if (exists) {
+              _usersDropdownController.select(kund);
+              setState(() {});
+            } else {
+              _logger.w('kategori_undangan tidak ditemukan di items: $kl');
+            }
+          } else {
+            once(_usersDropdownController.items, (_) {
+              final exists =
+                  _usersDropdownController.items.any((it) => it.id == kund);
+              if (exists) {
+                _usersDropdownController.select(kund);
+                setState(() {});
+              } else {
+                _logger
+                    .w('kategori_undangan tidak ditemukan (after load): $kl');
+              }
+            });
+          }
+        } else {
+          _logger.w(
+              'kategori_undangan kosong/null, skip preselect kategori laporan');
+        }
+
         //Nomor Dokumen
         _docNumberPart1Controller.text = doc.documentNumber;
         _docNumberPart2Controller.text = doc.kategoriBerkas ?? '';
@@ -2643,13 +2701,55 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
         // ------------------ R A P A T --------------------
 
-        //tanggal rapat
+        //tanggal agenda rapat
+        final rawTglAgendaRapat = doc.tglAgendaRapat?.trim();
+        if (rawTglAgendaRapat != null && rawTglAgendaRapat.isNotEmpty) {
+          final dt = DateTime.tryParse(rawTglAgendaRapat);
+          _meetingDateController.text = dt != null
+              ? DateFormat('dd-MM-yyyy').format(dt)
+              : rawTglAgendaRapat;
+        } else {
+          _meetingDateController.text = '17-11-2025';
+        }
+        _logger.i('Tanggal Agenda: ${doc.tglAgendaRapat}');
 
-        //Waktu rapat
+        //Waktu / Jam rapat
         _meetingTimeController.text = doc.jamRapat ?? '';
 
-        //Ruang rapat
+        // Pimpinan Rapat (single-select)
         final rawRuangRapat = doc.ruangRapat?.trim();
+        if (rawRuangRapat != null && rawRuangRapat.isNotEmpty) {
+          if (_ruangRapatController.items.isNotEmpty) {
+            final kode = getKodeFromDocRuangRapat(
+              raw: rawRuangRapat,
+              items: _ruangRapatController.items,
+              logger: _logger,
+            );
+            if (kode != null && kode.isNotEmpty) {
+              _ruangRapatController.select(kode);
+              setState(() {});
+            }
+          } else {
+            _logger.w(
+                'Items ruang rapat belum tersedia, menunggu load untuk mapping');
+            once(_ruangRapatController.items, (_) {
+              final kode = getKodeFromDocRuangRapat(
+                raw: rawRuangRapat,
+                items: _ruangRapatController.items,
+                logger: _logger,
+              );
+              if (kode != null && kode.isNotEmpty) {
+                _ruangRapatController.select(kode);
+                setState(() {});
+              } else {
+                _logger.w(
+                    'Mapping ruang rapat menghasilkan kosong setelah load items');
+              }
+            });
+          }
+        } else {
+          _logger.w('doc.ruangRapat kosong/null, skip preselect ruang');
+        }
 
         //Peserta Rapat (multi-select)
         final rawPesertaRapat = doc.pesertaRapat;

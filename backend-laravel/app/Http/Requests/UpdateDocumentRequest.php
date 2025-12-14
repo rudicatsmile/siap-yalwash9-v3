@@ -23,7 +23,8 @@ class UpdateDocumentRequest extends FormRequest
     {
         return [
             'no_asal' => ['sometimes', 'string', 'max:100'],
-            'tgl_surat' => ['sometimes', 'date', 'before_or_equal:today'],
+            // 'tgl_surat' => ['sometimes', 'date', 'before_or_equal:today'],
+            'tgl_surat' => ['sometimes', 'date'],
             'pengirim' => ['sometimes', 'string', 'max:255'],
             'penerima' => ['sometimes', 'string', 'max:255'],
             'perihal' => ['sometimes', 'string', 'min:10'],

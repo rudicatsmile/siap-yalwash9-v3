@@ -34,6 +34,7 @@ class DocumentModel extends Equatable {
   final String? perihal;
   final String? kategoriBerkas;
   final String? kategoriSurat;
+  final String? kategoriUndangan;
   final String? kategoriKode;
   final String? kodeBerkas;
   final String? klasifikasiSurat;
@@ -109,6 +110,7 @@ class DocumentModel extends Equatable {
     this.perihal,
     this.kategoriBerkas,
     this.kategoriSurat,
+    this.kategoriUndangan,
     this.kategoriKode,
     this.kodeBerkas,
     this.klasifikasiSurat,
@@ -242,6 +244,7 @@ class DocumentModel extends Equatable {
       penerima: _asString(json['penerima']),
       kategoriBerkas: _asString(json['kategori_berkas']),
       kategoriSurat: _asString(json['kategori_surat']),
+      kategoriUndangan: _asString(json['kategori_undangan']),
       kategoriKode: _asString(json['kategori_kode']),
       kodeBerkas: _asString(json['kode_berkas']),
       klasifikasiSurat: _asString(json['klasifikasi_surat']),
@@ -325,6 +328,7 @@ class DocumentModel extends Equatable {
       'penerima': penerima,
       'kategori_berkas': kategoriBerkas,
       'kategori_surat': kategoriSurat,
+      'kategori_undangan': kategoriUndangan,
       'kategori_kode': kategoriKode,
       'kode_berkas': kodeBerkas,
       'klasifikasi_surat': klasifikasiSurat,
@@ -380,6 +384,7 @@ class DocumentModel extends Equatable {
     String? penerima,
     String? kategoriBerkas,
     String? kategoriSurat,
+    String? kategoriUndangan,
     String? kategoriKode,
     String? kodeBerkas,
     String? klasifikasiSurat,
@@ -432,6 +437,7 @@ class DocumentModel extends Equatable {
       penerima: penerima ?? this.penerima,
       kategoriBerkas: kategoriBerkas ?? this.kategoriBerkas,
       kategoriSurat: kategoriSurat ?? this.kategoriSurat,
+      kategoriUndangan: kategoriUndangan ?? this.kategoriUndangan,
       kategoriKode: kategoriKode ?? this.kategoriKode,
       kodeBerkas: kodeBerkas ?? this.kodeBerkas,
       klasifikasiSurat: klasifikasiSurat ?? this.klasifikasiSurat,
@@ -497,6 +503,7 @@ class DocumentModel extends Equatable {
         penerima,
         kategoriBerkas,
         kategoriSurat,
+        kategoriUndangan,
         kategoriKode,
         kodeBerkas,
         klasifikasiSurat,
