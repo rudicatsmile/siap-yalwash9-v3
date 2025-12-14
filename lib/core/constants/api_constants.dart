@@ -4,6 +4,7 @@ class ApiConstants {
   // For Android Emulator: use 10.0.2.2 (special alias to host machine's localhost)
   // For iOS Simulator: use 127.0.0.1 or localhost directly
   // For Physical Device: use your machine's local IP (e.g., 192.168.x.x)
+  // static const String baseUrl = 'http://192.168.1.10:8000';
   static const String baseUrl = 'https://backend-siap.yalwash9.org';
 
   // API Endpoints - Authentication

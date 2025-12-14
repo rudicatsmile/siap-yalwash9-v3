@@ -51,6 +51,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final _meetingDateController = TextEditingController();
   final _meetingTimeController = TextEditingController();
   DateTime? _selectedMeetingDate;
+  final _kategoriKodeController = TextEditingController();
   bool _showGroupIdentitasDokumen = true;
   bool _showNomorDokumen = true;
   bool _showTanggalBuat = true;
@@ -303,6 +304,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     final kategoriDesc =
         _getSelectedDeskripsi(_kategoriController)?.toLowerCase().trim() ?? '';
     _resetDocNumberPart2();
+    _kategoriKodeController.text = kategoriKode ?? '';
 
     // print('kategoriKode: $kategoriKode');
     // print('kategoriDesc: $kategoriDesc');
@@ -730,8 +732,151 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                             return null;
                           },
                         ),
+                        const SizedBox(height: 16),
 
-                        // const SizedBox(height: 12),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showKategoriLaporan
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ApiDropdownField(
+                                      label: 'Kategori Laporan',
+                                      placeholder: 'Pilih Kategori Laporan',
+                                      tableName: 'm_kategori_laporan',
+                                      controller: _kategoriLaporanController,
+                                      onChanged: (val) {
+                                        _handleKategoriLaporanChanged(val);
+                                      },
+                                      itemTextBuilder: (it) => it.deskripsi,
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Kategori laporan harus dipilih';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showJenisDokumen
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ApiDropdownField(
+                                      label: 'Jenis Dokumen',
+                                      placeholder: 'Pilih Jenis Dokumen',
+                                      tableName: 'm_jenis_dokumen',
+                                      controller: _jenisController,
+                                      onChanged: (val) {
+                                        _handleJenisDokumenChanged(val);
+                                      },
+                                      itemTextBuilder: (it) => it.deskripsi,
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Jenis dokumen harus dipilih';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showUndanganKepada
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Undangan kepada',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Obx(() {
+                                      if (_usersDropdownController
+                                              .isLoading.value &&
+                                          _usersDropdownController
+                                              .items.isEmpty) {
+                                        return const SizedBox(
+                                          height: 56,
+                                          child: Center(
+                                              child:
+                                                  CircularProgressIndicator()),
+                                        );
+                                      }
+                                      if (_usersDropdownController
+                                          .error.isNotEmpty) {
+                                        return Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.errorColor
+                                                .withOpacity(0.08),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: AppTheme.errorColor
+                                                  .withOpacity(0.3),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _usersDropdownController
+                                                .error.value,
+                                            style: const TextStyle(
+                                                color: AppTheme.errorColor),
+                                          ),
+                                        );
+                                      }
+                                      return DropdownButtonFormField<String>(
+                                        value: _usersDropdownController
+                                                .selectedUserId.value.isEmpty
+                                            ? null
+                                            : _usersDropdownController
+                                                .selectedUserId.value,
+                                        items: _usersDropdownController.items
+                                            .map(
+                                              (u) => DropdownMenuItem<String>(
+                                                value: u.id,
+                                                child: Text(u.namaLengkap),
+                                              ),
+                                            )
+                                            .toList(),
+                                        onChanged: (val) =>
+                                            _usersDropdownController
+                                                .select(val),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'User harus dipilih';
+                                          }
+                                          return null;
+                                        },
+                                        decoration: const InputDecoration(
+                                          hintText: 'Pilih undangan kepada',
+                                          border: OutlineInputBorder(),
+                                          prefixIcon:
+                                              Icon(Icons.person_outline),
+                                        ),
+                                      );
+                                    }),
+                                    const SizedBox(height: 16),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                         // Obx(() {
                         //   if (_lastNoSuratController.isLoading.value) {
                         //     return const SizedBox(
@@ -1001,36 +1146,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         //   ],
                         // ),
 
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showJenisDokumen
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiDropdownField(
-                                      label: 'Jenis Dokumen',
-                                      placeholder: 'Pilih Jenis Dokumen',
-                                      tableName: 'm_jenis_dokumen',
-                                      controller: _jenisController,
-                                      onChanged: (val) {
-                                        _handleJenisDokumenChanged(val);
-                                      },
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Jenis dokumen harus dipilih';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
                         // Wrap(
                         //   spacing: 8,
                         //   runSpacing: 8,
@@ -1044,35 +1159,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         //     ),
                         //   ],
                         // ),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showKategoriLaporan
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiDropdownField(
-                                      label: 'Kategori Laporan',
-                                      placeholder: 'Pilih Kategori Laporan',
-                                      tableName: 'm_kategori_laporan',
-                                      controller: _kategoriLaporanController,
-                                      onChanged: (val) {
-                                        _handleKategoriLaporanChanged(val);
-                                      },
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Kategori laporan harus dipilih';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
 
                         // Dropdown User Undangan (sumber data dari /api/users/dropdown dengan parameter kode_user=YS)
                         // Wrap(
@@ -1088,89 +1174,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         //     ),
                         //   ],
                         // ),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showUndanganKepada
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Undangan kepada',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    Obx(() {
-                                      if (_usersDropdownController
-                                              .isLoading.value &&
-                                          _usersDropdownController
-                                              .items.isEmpty) {
-                                        return const SizedBox(
-                                          height: 56,
-                                          child: Center(
-                                              child:
-                                                  CircularProgressIndicator()),
-                                        );
-                                      }
-                                      if (_usersDropdownController
-                                          .error.isNotEmpty) {
-                                        return Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.errorColor
-                                                .withOpacity(0.08),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            border: Border.all(
-                                              color: AppTheme.errorColor
-                                                  .withOpacity(0.3),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            _usersDropdownController
-                                                .error.value,
-                                            style: const TextStyle(
-                                                color: AppTheme.errorColor),
-                                          ),
-                                        );
-                                      }
-                                      return DropdownButtonFormField<String>(
-                                        value: _usersDropdownController
-                                                .selectedUserId.value.isEmpty
-                                            ? null
-                                            : _usersDropdownController
-                                                .selectedUserId.value,
-                                        items: _usersDropdownController.items
-                                            .map(
-                                              (u) => DropdownMenuItem<String>(
-                                                value: u.id,
-                                                child: Text(u.namaLengkap),
-                                              ),
-                                            )
-                                            .toList(),
-                                        onChanged: (val) =>
-                                            _usersDropdownController
-                                                .select(val),
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'User harus dipilih';
-                                          }
-                                          return null;
-                                        },
-                                        decoration: const InputDecoration(
-                                          hintText: 'Pilih undangan kepada',
-                                          border: OutlineInputBorder(),
-                                          prefixIcon:
-                                              Icon(Icons.person_outline),
-                                        ),
-                                      );
-                                    }),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
 
                         //Tanggal Surat
                         Text(
@@ -1281,6 +1284,27 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
+                        // Text(
+                        //   'Kategori Kode',
+                        //   style: const TextStyle(fontWeight: FontWeight.bold),
+                        // ),
+                        // TextFormField(
+                        //   controller: _kategoriKodeController,
+                        //   readOnly: true,
+                        //   decoration: const InputDecoration(
+                        //     hintText: 'Kode kategori terpilih',
+                        //     border: OutlineInputBorder(),
+                        //     prefixIcon: Icon(Icons.category_outlined),
+                        //   ),
+                        //   validator: (value) {
+                        //     final v = (value ?? '').trim();
+                        //     if (v.isEmpty) {
+                        //       return 'Kategori kode harus dipilih';
+                        //     }
+                        //     return null;
+                        //   },
+                        // ),
+                        // const SizedBox(height: 16),
 
                         // Wrap(
                         //   spacing: 8,
@@ -2206,7 +2230,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       final ringkasanValue = ringkasanText.isEmpty ? '-----' : ringkasanText;
 
       //tulis ke log kategoriKode
-      print('kategoriKode: $kategoriKode');
       final payload = {
         'no_asal':
             '${_letterNumberPart1Controller.text.trim()}/${_letterNumberPart2Controller.text.trim()}',
@@ -2247,7 +2270,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         'kategori_laporan': _getSelectedKode(_kategoriLaporanController) ?? '',
         'kategori_surat': _docNumberPart2Controller.text.trim(),
         'kode_berkas': kategoriKode,
-        //kategori_kode
+        'kategori_kode': _getSelectedKode(_kategoriController) ?? '',
         'klasifikasi_surat': _letterNumberPart2Controller.text.trim(),
       };
 
@@ -2362,11 +2385,116 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _existingDocument = doc;
         _editingDocumentId = doc.id;
 
+        // Set default kategori Formulir (edit mode) berdasarkan doc.kategoriKode
+        final kk = doc.kategoriKode?.trim();
+        if (kk != null && kk.isNotEmpty) {
+          if (_kategoriController.items.isNotEmpty) {
+            final exists = _kategoriController.items.any((it) => it.kode == kk);
+            if (exists) {
+              _kategoriController.select(kk);
+              _handleKategoriChanged(kk);
+              setState(() {});
+            } else {
+              _logger.w('kategori_kode tidak ditemukan di items: $kk');
+            }
+          } else {
+            once(_kategoriController.items, (_) {
+              final exists =
+                  _kategoriController.items.any((it) => it.kode == kk);
+              if (exists) {
+                _kategoriController.select(kk);
+                _handleKategoriChanged(kk);
+                setState(() {});
+              } else {
+                _logger.w('kategori_kode tidak ditemukan (after load): $kk');
+              }
+            });
+          }
+        } else {
+          _logger.w('kategori_kode kosong/null, skip preselect kategori');
+        }
+
+        // Set default Jenis dokumen (edit mode) berdasarkan doc.kategoriSurat
+        final js = doc.kategoriSurat?.trim();
+        if (js != null && js.isNotEmpty) {
+          if (_jenisController.items.isNotEmpty) {
+            final exists = _jenisController.items.any((it) => it.kode == js);
+            if (exists) {
+              _jenisController.select(js);
+              _handleJenisDokumenChanged(js);
+              setState(() {});
+            } else {
+              _logger.w('kategori_surat tidak ditemukan di items: $js');
+            }
+          } else {
+            once(_jenisController.items, (_) {
+              final exists = _jenisController.items.any((it) => it.kode == js);
+              if (exists) {
+                _jenisController.select(js);
+                _handleJenisDokumenChanged(js);
+                setState(() {});
+              } else {
+                _logger.w('kategori_surat tidak ditemukan (after load): $js');
+              }
+            });
+          }
+        } else {
+          _logger.w('kategori_surat kosong/null, skip preselect jenis');
+        }
+
+        // Set default Kategori laporan (edit mode) berdasarkan doc.kategoriSurat
+        final kl = doc.kategoriSurat?.trim();
+        if (kl != null && kl.isNotEmpty) {
+          if (_kategoriLaporanController.items.isNotEmpty) {
+            final exists =
+                _kategoriLaporanController.items.any((it) => it.kode == kl);
+            if (exists) {
+              _kategoriLaporanController.select(kl);
+              _handleKategoriLaporanChanged(kl);
+              setState(() {});
+            } else {
+              _logger.w('kategori_laporan tidak ditemukan di items: $kl');
+            }
+          } else {
+            once(_kategoriLaporanController.items, (_) {
+              final exists =
+                  _kategoriLaporanController.items.any((it) => it.kode == kl);
+              if (exists) {
+                _kategoriLaporanController.select(kl);
+                _handleKategoriLaporanChanged(kl);
+                setState(() {});
+              } else {
+                _logger.w('kategori_laporan tidak ditemukan (after load): $kl');
+              }
+            });
+          }
+        } else {
+          _logger
+              .w('kategori_surat kosong/null, skip preselect kategori laporan');
+        }
+
         //Nomor Dokumen
         _docNumberPart1Controller.text = doc.documentNumber;
         _docNumberPart2Controller.text = doc.kategoriBerkas ?? '';
 
         //Tanggal Buat
+        final rawTglNs = doc.tglNs?.trim();
+        if (rawTglNs != null && rawTglNs.isNotEmpty) {
+          final dtNs = DateTime.tryParse(rawTglNs);
+          _todayDateController.text =
+              dtNs != null ? DateFormat('dd-MM-yyyy').format(dtNs) : rawTglNs;
+        } else {
+          _todayDateController.text = '17-11-2025';
+        }
+        _logger.i('Tanggal Ns: ${doc.tglNs}');
+
+        //Nomor dokumen
+        String noSuratBerkas = doc.noAsal ?? '';
+        String noSuratPart = noSuratBerkas.split('/')[0];
+        _letterNumberPart1Controller.text = noSuratPart;
+        _letterNumberPart2Controller.text = doc.klasifikasiSurat ?? '';
+
+        //Tanggal Surat
         final rawTglSurat = doc.tglSurat?.trim();
         if (rawTglSurat != null && rawTglSurat.isNotEmpty) {
           final dt = DateTime.tryParse(rawTglSurat);
@@ -2377,18 +2505,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         }
         _logger.i('Tanggal Buat: ${doc.tglSurat}');
 
-        //Nomor Surat
-        String noSuratBerkas = doc.noAsal ?? '';
-        String noSuratPart = noSuratBerkas.split('/')[0];
-        _letterNumberPart1Controller.text = noSuratPart;
-        _letterNumberPart2Controller.text = doc.klasifikasiSurat ?? '';
-
         //Pengirim
         _pengirimController.text = doc.pengirim ?? '';
 
         //Perihal dan Ringkasan
-        _ringkasanController.text = doc.penerima ?? '';
-        _perihalController.text = doc.perihal ?? '';
+        _ringkasanController.text = doc.perihal ?? '';
+        _perihalController.text = doc.penerima ?? '';
+
+        //_tujuanDisposisiController
+        //KA. SUBAG PROTOKOLER<br>KA SUBAG DATA DAN MEDIA<br>STAF KEPEGAWAIAN DAN KELEMBAGAAN
+        final dtj = doc.ditujukan?.trim();
       }
     } catch (e) {
       Get.snackbar(

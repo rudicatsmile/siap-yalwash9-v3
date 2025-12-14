@@ -27,12 +27,14 @@ class DocumentModel extends Equatable {
   final String? kodeUserApproved;
   final int? idUserApproved;
   final String? tglSurat;
+  final String? tglNs;
   final String? noAsal;
   final String? pengirim;
   final String? penerima;
   final String? perihal;
   final String? kategoriBerkas;
   final String? kategoriSurat;
+  final String? kategoriKode;
   final String? kodeBerkas;
   final String? klasifikasiSurat;
   final String? idStatusRapat;
@@ -100,12 +102,14 @@ class DocumentModel extends Equatable {
     this.kodeUserApproved,
     this.idUserApproved,
     this.tglSurat,
+    this.tglNs,
     this.noAsal,
     this.pengirim,
     this.penerima,
     this.perihal,
     this.kategoriBerkas,
     this.kategoriSurat,
+    this.kategoriKode,
     this.kodeBerkas,
     this.klasifikasiSurat,
     this.idStatusRapat,
@@ -232,11 +236,13 @@ class DocumentModel extends Equatable {
       kodeUserApproved: _asString(json['kode_user_approved']),
       idUserApproved: _asInt(json['id_user_approved']),
       tglSurat: _asString(json['tgl_surat']),
+      tglNs: _asString(json['tgl_ns']),
       noAsal: _asString(json['no_asal']),
       pengirim: _asString(json['pengirim']),
       penerima: _asString(json['penerima']),
       kategoriBerkas: _asString(json['kategori_berkas']),
       kategoriSurat: _asString(json['kategori_surat']),
+      kategoriKode: _asString(json['kategori_kode']),
       kodeBerkas: _asString(json['kode_berkas']),
       klasifikasiSurat: _asString(json['klasifikasi_surat']),
       idStatusRapat: _asString(json['id_status_rapat']),
@@ -312,11 +318,13 @@ class DocumentModel extends Equatable {
       'kode_user_approved': kodeUserApproved,
       'id_user_approved': idUserApproved,
       'tgl_surat': tglSurat,
+      'tgl_ns': tglNs,
       'no_asal': noAsal,
       'pengirim': pengirim,
       'penerima': penerima,
       'kategori_berkas': kategoriBerkas,
       'kategori_surat': kategoriSurat,
+      'kategori_kode': kategoriKode,
       'kode_berkas': kodeBerkas,
       'klasifikasi_surat': klasifikasiSurat,
       'id_status_rapat': idStatusRapat,
@@ -365,11 +373,13 @@ class DocumentModel extends Equatable {
     String? kodeUserApproved,
     int? idUserApproved,
     String? tglSurat,
+    String? tglNs,
     String? noAsal,
     String? pengirim,
     String? penerima,
     String? kategoriBerkas,
     String? kategoriSurat,
+    String? kategoriKode,
     String? kodeBerkas,
     String? klasifikasiSurat,
     String? idStatusRapat,
@@ -415,11 +425,13 @@ class DocumentModel extends Equatable {
       kodeUserApproved: kodeUserApproved ?? this.kodeUserApproved,
       idUserApproved: idUserApproved ?? this.idUserApproved,
       tglSurat: tglSurat ?? this.tglSurat,
+      tglNs: tglNs ?? this.tglNs,
       noAsal: noAsal ?? this.noAsal,
       pengirim: pengirim ?? this.pengirim,
       penerima: penerima ?? this.penerima,
       kategoriBerkas: kategoriBerkas ?? this.kategoriBerkas,
       kategoriSurat: kategoriSurat ?? this.kategoriSurat,
+      kategoriKode: kategoriKode ?? this.kategoriKode,
       kodeBerkas: kodeBerkas ?? this.kodeBerkas,
       klasifikasiSurat: klasifikasiSurat ?? this.klasifikasiSurat,
       idStatusRapat: idStatusRapat ?? this.idStatusRapat,
@@ -478,11 +490,13 @@ class DocumentModel extends Equatable {
         kodeUserApproved,
         idUserApproved,
         tglSurat,
+        tglNs,
         noAsal,
         pengirim,
         penerima,
         kategoriBerkas,
         kategoriSurat,
+        kategoriKode,
         kodeBerkas,
         klasifikasiSurat,
         idStatusRapat,

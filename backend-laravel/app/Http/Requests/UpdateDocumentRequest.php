@@ -30,6 +30,7 @@ class UpdateDocumentRequest extends FormRequest
             'sifat' => ['sometimes', 'in:Segera,Biasa,Rahasia'],
             'kategori_surat' => ['sometimes', 'string', 'max:100'],
             'klasifikasi_surat' => ['sometimes', 'string', 'max:100'],
+            'kategori_kode' => ['sometimes', 'string', 'max:100'],
             'kategori_berkas' => ['sometimes', 'string', 'max:100'],
             'kode_berkas' => ['sometimes', 'string', 'max:100'],
             'lampiran' => ['nullable', 'string', 'max:255'],

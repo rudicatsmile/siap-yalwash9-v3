@@ -90,6 +90,7 @@ class Document extends Model
         'id_status_rapat',
         'kode_user_ditujukan_memo',
         'kategori_surat',
+        'kategori_kode',
         'kode_berkas',
         'klasifikasi_surat',
         'disposisi_ktu_leader',

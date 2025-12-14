@@ -76,6 +76,8 @@ class StoreSuratMasukRequest extends FormRequest
             'kode_user_ditujukan_memo' => ['nullable', 'string', 'max:100'],
             'kategori_surat' => ['required', 'string', 'max:100'],
             'klasifikasi_surat' => ['required', 'string', 'max:100'],
+            'kode_berkas' => ['required', 'string', 'max:30'],
+            'kategori_kode' => ['required', 'string', 'max:100'],
             'disposisi_ktu_leader' => ['nullable', 'string', 'max:100'],
             'created_at' => ['sometimes', 'date'],
             'updated_at' => ['sometimes', 'date'],
