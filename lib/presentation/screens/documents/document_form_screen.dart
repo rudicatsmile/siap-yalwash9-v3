@@ -80,6 +80,8 @@ List<String> getDataFromDocDitujukan({
   }
 }
 
+// (fungsi getDataFromDocPesertaRapat dihapus; gunakan getDataFromDocDitujukan untuk input String)
+
 /// Document form screen for creating and editing documents
 class DocumentFormScreen extends StatefulWidget {
   final String? noSurat;
@@ -2572,7 +2574,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _ringkasanController.text = doc.perihal ?? '';
         _perihalController.text = doc.penerima ?? '';
 
-        //Ditujukan - Untuk kategori Laporan
+        //Ditujukan - Untuk kategori Laporan {Multi-select}
         final rawDitujukan = doc.ditujukan;
         if (rawDitujukan != null && rawDitujukan.trim().isNotEmpty) {
           if (_tujuanDisposisiController.items.isNotEmpty) {
@@ -2611,6 +2613,57 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           _logger
               .w('doc.ditujukan kosong/null, skip preselect tujuan disposisi');
         }
+
+        // ------------------ R A P A T --------------------
+
+        //tanggal rapat
+
+        //Waktu rapat
+
+        //Ruang rapat
+        // _pimpinanRapatController,_ruangRapatController
+        final rawPimpinanRapat = doc.pimpinanRapat;
+
+        //Peserta Rapat (multi-select)
+        final rawPesertaRapat = doc.pesertaRapat;
+        if (rawPesertaRapat != null && rawPesertaRapat.trim().isNotEmpty) {
+          if (_pesertaRapatController.items.isNotEmpty) {
+            final codes = getDataFromDocDitujukan(
+              raw: rawPesertaRapat,
+              items: _pesertaRapatController.items,
+              logger: _logger,
+            );
+            if (codes.isNotEmpty) {
+              _selectedPesertaRapat
+                ..clear()
+                ..addAll(codes);
+              setState(() {});
+            }
+          } else {
+            _logger.w(
+                'Items peserta rapat belum tersedia, menunggu load untuk mapping');
+            once(_pesertaRapatController.items, (_) {
+              final codes = getDataFromDocDitujukan(
+                raw: rawPesertaRapat,
+                items: _pesertaRapatController.items,
+                logger: _logger,
+              );
+              if (codes.isNotEmpty) {
+                _selectedPesertaRapat
+                  ..clear()
+                  ..addAll(codes);
+                setState(() {});
+              } else {
+                _logger.w(
+                    'Mapping peserta rapat menghasilkan kosong setelah load');
+              }
+            });
+          }
+        } else {
+          _logger.w('doc.pesertaRapat kosong/null, skip preselect peserta');
+        }
+
+        //Pimpinan Rapat
       }
     } catch (e) {
       Get.snackbar(

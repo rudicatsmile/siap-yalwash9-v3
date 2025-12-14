@@ -65,8 +65,8 @@ class DocumentModel extends Equatable {
   /// Pimpinan rapat (nama pimpinan rapat)
   final String? pimpinanRapat;
 
-  /// Peserta rapat (list nama/identitas peserta)
-  final List<String>? pesertaRapat;
+  /// Peserta rapat (nama/identitas peserta digabung)
+  final String? pesertaRapat;
 
   /// Pihak/instansi yang dituju oleh dokumen/rapat
   final String? ditujukan;
@@ -265,24 +265,25 @@ class DocumentModel extends Equatable {
       tembusanRapat: _asString(json['tembusan_rapat'] ?? json['tembusanRapat']),
       bahasanRapat: _asString(json['bahasan_rapat'] ?? json['bahasanRapat']),
       pimpinanRapat: _asString(json['pimpinan_rapat'] ?? json['pimpinanRapat']),
-      pesertaRapat: (() {
-        final raw = json['peserta_rapat'] ?? json['pesertaRapat'];
-        if (raw is List) {
-          return raw
-              .map((e) => e?.toString() ?? '')
-              .where((e) => e.isNotEmpty)
-              .toList();
-        } else if (raw is String) {
-          final s = raw.trim();
-          if (s.isEmpty) return null;
-          return s
-              .split(',')
-              .map((e) => e.trim())
-              .where((e) => e.isNotEmpty)
-              .toList();
-        }
-        return null;
-      })(),
+      // pesertaRapat: (() {
+      //   final raw = json['peserta_rapat'] ?? json['pesertaRapat'];
+      //   if (raw is List) {
+      //     final list = raw
+      //         .map((e) => e?.toString() ?? '')
+      //         .map((e) => e.trim())
+      //         .where((e) => e.isNotEmpty)
+      //         .toList();
+      //     if (list.isEmpty) return null;
+      //     return list.join('<br>');
+      //   } else if (raw is String) {
+      //     final s = raw.trim();
+      //     if (s.isEmpty) return null;
+      //     return s;
+      //   }
+      //   return null;
+      // })(),
+
+      pesertaRapat: _asString(json['peserta_rapat'] ?? json['pesertaRapat']),
       ditujukan: _asString(json['ditujukan']),
       instruksiKerja:
           _asString(json['instruksi_kerja'] ?? json['instruksiKerja']),
@@ -395,7 +396,7 @@ class DocumentModel extends Equatable {
     String? tembusanRapat,
     String? bahasanRapat,
     String? pimpinanRapat,
-    List<String>? pesertaRapat,
+    String? pesertaRapat,
     String? ditujukan,
     String? instruksiKerja,
     String? disposisiMemo,
