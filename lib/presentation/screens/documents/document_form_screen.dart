@@ -20,6 +20,66 @@ import 'dart:async';
 import '../../controllers/surat_masuk_controller.dart';
 import 'package:logger/logger.dart';
 
+/// Mem-parsing field `doc.ditujukan` menjadi daftar kode tujuan disposisi
+/// - Memisahkan berdasarkan tag `<br>` (case-insensitive, dengan optional closing `/`)
+/// - Melakukan trim pada tiap elemen dan menghapus elemen kosong
+/// - Melakukan pemetaan dari deskripsi ke `kode` menggunakan `_tujuanDisposisiController.items`
+/// - Mengembalikan `List<String>` berisi kode tujuan disposisi
+List<String> getDataFromDocDitujukan({
+  required String? raw,
+  required List<DropdownItem> items,
+  Logger? logger,
+}) {
+  try {
+    if (raw == null) return [];
+    final s = raw.trim();
+    if (s.isEmpty) return [];
+
+    // Pisah berdasarkan <br>, dukung variasi <br>, <br/>, <br /> dan case-insensitive
+    final parts = s
+        .split(RegExp(r'<br\s*/?>', caseSensitive: false))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) {
+      throw FormatException(
+          'Ditujukan kosong setelah parsing. Format tidak sesuai ekspektasi.');
+    }
+
+    if (items.isEmpty) {
+      // Data belum siap; tidak critical, kembalikan kosong agar diproses setelah load
+      logger
+          ?.w('Items tujuan disposisi belum ter-load, skip mapping sementara');
+      return [];
+    }
+
+    final codes = <String>[];
+    for (final p in parts) {
+      final match = items.firstWhere(
+        (it) => it.deskripsi.trim().toLowerCase() == p.toLowerCase(),
+        orElse: () => DropdownItem(kode: '', deskripsi: ''),
+      );
+      if (match.kode.isNotEmpty) {
+        codes.add(match.kode.trim());
+      } else {
+        // Jika tidak ditemukan, log dan lanjut (non-critical)
+        logger?.w('Tujuan tidak dikenali, lewati: "$p"');
+      }
+    }
+
+    if (codes.isEmpty) {
+      throw FormatException(
+          'Tidak ada tujuan yang cocok dengan daftar dropdown (mapping gagal).');
+    }
+
+    return codes;
+  } catch (e) {
+    logger?.e('Gagal parse doc.ditujukan: $e');
+    return [];
+  }
+}
+
 /// Document form screen for creating and editing documents
 class DocumentFormScreen extends StatefulWidget {
   final String? noSurat;
@@ -2512,9 +2572,45 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _ringkasanController.text = doc.perihal ?? '';
         _perihalController.text = doc.penerima ?? '';
 
-        //_tujuanDisposisiController
-        //KA. SUBAG PROTOKOLER<br>KA SUBAG DATA DAN MEDIA<br>STAF KEPEGAWAIAN DAN KELEMBAGAAN
-        final dtj = doc.ditujukan?.trim();
+        //Ditujukan - Untuk kategori Laporan
+        final rawDitujukan = doc.ditujukan;
+        if (rawDitujukan != null && rawDitujukan.trim().isNotEmpty) {
+          if (_tujuanDisposisiController.items.isNotEmpty) {
+            final codes = getDataFromDocDitujukan(
+              raw: rawDitujukan,
+              items: _tujuanDisposisiController.items,
+              logger: _logger,
+            );
+            if (codes.isNotEmpty) {
+              _selectedTujuanDisposisi
+                ..clear()
+                ..addAll(codes);
+              setState(() {});
+            }
+          } else {
+            _logger.w(
+                'Items tujuan disposisi belum tersedia, menunggu load untuk mapping ditujukan');
+            once(_tujuanDisposisiController.items, (_) {
+              final codes = getDataFromDocDitujukan(
+                raw: rawDitujukan,
+                items: _tujuanDisposisiController.items,
+                logger: _logger,
+              );
+              if (codes.isNotEmpty) {
+                _selectedTujuanDisposisi
+                  ..clear()
+                  ..addAll(codes);
+                setState(() {});
+              } else {
+                _logger.w(
+                    'Mapping ditujukan menghasilkan kosong setelah load items');
+              }
+            });
+          }
+        } else {
+          _logger
+              .w('doc.ditujukan kosong/null, skip preselect tujuan disposisi');
+        }
       }
     } catch (e) {
       Get.snackbar(
