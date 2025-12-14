@@ -141,6 +141,11 @@ class Document extends Model
         return $this->hasMany(ActivityHistory::class, 'document_id', 'id_sm');
     }
 
+    public function lampirans()
+    {
+        return $this->hasMany(Lampiran::class, 'no_surat', 'no_surat');
+    }
+
     /**
      * Scope a query to only include documents with a specific status.
      */

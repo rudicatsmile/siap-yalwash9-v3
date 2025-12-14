@@ -24,7 +24,7 @@ class DocumentController extends Controller
         $perPage = min($request->input('per_page', 15), 100);
 
         // Base query
-        $query = Document::with('user:id_user,username,nama_lengkap');
+        $query = Document::with(['user:id_user,username,nama_lengkap', 'lampirans']);
 
         // Role-based filtering
         if ($user->isAdmin()) {

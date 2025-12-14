@@ -78,6 +78,15 @@ class DocumentModel extends Equatable {
   /// Disposisi memo terkait rapat/dokumen
   final String? disposisiMemo;
 
+  /// Daftar lampiran (tbl_lampiran) terkait dokumen, mengikuti struktur JSON backend
+  /// berisi objek dengan properti:
+  /// - id_lampiran (String)
+  /// - no_surat (String)
+  /// - token_lampiran (String)
+  /// - nama_berkas (String)
+  /// - ukuran (String)
+  final List<LampiranModel> lampirans;
+
   const DocumentModel({
     required this.id,
     required this.documentNumber,
@@ -131,6 +140,7 @@ class DocumentModel extends Equatable {
     this.ditujukan,
     this.instruksiKerja,
     this.disposisiMemo,
+    this.lampirans = const <LampiranModel>[],
   });
 
   /// Create DocumentModel from JSON
@@ -291,6 +301,16 @@ class DocumentModel extends Equatable {
       instruksiKerja:
           _asString(json['instruksi_kerja'] ?? json['instruksiKerja']),
       disposisiMemo: _asString(json['disposisi_memo'] ?? json['disposisiMemo']),
+      lampirans: (() {
+        final raw = json['lampirans'];
+        if (raw is List) {
+          return raw
+              .whereType<Map<String, dynamic>>()
+              .map(LampiranModel.fromJson)
+              .toList(growable: false);
+        }
+        return const <LampiranModel>[];
+      })(),
     );
   }
 
@@ -349,6 +369,7 @@ class DocumentModel extends Equatable {
       'ditujukan': ditujukan,
       'instruksi_kerja': instruksiKerja,
       'disposisi_memo': disposisiMemo,
+      'lampirans': lampirans.map((e) => e.toJson()).toList(growable: false),
     };
   }
 
@@ -405,6 +426,7 @@ class DocumentModel extends Equatable {
     String? ditujukan,
     String? instruksiKerja,
     String? disposisiMemo,
+    List<LampiranModel>? lampirans,
   }) {
     return DocumentModel(
       id: id ?? this.id,
@@ -459,6 +481,7 @@ class DocumentModel extends Equatable {
       ditujukan: ditujukan ?? this.ditujukan,
       instruksiKerja: instruksiKerja ?? this.instruksiKerja,
       disposisiMemo: disposisiMemo ?? this.disposisiMemo,
+      lampirans: lampirans ?? this.lampirans,
     );
   }
 
@@ -524,5 +547,69 @@ class DocumentModel extends Equatable {
         ditujukan,
         instruksiKerja,
         disposisiMemo,
+        lampirans,
+      ];
+}
+
+/// Model untuk satu entri lampiran dokumen (tbl_lampiran)
+class LampiranModel extends Equatable {
+  /// ID lampiran (string seperti pada JSON backend)
+  final String idLampiran;
+
+  /// Nomor surat (string)
+  final String noSurat;
+
+  /// Token lampiran (string)
+  final String tokenLampiran;
+
+  /// Nama berkas asli (string)
+  final String namaBerkas;
+
+  /// Ukuran berkas (string)
+  final String ukuran;
+
+  const LampiranModel({
+    required this.idLampiran,
+    required this.noSurat,
+    required this.tokenLampiran,
+    required this.namaBerkas,
+    required this.ukuran,
+  });
+
+  /// Deserialisasi dari JSON dengan kunci snake_case sesuai backend
+  factory LampiranModel.fromJson(Map<String, dynamic> json) {
+    String _asString(dynamic v, {String fallback = ''}) {
+      if (v is String) return v;
+      if (v != null) return v.toString();
+      return fallback;
+    }
+
+    return LampiranModel(
+      idLampiran: _asString(json['id_lampiran']),
+      noSurat: _asString(json['no_surat']),
+      tokenLampiran: _asString(json['token_lampiran']),
+      namaBerkas: _asString(json['nama_berkas']),
+      ukuran: _asString(json['ukuran']),
+    );
+  }
+
+  /// Serialisasi ke JSON dengan kunci yang sama seperti backend
+  Map<String, dynamic> toJson() {
+    return {
+      'id_lampiran': idLampiran,
+      'no_surat': noSurat,
+      'token_lampiran': tokenLampiran,
+      'nama_berkas': namaBerkas,
+      'ukuran': ukuran,
+    };
+  }
+
+  @override
+  List<Object?> get props => [
+        idLampiran,
+        noSurat,
+        tokenLampiran,
+        namaBerkas,
+        ukuran,
       ];
 }

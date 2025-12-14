@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\TindakanSegeraController;
 use App\Http\Controllers\Api\GeneralDropdownController;
 use App\Http\Controllers\Api\UsersController;
 use App\Http\Controllers\Api\SuratMasukController;
+use App\Http\Controllers\Api\UploadsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -75,4 +76,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/surat-masuk', [SuratMasukController::class, 'store']);
     // Upload Lampiran (tbl_lampiran)
     Route::post('/lampiran/upload', [SuratMasukController::class, 'uploadLampiran']);
+    // Upload sementara
+    Route::post('/uploads/images', [UploadsController::class, 'uploadTemp']);
 });

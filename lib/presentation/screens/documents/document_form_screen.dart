@@ -240,13 +240,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       final size = await x.length();
       final bytes = await x.readAsBytes();
       final path = x.path;
-      if (!_isSupportedImage(name)) {
+      if (!_isSupportedFile(name)) {
         Get.snackbar('Error', 'Format gambar tidak didukung: $name',
             backgroundColor: AppTheme.errorColor, colorText: Colors.white);
         continue;
       }
-      if (size > 5 * 1024 * 1024) {
-        Get.snackbar('Error', 'Ukuran gambar melebihi 5MB: $name',
+      if (size > 10 * 1024 * 1024) {
+        Get.snackbar('Error', 'Ukuran berkas melebihi 10MB: $name',
             backgroundColor: AppTheme.errorColor, colorText: Colors.white);
         continue;
       }
@@ -267,13 +267,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     final name = x.name.toLowerCase();
     final size = await x.length();
     final bytes = await x.readAsBytes();
-    if (!_isSupportedImage(name)) {
+    if (!_isSupportedFile(name)) {
       Get.snackbar('Error', 'Format gambar tidak didukung: $name',
           backgroundColor: AppTheme.errorColor, colorText: Colors.white);
       return;
     }
-    if (size > 5 * 1024 * 1024) {
-      Get.snackbar('Error', 'Ukuran gambar melebihi 5MB',
+    if (size > 10 * 1024 * 1024) {
+      Get.snackbar('Error', 'Ukuran berkas melebihi 10MB',
           backgroundColor: AppTheme.errorColor, colorText: Colors.white);
       return;
     }
@@ -287,11 +287,59 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     unawaited(_startUpload(item));
   }
 
-  bool _isSupportedImage(String filename) {
-    return filename.endsWith('.jpg') ||
-        filename.endsWith('.jpeg') ||
-        filename.endsWith('.png') ||
-        filename.endsWith('.webp');
+  bool _isSupportedFile(String filename) {
+    final f = filename.toLowerCase();
+    return f.endsWith('.jpg') ||
+        f.endsWith('.jpeg') ||
+        f.endsWith('.png') ||
+        f.endsWith('.webp') ||
+        f.endsWith('.pdf') ||
+        f.endsWith('.doc') ||
+        f.endsWith('.docx') ||
+        f.endsWith('.xls') ||
+        f.endsWith('.xlsx');
+  }
+
+  bool _isImageFile(String filename) {
+    final f = filename.toLowerCase();
+    return f.endsWith('.jpg') ||
+        f.endsWith('.jpeg') ||
+        f.endsWith('.png') ||
+        f.endsWith('.webp');
+  }
+
+  Future<void> _pickDocuments() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowMultiple: true,
+      withData: true,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx'],
+    );
+    if (result == null || result.files.isEmpty) return;
+    for (final f in result.files) {
+      final name = (f.name).toLowerCase();
+      final size = f.size;
+      final bytes = f.bytes;
+      final path = f.path;
+      if (!_isSupportedFile(name)) {
+        Get.snackbar('Error', 'Format berkas tidak didukung: $name',
+            backgroundColor: AppTheme.errorColor, colorText: Colors.white);
+        continue;
+      }
+      if (size > 10 * 1024 * 1024) {
+        Get.snackbar('Error', 'Ukuran berkas melebihi 10MB: $name',
+            backgroundColor: AppTheme.errorColor, colorText: Colors.white);
+        continue;
+      }
+      final item = _UploadItem(
+        name: f.name,
+        size: size,
+        bytes: bytes,
+        path: path,
+      );
+      setState(() => _uploadItems.add(item));
+      unawaited(_startUpload(item));
+    }
   }
 
   Future<void> _startUpload(_UploadItem item) async {
@@ -1942,6 +1990,12 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                       .photo_camera_outlined),
                                                   label: const Text('Kamera'),
                                                 ),
+                                                TextButton.icon(
+                                                  onPressed: _pickDocuments,
+                                                  icon: const Icon(
+                                                      Icons.attach_file),
+                                                  label: const Text('Dokumen'),
+                                                ),
                                                 if (_uploadItems
                                                     .any((it) => it.uploading))
                                                   TextButton.icon(
@@ -2028,18 +2082,43 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                 Radius.circular(
                                                                     8),
                                                           ),
-                                                          child: it.bytes !=
-                                                                  null
-                                                              ? Image.memory(
+                                                          child: (() {
+                                                            final name = it.name
+                                                                .toLowerCase();
+                                                            if (it.bytes !=
+                                                                null) {
+                                                              if (_isImageFile(
+                                                                  name)) {
+                                                                return Image
+                                                                    .memory(
                                                                   it.bytes!,
                                                                   fit: BoxFit
                                                                       .cover,
                                                                   width: double
                                                                       .infinity,
-                                                                )
-                                                              : const Center(
-                                                                  child: Icon(Icons
-                                                                      .image)),
+                                                                );
+                                                              } else {
+                                                                return Center(
+                                                                  child: Icon(
+                                                                    name.endsWith(
+                                                                            '.pdf')
+                                                                        ? Icons
+                                                                            .picture_as_pdf
+                                                                        : Icons
+                                                                            .description_outlined,
+                                                                    size: 48,
+                                                                  ),
+                                                                );
+                                                              }
+                                                            }
+                                                            return Center(
+                                                              child: Icon(
+                                                                Icons
+                                                                    .description_outlined,
+                                                                size: 48,
+                                                              ),
+                                                            );
+                                                          }()),
                                                         ),
                                                       ),
                                                       Flexible(
@@ -2124,6 +2203,18 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                           () =>
                                                                               _removeUpload(it),
                                                                     ),
+                                                                    if (it.error !=
+                                                                            null &&
+                                                                        !it.uploading)
+                                                                      IconButton(
+                                                                        icon: const Icon(
+                                                                            Icons.refresh),
+                                                                        tooltip:
+                                                                            'Ulangi',
+                                                                        onPressed:
+                                                                            () =>
+                                                                                _startUpload(it),
+                                                                      ),
                                                                   ],
                                                                 ),
                                                               ],
@@ -2444,12 +2535,12 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   Future<void> _uploadLampiranForSubmission(String noSurat, String ymd) async {
     for (final it in _uploadItems) {
       final nameLower = it.name.toLowerCase();
-      if (!_isSupportedImage(nameLower)) {
+      if (!_isSupportedFile(nameLower)) {
         _logger.w('Skip lampiran (format tidak didukung): ${it.name}');
         continue;
       }
-      if (it.size > 5 * 1024 * 1024) {
-        _logger.w('Skip lampiran (ukuran > 5MB): ${it.name}');
+      if (it.size > 10 * 1024 * 1024) {
+        _logger.w('Skip lampiran (ukuran > 10MB): ${it.name}');
         continue;
       }
       final form = dio.FormData.fromMap({

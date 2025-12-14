@@ -32,8 +32,8 @@ class SuratMasukController extends Controller
                 }
 
                 // Default dates and ownership fields
-                // $data['tgl_ns'] = $data['tgl_ns'] ?? now()->toDateString();
-                // $data['tgl_sm'] = $data['tgl_sm'] ?? now()->toDateString();
+                $data['tgl_ns'] = $data['tgl_ns'] ?? now()->toDateString();
+                $data['tgl_sm'] = $data['tgl_sm'] ?? now()->toDateString();
                 $data['id_user'] = $user->id_user;
                 $data['kode_user'] = $user->kode_user;
                 $data['id_instansi'] = $user->instansi;
@@ -75,7 +75,7 @@ class SuratMasukController extends Controller
 
         try {
             $validated = $request->validate([
-                'file' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
+                'file' => 'required|file|mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx|max:10240',
                 'no_surat' => 'required|string',
                 'tgl_surat' => 'required|date',
             ]);
@@ -89,7 +89,48 @@ class SuratMasukController extends Controller
             $part1 = explode('/', $noSurat)[0] ?? $noSurat;
             $token = md5(($user->id_user ?? '0') . '-' . $part1 . '-' . $tglSurat);
 
-            $path = $file->store('lampiran', 'public');
+            $sanitized = preg_replace('/[^A-Za-z0-9._-]/', '_', $originalName);
+            $dir = 'lampiran/' . date('Y') . '/' . date('m') . '/' . ($user->id_user ?? '0');
+            $ext = strtolower($file->getClientOriginalExtension());
+            $filename = uniqid() . '-' . $sanitized;
+            $target = $dir . '/' . $filename;
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                try {
+                    $tmp = $file->getRealPath();
+                    if (in_array($ext, ['jpg', 'jpeg'])) {
+                        $img = @imagecreatefromjpeg($tmp);
+                        ob_start();
+                        @imagejpeg($img, null, 85);
+                        $data = ob_get_clean();
+                        if ($data && strlen($data) > 0) {
+                            \Illuminate\Support\Facades\Storage::disk('public')->put($target, $data);
+                        } else {
+                            $path = $file->store($dir, 'public');
+                            $target = $path;
+                        }
+                    } elseif ($ext === 'png') {
+                        $img = @imagecreatefrompng($tmp);
+                        ob_start();
+                        @imagepng($img, null, 6);
+                        $data = ob_get_clean();
+                        if ($data && strlen($data) > 0) {
+                            \Illuminate\Support\Facades\Storage::disk('public')->put($target, $data);
+                        } else {
+                            $path = $file->store($dir, 'public');
+                            $target = $path;
+                        }
+                    } else {
+                        $path = $file->store($dir, 'public');
+                        $target = $path;
+                    }
+                } catch (\Throwable $e) {
+                    $path = $file->store($dir, 'public');
+                    $target = $path;
+                }
+            } else {
+                $path = $file->store($dir, 'public');
+                $target = $path;
+            }
             $id = DB::table('tbl_lampiran')->insertGetId([
                 'no_surat' => $noSurat,
                 'token_lampiran' => $token,
@@ -101,7 +142,7 @@ class SuratMasukController extends Controller
                 'user_id' => $user->id_user ?? null,
                 'no_surat' => $noSurat,
                 'id_lampiran' => $id,
-                'path' => $path,
+                'path' => $target,
             ]);
 
             return response()->json([
@@ -109,7 +150,7 @@ class SuratMasukController extends Controller
                 'message' => 'Lampiran berhasil diunggah',
                 'data' => [
                     'id' => $id,
-                    'url' => asset('storage/' . $path),
+                    'url' => asset('storage/' . $target),
                 ],
                 'timestamp' => now()->toIso8601String(),
             ], 201);
