@@ -80,6 +80,33 @@ List<String> getDataFromDocDitujukan({
   }
 }
 
+String? getKodeFromDocPimpinanRapat({
+  required String? raw,
+  required List<DropdownItem> items,
+  Logger? logger,
+}) {
+  try {
+    if (raw == null) return null;
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+    if (items.isEmpty) {
+      logger?.w('Items pimpinan rapat belum ter-load, skip mapping sementara');
+      return null;
+    }
+    final match = items.firstWhere(
+      (it) => it.deskripsi.trim().toLowerCase() == s.toLowerCase(),
+      orElse: () => DropdownItem(kode: '', deskripsi: ''),
+    );
+    if (match.kode.isEmpty) {
+      logger?.w('Pimpinan rapat tidak dikenali, lewati: "$s"');
+      return null;
+    }
+    return match.kode.trim();
+  } catch (e) {
+    logger?.e('Gagal parse doc.pimpinanRapat: $e');
+    return null;
+  }
+}
 // (fungsi getDataFromDocPesertaRapat dihapus; gunakan getDataFromDocDitujukan untuk input String)
 
 /// Document form screen for creating and editing documents
@@ -1650,7 +1677,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                         decoration:
                                                             const InputDecoration(
                                                           hintText:
-                                                              'Masukan waktu',
+                                                              'waktu rapat',
                                                           border:
                                                               OutlineInputBorder(),
                                                           prefixIcon: Icon(Icons
@@ -2619,10 +2646,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         //tanggal rapat
 
         //Waktu rapat
+        _meetingTimeController.text = doc.jamRapat ?? '';
 
         //Ruang rapat
-        // _pimpinanRapatController,_ruangRapatController
-        final rawPimpinanRapat = doc.pimpinanRapat;
+        final rawRuangRapat = doc.ruangRapat?.trim();
 
         //Peserta Rapat (multi-select)
         final rawPesertaRapat = doc.pesertaRapat;
@@ -2663,7 +2690,43 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           _logger.w('doc.pesertaRapat kosong/null, skip preselect peserta');
         }
 
-        //Pimpinan Rapat
+        // Pimpinan Rapat (single-select)
+        final rawPimpinanRapat = doc.pimpinanRapat;
+        if (rawPimpinanRapat != null && rawPimpinanRapat.trim().isNotEmpty) {
+          if (_pimpinanRapatController.items.isNotEmpty) {
+            final kode = getKodeFromDocPimpinanRapat(
+              raw: rawPimpinanRapat,
+              items: _pimpinanRapatController.items,
+              logger: _logger,
+            );
+            if (kode != null && kode.isNotEmpty) {
+              _pimpinanRapatController.select(kode);
+              setState(() {});
+            }
+          } else {
+            _logger.w(
+                'Items pimpinan rapat belum tersedia, menunggu load untuk mapping');
+            once(_pimpinanRapatController.items, (_) {
+              final kode = getKodeFromDocPimpinanRapat(
+                raw: rawPimpinanRapat,
+                items: _pimpinanRapatController.items,
+                logger: _logger,
+              );
+              if (kode != null && kode.isNotEmpty) {
+                _pimpinanRapatController.select(kode);
+                setState(() {});
+              } else {
+                _logger.w(
+                    'Mapping pimpinan rapat menghasilkan kosong setelah load items');
+              }
+            });
+          }
+        } else {
+          _logger.w('doc.pimpinanRapat kosong/null, skip preselect pimpinan');
+        }
+
+        //Bahasan rapat
+        _pokokBahasanController.text = doc.bahasanRapat ?? '';
       }
     } catch (e) {
       Get.snackbar(
