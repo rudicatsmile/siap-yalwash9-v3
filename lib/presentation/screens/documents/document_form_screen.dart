@@ -19,6 +19,10 @@ import 'dart:typed_data';
 import 'dart:async';
 import '../../controllers/surat_masuk_controller.dart';
 import 'package:logger/logger.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
+import '../viewers/pdf_viewer_screen.dart';
+import '../viewers/docx_viewer_screen.dart';
 
 /// Mem-parsing field `doc.ditujukan` menjadi daftar kode tujuan disposisi
 /// - Memisahkan berdasarkan tag `<br>` (case-insensitive, dengan optional closing `/`)
@@ -323,14 +327,44 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         f.endsWith('.webp');
   }
 
+  bool _isPdfFile(String filename) {
+    final f = filename.toLowerCase();
+    return f.endsWith('.pdf');
+  }
+
+  bool _isDocxFile(String filename) {
+    final f = filename.toLowerCase();
+    return f.endsWith('.doc') || f.endsWith('.docx');
+  }
+
   Future<void> _pickDocuments() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowMultiple: true,
       withData: true,
-      allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx'],
+      allowedExtensions: [
+        'jpg',
+        'jpeg',
+        'png',
+        'webp',
+        'gif',
+        'pdf',
+        'doc',
+        'docx',
+        'xls',
+        'xlsx'
+      ],
     );
-    if (result == null || result.files.isEmpty) return;
+    if (result == null) {
+      Get.snackbar(
+        'Dibatalkan',
+        'Izin akses ditolak atau operasi dibatalkan',
+        backgroundColor: AppTheme.errorColor,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    if (result.files.isEmpty) return;
     for (final f in result.files) {
       final name = (f.name).toLowerCase();
       final size = f.size;
@@ -448,6 +482,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
   void _viewUpload(_UploadItem item) {
     final name = item.name.toLowerCase();
+
     if (_isImageFile(name)) {
       if (item.bytes != null) {
         showDialog(
@@ -462,10 +497,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         showDialog(
           context: context,
           builder: (_) => Dialog(
-            child: Image.network(
-              item.tempUrl!,
+            child: CachedNetworkImage(
+              imageUrl: item.tempUrl!,
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const SizedBox(
+              placeholder: (_, __) => const SizedBox(
+                height: 120,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              errorWidget: (_, __, ___) => const SizedBox(
                 height: 120,
                 child: Center(child: Icon(Icons.broken_image, size: 48)),
               ),
@@ -475,6 +514,35 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         return;
       }
     }
+
+    if (_isPdfFile(name)) {
+      if (item.tempUrl != null) {
+        Get.to(() => PdfViewerScreen(url: item.tempUrl!, title: item.name));
+      } else {
+        Get.snackbar(
+          'Error',
+          'Tautan dokumen tidak tersedia',
+          backgroundColor: AppTheme.errorColor,
+          colorText: Colors.white,
+        );
+      }
+      return;
+    }
+
+    if (_isDocxFile(name)) {
+      if (item.tempUrl != null) {
+        Get.to(() => DocxViewerScreen(url: item.tempUrl!, title: item.name));
+      } else {
+        Get.snackbar(
+          'Error',
+          'Tautan dokumen tidak tersedia',
+          backgroundColor: AppTheme.errorColor,
+          colorText: Colors.white,
+        );
+      }
+      return;
+    }
+
     Get.snackbar(
       'Info',
       'Pratinjau tidak tersedia untuk berkas ini',
@@ -2032,8 +2100,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                               runSpacing: 8,
                                               children: [
                                                 TextButton.icon(
-                                                  onPressed:
-                                                      _pickImagesFromGallery,
+                                                  onPressed: _pickDocuments,
                                                   icon: const Icon(Icons
                                                       .photo_library_outlined),
                                                   label: const Text('Galeri'),
@@ -2044,12 +2111,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                   icon: const Icon(Icons
                                                       .photo_camera_outlined),
                                                   label: const Text('Kamera'),
-                                                ),
-                                                TextButton.icon(
-                                                  onPressed: _pickDocuments,
-                                                  icon: const Icon(
-                                                      Icons.attach_file),
-                                                  label: const Text('Dokumen'),
                                                 ),
                                                 if (_uploadItems
                                                     .any((it) => it.uploading))
