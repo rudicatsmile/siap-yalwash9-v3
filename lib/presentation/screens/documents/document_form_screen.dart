@@ -231,6 +231,21 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final List<_UploadItem> _uploadItems = <_UploadItem>[];
   String? _uploadValidationError;
   final _logger = Logger();
+  final Set<String> _deletedLampiranIds = <String>{};
+
+  /// Helper untuk memetakan lampirans DocumentModel ke bentuk sederhana untuk display/testing
+  List<Map<String, dynamic>> mapLampiransForDisplay(
+      List<LampiranModel> lampirans) {
+    return lampirans
+        .map((l) => {
+              'id_lampiran': l.idLampiran,
+              'no_surat': l.noSurat,
+              'nama_berkas': l.namaBerkas,
+              'ukuran': l.ukuran,
+              'token_lampiran': l.tokenLampiran,
+            })
+        .toList(growable: false);
+  }
 
   Future<void> _pickImagesFromGallery() async {
     final images = await _imagePicker.pickMultiImage();
@@ -425,7 +440,47 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     if (item.uploading) {
       _cancelUpload(item);
     }
+    if (item.tempId != null) {
+      _deletedLampiranIds.add(item.tempId!);
+    }
     setState(() => _uploadItems.remove(item));
+  }
+
+  void _viewUpload(_UploadItem item) {
+    final name = item.name.toLowerCase();
+    if (_isImageFile(name)) {
+      if (item.bytes != null) {
+        showDialog(
+          context: context,
+          builder: (_) => Dialog(
+            child: Image.memory(item.bytes!, fit: BoxFit.contain),
+          ),
+        );
+        return;
+      }
+      if (item.tempUrl != null) {
+        showDialog(
+          context: context,
+          builder: (_) => Dialog(
+            child: Image.network(
+              item.tempUrl!,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox(
+                height: 120,
+                child: Center(child: Icon(Icons.broken_image, size: 48)),
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+    }
+    Get.snackbar(
+      'Info',
+      'Pratinjau tidak tersedia untuk berkas ini',
+      backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+      colorText: AppTheme.primaryColor,
+    );
   }
 
   // Mendapatkan deskripsi item terpilih dari DropdownController.
@@ -2111,10 +2166,36 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                 );
                                                               }
                                                             }
+                                                            if (_isImageFile(
+                                                                    name) &&
+                                                                it.tempUrl !=
+                                                                    null) {
+                                                              return Image
+                                                                  .network(
+                                                                it.tempUrl!,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                width: double
+                                                                    .infinity,
+                                                                errorBuilder: (_,
+                                                                        __,
+                                                                        ___) =>
+                                                                    const Center(
+                                                                  child: Icon(
+                                                                      Icons
+                                                                          .broken_image,
+                                                                      size: 48),
+                                                                ),
+                                                              );
+                                                            }
                                                             return Center(
                                                               child: Icon(
-                                                                Icons
-                                                                    .description_outlined,
+                                                                name.endsWith(
+                                                                        '.pdf')
+                                                                    ? Icons
+                                                                        .picture_as_pdf
+                                                                    : Icons
+                                                                        .description_outlined,
                                                                 size: 48,
                                                               ),
                                                             );
@@ -2193,6 +2274,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                             () =>
                                                                                 _cancelUpload(it),
                                                                       ),
+                                                                    IconButton(
+                                                                      icon: const Icon(
+                                                                          Icons
+                                                                              .visibility_outlined),
+                                                                      tooltip:
+                                                                          'Lihat',
+                                                                      onPressed:
+                                                                          () =>
+                                                                              _viewUpload(it),
+                                                                    ),
                                                                     IconButton(
                                                                       icon: const Icon(
                                                                           Icons
@@ -2438,7 +2529,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       final ringkasanValue = ringkasanText.isEmpty ? '-----' : ringkasanText;
 
       //tulis ke log kategoriKode
-      final payload = {
+      final payload = <String, dynamic>{
         'no_asal':
             '${_letterNumberPart1Controller.text.trim()}/${_letterNumberPart2Controller.text.trim()}',
         'tgl_no_asal': ymd,
@@ -2456,31 +2547,43 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         'id_user_approved': (kategoriKode == 'Memo') ? user?.id ?? '0' : '0',
         'kode_user_approved':
             (kategoriKode == 'Memo') ? user?.kodeUser ?? '' : '',
-        'tgl_agenda_rapat': DateFormat('yyyy-MM-dd').format(
-          DateFormat('dd/MM/yyyy')
-              .parseStrict(_meetingDateController.text.trim()),
-        ),
-        'jam_rapat': _meetingTimeController.text.trim(),
-        'ruang_rapat': _getSelectedDeskripsi(_ruangRapatController) ?? 'null',
-        'bahasan_rapat': _pokokBahasanController.text.trim(),
-        'pimpinan_rapat':
-            _getSelectedDeskripsi(_pimpinanRapatController) ?? 'null',
-        'peserta_rapat': _getSelectedDescriptions(
-                _pesertaRapatController, _selectedPesertaRapat)
-            .join('<br>'),
         'instruksi_kerja': 'null',
         'disposisi_memo': 'null',
-        'ditujukan': _getSelectedDescriptions(
-                _tujuanDisposisiController, _selectedTujuanDisposisi)
-            .join('<br>'),
         'kategori_berkas': _docNumberPart2Controller.text.trim(),
-        'kategori_undangan': _usersDropdownController.selectedUserId.value,
-        'kategori_laporan': _getSelectedKode(_kategoriLaporanController) ?? '',
         'kategori_surat': _docNumberPart2Controller.text.trim(),
         'kode_berkas': kategoriKode,
         'kategori_kode': _getSelectedKode(_kategoriController) ?? '',
         'klasifikasi_surat': _letterNumberPart2Controller.text.trim(),
       };
+
+      if (kategoriKode == 'Rapat') {
+        payload['tgl_agenda_rapat'] = DateFormat('yyyy-MM-dd').format(
+          DateFormat('dd/MM/yyyy')
+              .parseStrict(_meetingDateController.text.trim()),
+        );
+        payload['jam_rapat'] = _meetingTimeController.text.trim();
+        payload['ruang_rapat'] =
+            _getSelectedDeskripsi(_ruangRapatController) ?? 'null';
+        payload['bahasan_rapat'] = _pokokBahasanController.text.trim();
+        payload['pimpinan_rapat'] =
+            _getSelectedDeskripsi(_pimpinanRapatController) ?? 'null';
+        payload['peserta_rapat'] = _getSelectedDescriptions(
+                _pesertaRapatController, _selectedPesertaRapat)
+            .join('<br>');
+      }
+
+      if (kategoriKode == 'Laporan') {
+        payload['ditujukan'] = _getSelectedDescriptions(
+                _tujuanDisposisiController, _selectedTujuanDisposisi)
+            .join('<br>');
+        payload['kategori_laporan'] =
+            _getSelectedKode(_kategoriLaporanController) ?? '';
+      }
+
+      if (kategoriKode == 'Undangan') {
+        payload['kategori_undangan'] =
+            _usersDropdownController.selectedUserId.value;
+      }
 
       final uploadMeta = _uploadItems
           .map((it) => {
@@ -2918,6 +3021,34 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
         //Bahasan rapat
         _pokokBahasanController.text = doc.bahasanRapat ?? '';
+
+        // Lampiran
+        /*
+        final String name;
+        final int size;
+        final Uint8List? bytes;
+        final String? path;
+        double progress;
+        bool uploading;
+        bool success;
+        String? error;
+        String? tempId;
+        String? tempUrl;
+        */
+        _uploadItems.addAll(
+          doc.lampirans.map((l) {
+            // final url = '${ApiConstants.baseUrl}/storage/${l.tokenLampiran}/${l.namaBerkas}';
+            final url =
+                '${ApiConstants.baseUrl}/storage/lampiran/${l.namaBerkas}';
+            _logger.d({'lampiran': l.namaBerkas, 'lokasi': url});
+            return _UploadItem(
+              name: l.namaBerkas,
+              tempId: l.idLampiran,
+              tempUrl: url,
+              size: int.tryParse(l.ukuran) ?? 0,
+            );
+          }).toList(growable: false),
+        );
       }
     } catch (e) {
       Get.snackbar(

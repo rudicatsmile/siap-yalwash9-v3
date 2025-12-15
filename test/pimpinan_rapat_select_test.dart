@@ -27,14 +27,12 @@ void main() {
     });
 
     test('Empty string returns null', () {
-      final kode =
-          getKodeFromDocPimpinanRapat(raw: '   ', items: items);
+      final kode = getKodeFromDocPimpinanRapat(raw: '   ', items: items);
       expect(kode, isNull);
     });
 
     test('Unknown name returns null', () {
-      final kode =
-          getKodeFromDocPimpinanRapat(raw: 'UNKNOWN', items: items);
+      final kode = getKodeFromDocPimpinanRapat(raw: 'UNKNOWN', items: items);
       expect(kode, isNull);
     });
   });

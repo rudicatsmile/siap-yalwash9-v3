@@ -75,6 +75,7 @@ class SuratMasukController extends Controller
 
         try {
             $validated = $request->validate([
+                // 'file' => 'required|file|mimes:doc,docx,pdf,jpg,jpeg,png|max:5120',
                 'file' => 'required|file|mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx|max:10240',
                 'no_surat' => 'required|string',
                 'tgl_surat' => 'required|date',
@@ -82,55 +83,44 @@ class SuratMasukController extends Controller
 
             $file = $request->file('file');
             $originalName = $file->getClientOriginalName();
-            $size = $file->getSize();
+            $size = (int) $file->getSize();
             $noSurat = $validated['no_surat'];
             $tglSurat = date('Y-m-d', strtotime($validated['tgl_surat']));
+
+            $sanitized = preg_replace('/[^A-Za-z0-9._-]/', '_', $originalName);
+            if ($sanitized !== $originalName) {
+                return response()->json([
+                    'status' => 422,
+                    'message' => 'Nama file tidak sesuai',
+                    'errors' => ['file' => ['Nama file mengandung karakter tidak valid']],
+                    'timestamp' => now()->toIso8601String(),
+                ], 422);
+            }
 
             $part1 = explode('/', $noSurat)[0] ?? $noSurat;
             $token = md5(($user->id_user ?? '0') . '-' . $part1 . '-' . $tglSurat);
 
-            $sanitized = preg_replace('/[^A-Za-z0-9._-]/', '_', $originalName);
-            $dir = 'lampiran/' . date('Y') . '/' . date('m') . '/' . ($user->id_user ?? '0');
-            $ext = strtolower($file->getClientOriginalExtension());
-            $filename = uniqid() . '-' . $sanitized;
-            $target = $dir . '/' . $filename;
-            if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
-                try {
-                    $tmp = $file->getRealPath();
-                    if (in_array($ext, ['jpg', 'jpeg'])) {
-                        $img = @imagecreatefromjpeg($tmp);
-                        ob_start();
-                        @imagejpeg($img, null, 85);
-                        $data = ob_get_clean();
-                        if ($data && strlen($data) > 0) {
-                            \Illuminate\Support\Facades\Storage::disk('public')->put($target, $data);
-                        } else {
-                            $path = $file->store($dir, 'public');
-                            $target = $path;
-                        }
-                    } elseif ($ext === 'png') {
-                        $img = @imagecreatefrompng($tmp);
-                        ob_start();
-                        @imagepng($img, null, 6);
-                        $data = ob_get_clean();
-                        if ($data && strlen($data) > 0) {
-                            \Illuminate\Support\Facades\Storage::disk('public')->put($target, $data);
-                        } else {
-                            $path = $file->store($dir, 'public');
-                            $target = $path;
-                        }
-                    } else {
-                        $path = $file->store($dir, 'public');
-                        $target = $path;
-                    }
-                } catch (\Throwable $e) {
-                    $path = $file->store($dir, 'public');
-                    $target = $path;
-                }
-            } else {
-                $path = $file->store($dir, 'public');
-                $target = $path;
+            $dir = 'lampiran';
+            $target = $dir . '/' . $originalName;
+
+            if (Storage::disk('public')->exists($target)) {
+                return response()->json([
+                    'status' => 409,
+                    'message' => 'File sudah ada',
+                    'data' => ['nama_berkas' => $originalName, 'path' => $target],
+                    'timestamp' => now()->toIso8601String(),
+                ], 409);
             }
+
+            $path = Storage::disk('public')->putFileAs($dir, $file, $originalName);
+            if (!$path) {
+                return response()->json([
+                    'status' => 500,
+                    'message' => 'Gagal mengunggah lampiran',
+                    'timestamp' => now()->toIso8601String(),
+                ], 500);
+            }
+
             $id = DB::table('tbl_lampiran')->insertGetId([
                 'no_surat' => $noSurat,
                 'token_lampiran' => $token,
@@ -142,7 +132,7 @@ class SuratMasukController extends Controller
                 'user_id' => $user->id_user ?? null,
                 'no_surat' => $noSurat,
                 'id_lampiran' => $id,
-                'path' => $target,
+                'path' => $path,
             ]);
 
             return response()->json([
@@ -150,7 +140,8 @@ class SuratMasukController extends Controller
                 'message' => 'Lampiran berhasil diunggah',
                 'data' => [
                     'id' => $id,
-                    'url' => asset('storage/' . $target),
+                    'url' => asset('storage/' . $path),
+                    'nama_berkas' => $originalName,
                 ],
                 'timestamp' => now()->toIso8601String(),
             ], 201);

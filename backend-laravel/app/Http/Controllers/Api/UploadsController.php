@@ -24,7 +24,8 @@ class UploadsController extends Controller
             $sanitized = preg_replace('/[^A-Za-z0-9._-]/', '_', $originalName);
             $dir = 'uploads/temp/' . date('Y') . '/' . date('m') . '/' . ($user->id_user ?? '0');
             $filename = uniqid() . '-' . $sanitized;
-            $target = $dir . '/' . $filename;
+            //$target = $dir . '/' . $filename;
+            $target = $dir . '/' . $originalName;
             $blocked = ['application/x-msdownload', 'application/x-msdos-program'];
             $mime = $file->getMimeType();
             if (in_array($mime, $blocked, true)) {
