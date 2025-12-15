@@ -8,6 +8,31 @@ import '../../core/constants/app_constants.dart';
 class DocumentRepository {
   final _apiService = ApiService();
   final _logger = Logger();
+  String _formatInsertSql(String table, Map<String, dynamic> data) {
+    final cols = data.keys.join(', ');
+    String _val(dynamic v) {
+      if (v == null) return 'NULL';
+      if (v is num || v is bool) return v.toString();
+      final s = v.toString().replaceAll("'", "''");
+      return "'$s'";
+    }
+
+    final vals = data.values.map(_val).join(', ');
+    return 'INSERT INTO $table ($cols) VALUES ($vals);';
+  }
+
+  String _formatUpdateSql(String table, int id, Map<String, dynamic> data) {
+    String _val(dynamic v) {
+      if (v == null) return 'NULL';
+      if (v is num || v is bool) return v.toString();
+      final s = v.toString().replaceAll("'", "''");
+      return "'$s'";
+    }
+
+    final sets =
+        data.entries.map((e) => '${e.key} = ${_val(e.value)}').join(', ');
+    return 'UPDATE $table SET $sets WHERE id_sm = $id;';
+  }
 
   /// Get documents based on role and filters
   Future<List<DocumentModel>> getDocuments({
@@ -88,6 +113,8 @@ class DocumentRepository {
   Future<DocumentModel> createDocument(Map<String, dynamic> data) async {
     try {
       _logger.d('Creating new document');
+      final sql = _formatInsertSql('documents', data);
+      _logger.i({'sql_insert': sql});
 
       final response = await _apiService.post(
         ApiConstants.documents,
@@ -109,22 +136,39 @@ class DocumentRepository {
   /// Update document
   Future<DocumentModel> updateDocument(
       int id, Map<String, dynamic> data) async {
+    final sql = _formatUpdateSql('tbl_sm', id, data);
+
     try {
       _logger.d('Updating document $id');
+      // final sql = _formatUpdateSql('documents', id, data);
+      _logger.i({'sql_update': sql});
 
       final response = await _apiService.put(
         ApiConstants.documentDetail(id),
         data: data,
       );
 
-      if (response.data['success'] == true) {
+      // 'message' => 'Document updated successfully',
+
+      // if (response.data['success'] == true) {
+      if (response.data['message'] == 'Document updated successfully') {
         _logger.i('Document updated successfully');
         return DocumentModel.fromJson(response.data['data']);
       }
 
+      _logger.e({
+        'sql_update': sql,
+        'update_failed': true,
+        'status': response.statusCode,
+        'body': response.data,
+      });
       throw Exception('Failed to update document');
     } catch (e) {
-      _logger.e('Failed to update document: $e');
+      _logger.e({
+        'message': 'Failed to update document',
+        'error': e.toString(),
+        'sql_update': _formatUpdateSql('documents', id, data),
+      });
       rethrow;
     }
   }

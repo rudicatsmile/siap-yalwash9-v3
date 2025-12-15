@@ -87,32 +87,21 @@ class SuratMasukController extends Controller
             $noSurat = $validated['no_surat'];
             $tglSurat = date('Y-m-d', strtotime($validated['tgl_surat']));
 
-            $sanitized = preg_replace('/[^A-Za-z0-9._-]/', '_', $originalName);
-            if ($sanitized !== $originalName) {
-                return response()->json([
-                    'status' => 422,
-                    'message' => 'Nama file tidak sesuai',
-                    'errors' => ['file' => ['Nama file mengandung karakter tidak valid']],
-                    'timestamp' => now()->toIso8601String(),
-                ], 422);
-            }
-
             $part1 = explode('/', $noSurat)[0] ?? $noSurat;
             $token = md5(($user->id_user ?? '0') . '-' . $part1 . '-' . $tglSurat);
 
             $dir = 'lampiran';
-            $target = $dir . '/' . $originalName;
-
-            if (Storage::disk('public')->exists($target)) {
+            $blocked = ['application/x-msdownload', 'application/x-msdos-program'];
+            $mime = $file->getMimeType();
+            if (in_array($mime, $blocked, true)) {
                 return response()->json([
-                    'status' => 409,
-                    'message' => 'File sudah ada',
-                    'data' => ['nama_berkas' => $originalName, 'path' => $target],
+                    'status' => 422,
+                    'message' => 'Tipe berkas tidak diizinkan',
                     'timestamp' => now()->toIso8601String(),
-                ], 409);
+                ], 422);
             }
 
-            $path = Storage::disk('public')->putFileAs($dir, $file, $originalName);
+            $path = $file->store($dir, 'public');
             if (!$path) {
                 return response()->json([
                     'status' => 500,
@@ -120,11 +109,12 @@ class SuratMasukController extends Controller
                     'timestamp' => now()->toIso8601String(),
                 ], 500);
             }
+            $storedName = basename($path);
 
             $id = DB::table('tbl_lampiran')->insertGetId([
                 'no_surat' => $noSurat,
                 'token_lampiran' => $token,
-                'nama_berkas' => $originalName,
+                'nama_berkas' => $storedName,
                 'ukuran' => $size,
             ]);
 
@@ -133,6 +123,9 @@ class SuratMasukController extends Controller
                 'no_surat' => $noSurat,
                 'id_lampiran' => $id,
                 'path' => $path,
+                'size' => $size,
+                'mime' => $mime,
+                'name' => $originalName,
             ]);
 
             return response()->json([
@@ -141,7 +134,7 @@ class SuratMasukController extends Controller
                 'data' => [
                     'id' => $id,
                     'url' => asset('storage/' . $path),
-                    'nama_berkas' => $originalName,
+                    'nama_berkas' => $storedName,
                 ],
                 'timestamp' => now()->toIso8601String(),
             ], 201);

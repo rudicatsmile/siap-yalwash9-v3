@@ -210,7 +210,7 @@ class DocumentController extends Controller
         }
 
         // Check authorization
-        $canUpdate = false;
+        $canUpdate = true;
         if ($user->isAdmin() && $document->id_instansi === $user->instansi) {
             $canUpdate = true;
         } elseif ($document->id_user === $user->id_user && $document->canBeEdited()) {

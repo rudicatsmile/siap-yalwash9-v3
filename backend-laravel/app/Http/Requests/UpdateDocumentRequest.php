@@ -27,7 +27,7 @@ class UpdateDocumentRequest extends FormRequest
             'tgl_surat' => ['sometimes', 'date'],
             'pengirim' => ['sometimes', 'string', 'max:255'],
             'penerima' => ['sometimes', 'string', 'max:255'],
-            'perihal' => ['sometimes', 'string', 'min:10'],
+            'perihal' => ['sometimes', 'string', 'min:5'],
             'sifat' => ['sometimes', 'in:Segera,Biasa,Rahasia'],
             'kategori_surat' => ['sometimes', 'string', 'max:100'],
             'klasifikasi_surat' => ['sometimes', 'string', 'max:100'],

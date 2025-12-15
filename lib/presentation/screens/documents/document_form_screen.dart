@@ -17,12 +17,14 @@ import 'package:dio/dio.dart' as dio;
 import '../../../core/constants/api_constants.dart';
 import 'dart:typed_data';
 import 'dart:async';
+import 'dart:io';
 import '../../controllers/surat_masuk_controller.dart';
 import 'package:logger/logger.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import '../viewers/pdf_viewer_screen.dart';
 import '../viewers/docx_viewer_screen.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// Mem-parsing field `doc.ditujukan` menjadi daftar kode tujuan disposisi
 /// - Memisahkan berdasarkan tag `<br>` (case-insensitive, dengan optional closing `/`)
@@ -236,6 +238,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   String? _uploadValidationError;
   final _logger = Logger();
   final Set<String> _deletedLampiranIds = <String>{};
+  Directory? _sessionTempDir;
+  final Set<String> _tempFiles = <String>{};
+  bool _isCleaningTemp = false;
+  Future<void>? _ongoingCleanup;
 
   /// Helper untuk memetakan lampirans DocumentModel ke bentuk sederhana untuk display/testing
   List<Map<String, dynamic>> mapLampiransForDisplay(
@@ -337,6 +343,93 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     return f.endsWith('.doc') || f.endsWith('.docx');
   }
 
+  Future<Directory> _ensureSessionTempDir() async {
+    if (_sessionTempDir != null) return _sessionTempDir!;
+    final base = await getTemporaryDirectory();
+    final dir = Directory(
+        '${base.path}/siap_uploads_${DateTime.now().millisecondsSinceEpoch}');
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    _sessionTempDir = dir;
+    _logger.i({'temp_dir_created': dir.path});
+    return dir;
+  }
+
+  Future<String> _createTempFile(Uint8List data, String originalName) async {
+    final dir = await _ensureSessionTempDir();
+    final safe = originalName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    final path = '${dir.path}/$safe';
+    final f = File(path);
+    await f.writeAsBytes(data, flush: true);
+    _tempFiles.add(path);
+    _logger.d({'temp_file_created': path, 'size': data.length});
+    return path;
+  }
+
+  bool _isTempPath(String? path) {
+    final p = path ?? '';
+    final dir = _sessionTempDir?.path ?? '';
+    return dir.isNotEmpty && p.startsWith(dir);
+  }
+
+  Future<void> _cleanupOrphanTempFiles() async {
+    final used = _uploadItems.map((it) => it.path).whereType<String>().toSet();
+    for (final p in _tempFiles.toList()) {
+      if (!used.contains(p)) {
+        try {
+          final f = File(p);
+          if (await f.exists()) {
+            await f.delete();
+            _logger.i({'temp_file_deleted': p});
+          } else {
+            _logger.w({'temp_file_not_found': p});
+          }
+        } on FileSystemException catch (e) {
+          _logger.e({'temp_file_delete_failed': p, 'error': e.message});
+          Get.snackbar(
+            'Error',
+            'Gagal menghapus berkas sementara: $p',
+            backgroundColor: AppTheme.errorColor,
+            colorText: Colors.white,
+          );
+        }
+        _tempFiles.remove(p);
+      }
+    }
+  }
+
+  Future<void> _cleanupTempDir({bool recursive = true}) async {
+    if (_isCleaningTemp) {
+      await (_ongoingCleanup ?? Future.value());
+      return;
+    }
+    _isCleaningTemp = true;
+    _ongoingCleanup = () async {
+      final dir = _sessionTempDir;
+      if (dir != null) {
+        try {
+          if (await dir.exists()) {
+            await dir.delete(recursive: recursive);
+            _logger.i({'temp_dir_deleted': dir.path});
+          }
+        } on FileSystemException catch (e) {
+          _logger.e({'temp_dir_delete_failed': dir.path, 'error': e.message});
+          Get.snackbar(
+            'Error',
+            'Gagal menghapus direktori sementara',
+            backgroundColor: AppTheme.errorColor,
+            colorText: Colors.white,
+          );
+        }
+      }
+      _tempFiles.clear();
+      _sessionTempDir = null;
+      _isCleaningTemp = false;
+    }();
+    await _ongoingCleanup;
+  }
+
   Future<void> _pickDocuments() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -369,7 +462,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       final name = (f.name).toLowerCase();
       final size = f.size;
       final bytes = f.bytes;
-      final path = f.path;
+      String? path = f.path;
       if (!_isSupportedFile(name)) {
         Get.snackbar('Error', 'Format berkas tidak didukung: $name',
             backgroundColor: AppTheme.errorColor, colorText: Colors.white);
@@ -379,6 +472,20 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         Get.snackbar('Error', 'Ukuran berkas melebihi 10MB: $name',
             backgroundColor: AppTheme.errorColor, colorText: Colors.white);
         continue;
+      }
+      if (bytes != null && (path == null || path.isEmpty)) {
+        try {
+          path = await _createTempFile(bytes, f.name);
+        } catch (e) {
+          _logger.e({'temp_file_create_failed': f.name, 'error': e.toString()});
+          Get.snackbar(
+            'Error',
+            'Gagal membuat berkas sementara untuk $name',
+            backgroundColor: AppTheme.errorColor,
+            colorText: Colors.white,
+          );
+          continue;
+        }
       }
       final item = _UploadItem(
         name: f.name,
@@ -448,11 +555,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         item.error = e.message ?? e.toString();
       }
       setState(() {});
+      unawaited(_cleanupOrphanTempFiles());
     } catch (e) {
       item.uploading = false;
       item.success = false;
       item.error = e.toString();
       setState(() {});
+      unawaited(_cleanupOrphanTempFiles());
     }
   }
 
@@ -478,6 +587,30 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _deletedLampiranIds.add(item.tempId!);
     }
     setState(() => _uploadItems.remove(item));
+    if (item.path != null && _isTempPath(item.path)) {
+      final p = item.path!;
+      unawaited(() async {
+        try {
+          final f = File(p);
+          if (await f.exists()) {
+            await f.delete();
+            _logger.i({'temp_file_deleted': p});
+          } else {
+            _logger.w({'temp_file_not_found': p});
+          }
+        } on FileSystemException catch (e) {
+          _logger.e({'temp_file_delete_failed': p, 'error': e.message});
+          Get.snackbar(
+            'Error',
+            'Gagal menghapus berkas sementara: $p',
+            backgroundColor: AppTheme.errorColor,
+            colorText: Colors.white,
+          );
+        } finally {
+          _tempFiles.remove(p);
+        }
+      }());
+    }
   }
 
   void _viewUpload(_UploadItem item) {
@@ -865,6 +998,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _jenisItemsOnce.dispose();
     _kategoriLaporanItemsOnce.dispose();
     _part2SyncWorker.dispose();
+    unawaited(_cleanupTempDir());
     super.dispose();
   }
 
@@ -2556,6 +2690,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _isLoading.value = true;
 
     try {
+      await _cleanupOrphanTempFiles();
       final kategoriKode = _getSelectedKode(_kategoriController) ?? 'Dokumen';
       DateTime tgl;
       try {
@@ -2693,6 +2828,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       );
     } finally {
       _isLoading.value = false;
+      await _cleanupTempDir();
     }
   }
 
