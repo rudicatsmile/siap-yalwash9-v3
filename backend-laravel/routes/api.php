@@ -76,6 +76,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/surat-masuk', [SuratMasukController::class, 'store']);
     // Upload Lampiran (tbl_lampiran)
     Route::post('/lampiran/upload', [SuratMasukController::class, 'uploadLampiran']);
+    // Delete Lampiran
+    Route::delete('/lampiran/{id}', [SuratMasukController::class, 'deleteLampiran'])->whereNumber('id');
     // Upload sementara
     Route::post('/uploads/images', [UploadsController::class, 'uploadTemp']);
 });

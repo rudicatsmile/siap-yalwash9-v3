@@ -158,4 +158,76 @@ class SuratMasukController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Delete lampiran by id_lampiran and remove file from storage.
+     */
+    public function deleteLampiran(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        try {
+            if ($id <= 0) {
+                return response()->json([
+                    'status' => 422,
+                    'message' => 'ID lampiran tidak valid',
+                    'timestamp' => now()->toIso8601String(),
+                ], 422);
+            }
+
+            $row = DB::table('tbl_lampiran')->where('id_lampiran', $id)->first();
+            if (!$row) {
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Lampiran tidak ditemukan',
+                    'timestamp' => now()->toIso8601String(),
+                ], 404);
+            }
+
+            $storedName = $row->nama_berkas ?? null;
+            $path = $storedName ? ('lampiran/' . $storedName) : null;
+
+            if ($path) {
+                try {
+                    if (Storage::disk('public')->exists($path)) {
+                        Storage::disk('public')->delete($path);
+                    }
+                } catch (\Throwable $fe) {
+                    Log::warning('Failed to delete lampiran file', [
+                        'path' => $path,
+                        'error' => $fe->getMessage(),
+                    ]);
+                }
+            }
+
+            DB::table('tbl_lampiran')->where('id_lampiran', $id)->delete();
+
+            Log::info('Lampiran deleted', [
+                'user_id' => $user->id_user ?? null,
+                'id_lampiran' => $id,
+                'path' => $path,
+                'nama_berkas' => $storedName,
+            ]);
+
+            return response()->json([
+                'status' => 200,
+                'message' => 'Lampiran berhasil dihapus',
+                'data' => [
+                    'id' => $id,
+                    'deleted' => true,
+                ],
+                'timestamp' => now()->toIso8601String(),
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Lampiran delete failed', [
+                'error' => $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ]);
+            return response()->json([
+                'status' => 500,
+                'message' => 'Gagal menghapus lampiran',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+                'timestamp' => now()->toIso8601String(),
+            ], 500);
+        }
+    }
 }

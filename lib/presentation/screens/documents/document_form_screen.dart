@@ -303,7 +303,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       return;
     }
     final item = _UploadItem(
-      name: x.name,
+      name: _ensureUniqueName(x.name),
       size: size,
       bytes: bytes,
       path: x.path,
@@ -333,6 +333,21 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         f.endsWith('.webp');
   }
 
+  String makeUniqueName(List<String> existing, String name) {
+    var candidate = name;
+    final names = existing.toSet();
+    if (!names.contains(candidate)) return candidate;
+    final dot = name.lastIndexOf('.');
+    final base = dot > 0 ? name.substring(0, dot) : name;
+    final ext = dot > 0 ? name.substring(dot) : '';
+    var i = 1;
+    while (names.contains(candidate)) {
+      candidate = '$base($i)$ext';
+      i++;
+    }
+    return candidate;
+  }
+
   bool _isPdfFile(String filename) {
     final f = filename.toLowerCase();
     return f.endsWith('.pdf');
@@ -359,7 +374,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   Future<String> _createTempFile(Uint8List data, String originalName) async {
     final dir = await _ensureSessionTempDir();
     final safe = originalName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
-    final path = '${dir.path}/$safe';
+    final ts = DateTime.now().microsecondsSinceEpoch;
+    final path = '${dir.path}/$ts-$safe';
     final f = File(path);
     await f.writeAsBytes(data, flush: true);
     _tempFiles.add(path);
@@ -488,7 +504,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         }
       }
       final item = _UploadItem(
-        name: f.name,
+        name: _ensureUniqueName(f.name),
         size: size,
         bytes: bytes,
         path: path,
@@ -2793,9 +2809,12 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _logger.i('Submit SuratMasuk payload: $payload');
       _logger.d('Upload items: $uploadMeta');
 
-      // Upload lampiran ke backend (tbl_lampiran)
       final noSurat = _docNumberPart1Controller.text.trim();
-      await _uploadLampiranForSubmission(noSurat, ymd);
+      if (_isEditMode) {
+        await _applyEditUploads(noSurat, ymd);
+      } else {
+        await _uploadLampiranForSubmission(noSurat, ymd);
+      }
 
       if (_isEditMode && _editingDocumentId != null) {
         final repo = DocumentRepository();
@@ -2875,10 +2894,82 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
             'Content-Type': 'multipart/form-data',
           }),
         );
-        _logger.i('Lampiran tersimpan: ${res.data}');
+        final data = res.data is Map<String, dynamic>
+            ? (res.data as Map<String, dynamic>)
+            : <String, dynamic>{};
+        it.success = true;
+        it.uploading = false;
+        it.tempId = (data['data'] is Map<String, dynamic>)
+            ? (data['data']['id']?.toString())
+            : it.tempId;
+        it.tempUrl = (data['data'] is Map<String, dynamic>)
+            ? (data['data']['url'] as String?)
+            : it.tempUrl;
+        setState(() {});
+        _logger
+            .i({'lampiran_saved': it.name, 'id': it.tempId, 'url': it.tempUrl});
+      } on dio.DioException catch (e) {
+        it.uploading = false;
+        it.success = false;
+        it.error = e.message ?? e.toString();
+        setState(() {});
+        _logger.e({'lampiran_save_failed': it.name, 'error': it.error});
       } catch (e) {
-        _logger.e('Gagal menyimpan lampiran ${it.name}: $e');
+        it.uploading = false;
+        it.success = false;
+        it.error = e.toString();
+        setState(() {});
+        _logger.e({'lampiran_save_failed': it.name, 'error': it.error});
       }
+    }
+  }
+
+  String _ensureUniqueName(String name) {
+    final names = _uploadItems.map((e) => e.name).toList();
+    return makeUniqueName(names, name);
+  }
+
+  Future<void> _applyEditUploads(String noSurat, String ymd) async {
+    try {
+      if (_deletedLampiranIds.isNotEmpty) {
+        final ids = _deletedLampiranIds.toSet();
+        for (final idStr in ids) {
+          final intId = int.tryParse(idStr);
+          if (intId == null) {
+            _logger.w({'invalid_lampiran_id': idStr});
+            continue;
+          }
+          try {
+            final resp = await _api.delete(ApiConstants.lampiranDelete(intId));
+            _logger.i(
+                {'lampiran_deleted_server': intId, 'status': resp.statusCode});
+          } on dio.DioException catch (e) {
+            _logger.e({
+              'lampiran_delete_failed_server': intId,
+              'error': e.message ?? e.toString()
+            });
+          }
+        }
+        _uploadItems
+            .removeWhere((it) => it.tempId != null && ids.contains(it.tempId));
+        setState(() {});
+        _logger.w({'deleted_lampiran_ids': ids.toList()});
+      }
+      await _uploadLampiranForSubmission(noSurat, ymd);
+    } on dio.DioException catch (e) {
+      Get.snackbar(
+        'Error',
+        e.message ?? 'Masalah jaringan saat memperbarui lampiran',
+        backgroundColor: AppTheme.errorColor,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal memperbarui lampiran: $e',
+        backgroundColor: AppTheme.errorColor,
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -3444,4 +3535,19 @@ class _UploadItem {
     this.tempUrl,
     this.cancelToken,
   });
+}
+
+String makeUniqueName(List<String> existing, String name) {
+  var candidate = name;
+  final names = existing.toSet();
+  if (!names.contains(candidate)) return candidate;
+  final dot = name.lastIndexOf('.');
+  final base = dot > 0 ? name.substring(0, dot) : name;
+  final ext = dot > 0 ? name.substring(dot) : '';
+  var i = 1;
+  while (names.contains(candidate)) {
+    candidate = '$base($i)$ext';
+    i++;
+  }
+  return candidate;
 }
