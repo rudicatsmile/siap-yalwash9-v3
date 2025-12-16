@@ -42,6 +42,7 @@ class DocumentRepository {
     int? status,
     int? statusRapat,
     String? search,
+    String? dibaca,
     int page = 1,
     int limit = 20,
   }) async {
@@ -57,6 +58,7 @@ class DocumentRepository {
         if (status != null) 'status': status,
         if (statusRapat != null) 'status_rapat': statusRapat,
         if (search != null && search.isNotEmpty) 'search': search,
+        if (dibaca != null && dibaca.isNotEmpty) 'dibaca': dibaca,
       };
       _logger.i({'endpoint': ApiConstants.documents, 'query': queryParams});
 

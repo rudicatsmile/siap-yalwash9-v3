@@ -66,6 +66,10 @@ class DocumentController extends Controller
             $query->where('kategori_surat', $request->kategori_surat);
         }
 
+        if ($request->filled('dibaca')) {
+            $query->where('dibaca', $request->dibaca);
+        }
+
         // Order by date descending
         $query->orderBy('tgl_surat', 'desc');
         $query->orderBy('id_sm', 'asc');

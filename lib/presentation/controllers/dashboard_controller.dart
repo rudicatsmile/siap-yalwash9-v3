@@ -26,7 +26,8 @@ class DashboardController extends GetxController {
   }
 
   /// Load documents based on user role
-  Future<void> loadDocuments({bool refresh = false}) async {
+  Future<void> loadDocuments(
+      {bool refresh = false, String? search, String? dibaca}) async {
     try {
       _logger.d('Dashboard loadDocuments start');
       if (refresh) {
@@ -51,6 +52,8 @@ class DashboardController extends GetxController {
           newDocuments = await _documentRepository.getDocuments(
             userId: user.id,
             page: currentPage.value,
+            search: search,
+            dibaca: dibaca,
           );
           break;
 
@@ -65,6 +68,7 @@ class DashboardController extends GetxController {
           newDocuments = await _documentRepository.getDocuments(
             departemenId: user.departemenId,
             page: currentPage.value,
+            search: search,
           );
           break;
 
@@ -78,6 +82,7 @@ class DashboardController extends GetxController {
           newDocuments = await _documentRepository.getDocuments(
             status: DocumentStatus.pending.code,
             page: currentPage.value,
+            search: search,
           );
           break;
 
@@ -91,6 +96,7 @@ class DashboardController extends GetxController {
           newDocuments = await _documentRepository.getDocuments(
             status: DocumentStatus.forwardedToCoordinator.code,
             page: currentPage.value,
+            search: search,
           );
           break;
 
@@ -104,6 +110,7 @@ class DashboardController extends GetxController {
           newDocuments = await _documentRepository.getDocuments(
             status: DocumentStatus.forwardedToMainLeader.code,
             page: currentPage.value,
+            search: search,
           );
           break;
       }

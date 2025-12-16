@@ -8,16 +8,28 @@ import '../../../../core/theme/app_theme.dart';
 
 /// Data tab with role-based dashboard
 class DataTab extends StatelessWidget {
-  const DataTab({super.key});
+  final String? qParam;
+  const DataTab({super.key, this.qParam});
 
   @override
   Widget build(BuildContext context) {
     final dashboardController = Get.put(DashboardController(), permanent: true);
     final authController = Get.find<AuthController>();
 
+    final qp = qParam ??
+        ((Get.arguments is Map)
+            ? (Get.arguments as Map)['qParam'] as String?
+            : null);
+    print('qp: $qp');
+    if (qp != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        dashboardController.loadDocuments(
+            refresh: true, search: null, dibaca: qParam);
+      });
+    }
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard SIAP'),
+        title: Text(qp == null ? 'Dashboard SIAP' : 'Dashboard SIAP — $qp'),
       ),
       body: Obx(
         () {
