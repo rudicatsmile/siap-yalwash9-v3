@@ -146,7 +146,8 @@ String? getKodeFromDocRuangRapat({
 /// Document form screen for creating and editing documents
 class DocumentFormScreen extends StatefulWidget {
   final String? noSurat;
-  const DocumentFormScreen({super.key, this.noSurat});
+  final String? qParam;
+  const DocumentFormScreen({super.key, this.noSurat, this.qParam});
 
   @override
   State<DocumentFormScreen> createState() => _DocumentFormScreenState();

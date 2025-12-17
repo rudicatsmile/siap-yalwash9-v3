@@ -27,24 +27,24 @@ class DocumentController extends Controller
         $query = Document::with(['user:id_user,username,nama_lengkap', 'lampirans']);
 
         // Role-based filtering
-        if ($user->isAdmin()) {
-            // Admin: Access all documents within their institution
-            $query->forInstitution($user->instansi);
-        } elseif ($user->isPimpinan()) {
-            // Pimpinan: Access all documents in institution
-            $query->forInstitution($user->instansi);
-        } else {
-            // User: Only documents they created or assigned to them
-            $query->where(function ($q) use ($user) {
-                $q->where('id_user', $user->id_user)
-                    ->orWhere('kode_user', $user->kode_user);
-            });
-        }
+        // if ($user->isAdmin()) {
+        //     // Admin: Access all documents within their institution
+        //     $query->forInstitution($user->instansi);
+        // } elseif ($user->isPimpinan()) {
+        //     // Pimpinan: Access all documents in institution
+        //     $query->forInstitution($user->instansi);
+        // } else {
+        //     // User: Only documents they created or assigned to them
+        //     $query->where(function ($q) use ($user) {
+        //         $q->where('id_user', $user->id_user)
+        //             ->orWhere('kode_user', $user->kode_user);
+        //     });
+        // }
 
         // Apply filters
-        if ($request->filled('status')) {
-            $query->status($request->status);
-        }
+        // if ($request->filled('status')) {
+        //     $query->status($request->status);
+        // }
 
         if ($request->filled('sifat')) {
             $query->where('sifat', $request->sifat);
@@ -67,7 +67,128 @@ class DocumentController extends Controller
         }
 
         if ($request->filled('dibaca')) {
-            $query->where('dibaca', $request->dibaca);
+            $dibaca = $request->dibaca;
+            $query->where(function ($q) use ($dibaca, $user) {
+                switch ($dibaca) {
+                    case '1':
+                        $q->where('dibaca', '1')
+                            ->where('id_instansi', $user->instansi);
+                        break;
+                    case '2':
+                        $q->where('dibaca', '1')
+                            ->where('kode_user', $user->kode_user);
+                        break;
+                    case '3':
+                        $q->where('dibaca', '3')
+                            ->where('id_status_rapat', '4');
+                        break;
+                    case '4':
+                        $q->where('dibaca', '1')
+                            ->orWhere('dibaca', '1');
+                        break;
+                    case '5':
+                        $q->where('dibaca', '2');
+                        break;
+                    case '6':
+                        $q->where('id_status_rapat', '2');
+                        break;
+                    case '7':
+                        $q->where('dibaca', '2')
+                            ->where(function ($subQ) use ($user) {
+                                $subQ->where('kode_user_pimpinan', $user->kode_user)
+                                    ->orWhere('dibaca_pimpinan', '1');
+                            });
+                        break;
+                    case '8':
+                        $q->where('dibaca', '8')
+                            ->where('kode_user_pimpinan', $user->kode_user);
+                        break;
+                    case '9':
+                        $q->where(function ($subQ) {
+                            $subQ->where('id_status_rapat', '2')
+                                ->where('dibaca', '7');
+                        })
+                            ->orWhere('kode_user_pimpinan', $user->kode_user);
+                        break;
+                    case '10':
+                        $q->where(function ($subQ) {
+                            $subQ->where('dibaca', '1')
+                                ->orWhere('dibaca', '2');
+                        })
+                            ->where('id_instansi', $user->instansi);
+                        break;
+                    case '11':
+                        $q->where(function ($subQ) {
+                            $subQ->where('dibaca', '1')
+                                ->orWhere('dibaca', '2');
+                        })
+                            ->where('kode_user', $user->kode_user);
+                        break;
+                    case '12':
+                        $q->where(function ($subQ) {
+                            $subQ->where('dibaca', '7')
+                                ->orWhere('dibaca', '8');
+                        })
+                            ->where('id_instansi', $user->instansi);
+                        break;
+                    case '13':
+                        $q->where(function ($subQ) {
+                            $subQ->where('dibaca', '7')
+                                ->orWhere('dibaca', '8');
+                        })
+                            ->where('kode_user', $user->kode_user);
+                        break;
+                    case '14':
+                        $q->where('dibaca', '3')
+                            ->where('id_instansi', $user->instansi);
+                        break;
+                    case '15':
+                        $q->where('dibaca', '3')
+                            ->where(function ($subQ) use ($user) {
+                                $subQ->where('id_user', $user->id_user)
+                                    ->orWhere('kode_user', $user->kode_user);
+                            });
+                        break;
+                    case '16':
+                        $q->where('dibaca', '0')
+                            ->where('id_instansi', $user->instansi);
+                        break;
+                    case '17':
+                        $q->where('dibaca', '0')
+                            ->where(function ($subQ) use ($user) {
+                                $subQ->where('id_user', $user->id_user)
+                                    ->orWhere('kode_user', $user->kode_user);
+                            });
+                        break;
+                    case '18':
+                        $q->where('dibaca', '20')
+                            ->where('id_instansi', $user->instansi);
+                        break;
+                    case '19':
+                        $q->where('dibaca', '20')
+                            ->where(function ($subQ) use ($user) {
+                                $subQ->where('id_user', $user->id_user)
+                                    ->orWhere('kode_user', $user->kode_user);
+                            });
+                        break;
+                    case '20':
+                        $q->where(function ($subQ) use ($user) {
+                            $subQ->where(function ($deepQ) use ($user) {
+                                $deepQ->where('dibaca', '3')
+                                    ->where('status_instansi', '2')
+                                    ->where('id_user_disposisi_leader', 'LIKE', '%:::' . $user->id_user . ':::%');
+                            })->orWhere(function ($deepQ) use ($user) {
+                                $deepQ->where('dibaca', '3')
+                                    ->where('disposisi_ktu_leader', 'LIKE', '%:::' . $user->id_user . ':::%');
+                            });
+                        });
+                        break;
+                    default:
+                        // Default behavior if dibaca is not in 1-20 or not handled
+                        $q->where('dibaca', $dibaca);
+                        break;
+                }
+            });
         }
 
         // Order by date descending

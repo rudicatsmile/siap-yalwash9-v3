@@ -61,12 +61,14 @@ class SiapApp extends StatelessWidget {
           page: () {
             final args = Get.arguments;
             String? noSurat;
+            String? qParam;
             if (args is Map<String, dynamic>) {
               noSurat = args['no_surat']?.toString();
+              qParam = args['qParam']?.toString();
             } else if (args is String) {
               noSurat = args;
             }
-            return DocumentFormScreen(noSurat: noSurat);
+            return DocumentFormScreen(noSurat: noSurat, qParam: qParam);
           },
         ),
         GetPage(

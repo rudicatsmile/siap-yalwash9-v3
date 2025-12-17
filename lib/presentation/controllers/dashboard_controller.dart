@@ -47,8 +47,12 @@ class DashboardController extends GetxController {
       switch (user.role) {
         case UserRole.user:
           // User sees only their own documents
-          _logger.i(
-              {'role': 'user', 'userId': user.id, 'page': currentPage.value});
+          _logger.i({
+            'role': 'user',
+            'userId': user.id,
+            'page': currentPage.value,
+            'dibaca': dibaca
+          });
           newDocuments = await _documentRepository.getDocuments(
             userId: user.id,
             page: currentPage.value,
@@ -63,12 +67,14 @@ class DashboardController extends GetxController {
           _logger.i({
             'role': user.role.code,
             'departemenId': user.departemenId,
-            'page': currentPage.value
+            'page': currentPage.value,
+            'dibaca': dibaca,
           });
           newDocuments = await _documentRepository.getDocuments(
             departemenId: user.departemenId,
             page: currentPage.value,
             search: search,
+            dibaca: dibaca,
           );
           break;
 
@@ -77,12 +83,14 @@ class DashboardController extends GetxController {
           _logger.i({
             'role': 'generalHead',
             'status': DocumentStatus.pending.code,
-            'page': currentPage.value
+            'page': currentPage.value,
+            'dibaca': dibaca,
           });
           newDocuments = await _documentRepository.getDocuments(
             status: DocumentStatus.pending.code,
             page: currentPage.value,
             search: search,
+            dibaca: dibaca,
           );
           break;
 
@@ -91,12 +99,14 @@ class DashboardController extends GetxController {
           _logger.i({
             'role': 'coordinator',
             'status': DocumentStatus.forwardedToCoordinator.code,
-            'page': currentPage.value
+            'page': currentPage.value,
+            'dibaca': dibaca,
           });
           newDocuments = await _documentRepository.getDocuments(
             status: DocumentStatus.forwardedToCoordinator.code,
             page: currentPage.value,
             search: search,
+            dibaca: dibaca,
           );
           break;
 
@@ -105,12 +115,28 @@ class DashboardController extends GetxController {
           _logger.i({
             'role': 'mainLeader',
             'status': DocumentStatus.forwardedToMainLeader.code,
-            'page': currentPage.value
+            'page': currentPage.value,
+            'dibaca': dibaca,
           });
           newDocuments = await _documentRepository.getDocuments(
             status: DocumentStatus.forwardedToMainLeader.code,
             page: currentPage.value,
             search: search,
+            dibaca: dibaca,
+          );
+          break;
+
+        case UserRole.superAdmin:
+          // Super admin sees all documents
+          _logger.i({
+            'role': 'superAdmin',
+            'page': currentPage.value,
+            'dibaca': dibaca,
+          });
+          newDocuments = await _documentRepository.getDocuments(
+            page: currentPage.value,
+            search: search,
+            dibaca: dibaca,
           );
           break;
       }

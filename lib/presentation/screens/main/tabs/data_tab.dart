@@ -20,7 +20,6 @@ class DataTab extends StatelessWidget {
         ((Get.arguments is Map)
             ? (Get.arguments as Map)['qParam'] as String?
             : null);
-    print('qp: $qp');
     if (qp != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         dashboardController.loadDocuments(
@@ -79,6 +78,28 @@ class DataTab extends StatelessWidget {
                         PopupMenuButton<String>(
                           onSelected: (value) async {
                             switch (value) {
+                              case 'detail':
+                                // qParam = '2' hanya menampilkan menu Detail; aksi sama seperti 'view'
+                                try {
+                                  final result = await Get.toNamed(
+                                    AppRoutes.documentForm,
+                                    arguments: {'no_surat': doc.documentNumber, 'qParam': qp},
+                                  );
+                                  if (result != null) {
+                                    final dashboardController =
+                                        Get.find<DashboardController>();
+                                    await dashboardController
+                                        .refreshDocuments();
+                                  }
+                                } catch (e) {
+                                  Get.snackbar(
+                                    'Error',
+                                    'Gagal membuka form edit: $e',
+                                    backgroundColor: AppTheme.errorColor,
+                                    colorText: Colors.white,
+                                  );
+                                }
+                                break;
                               case 'view':
                                 try {
                                   final result = await Get.toNamed(
@@ -153,20 +174,37 @@ class DataTab extends StatelessWidget {
                                 break;
                             }
                           },
-                          itemBuilder: (context) => const [
-                            PopupMenuItem(
-                              value: 'view',
-                              child: Text('Lihat'),
-                            ),
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Text('Edit'),
-                            ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Hapus'),
-                            ),
-                          ],
+                          // Menampilkan menu kondisional berdasarkan qParam
+                          itemBuilder: (context) {
+                            if (qp == '2') {
+                              return [
+                                PopupMenuItem(
+                                  value: 'detail',
+                                  child: Row(
+                                    children: const [
+                                      Icon(Icons.info_outline),
+                                      SizedBox(width: 8),
+                                      Text('Detail'),
+                                    ],
+                                  ),
+                                ),
+                              ];
+                            }
+                            return [
+                              const PopupMenuItem(
+                                value: 'view',
+                                child: Text('Lihat'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Edit'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Hapus'),
+                              ),
+                            ];
+                          },
                         ),
                       ],
                     ),

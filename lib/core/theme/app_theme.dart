@@ -10,39 +10,41 @@ class AppTheme {
   static const Color primaryColor = Color(0xFF2196F3); // Blue
   static const Color primaryDarkColor = Color(0xFF1976D2);
   static const Color primaryLightColor = Color(0xFF64B5F6);
-  
+
   // Secondary Colors
   static const Color secondaryColor = Color(0xFFFF9800); // Orange
   static const Color secondaryDarkColor = Color(0xFFF57C00);
   static const Color secondaryLightColor = Color(0xFFFFB74D);
-  
+
   // Status Colors (based on design document)
   static const Color statusApproved = Color(0xFF4CAF50); // Green - status 3
   static const Color statusRejected = Color(0xFFF44336); // Red - status 0
   static const Color statusPending = Color(0xFFFF9800); // Orange - status 1
   static const Color statusForwarded = Color(0xFF2196F3); // Blue - status 2, 9
-  static const Color statusMeeting = Color(0xFF9C27B0); // Purple - status_rapat 1
+  static const Color statusMeeting =
+      Color(0xFF9C27B0); // Purple - status_rapat 1
   static const Color statusReturned = Color(0xFF9E9E9E); // Gray - status 20
-  static const Color statusCoordinatorMeeting = Color(0xFF673AB7); // Deep Purple - status 8
-  
+  static const Color statusCoordinatorMeeting =
+      Color(0xFF673AB7); // Deep Purple - status 8
+
   // Background Colors
   static const Color backgroundColor = Color(0xFFF5F5F5);
   static const Color cardColor = Colors.white;
   static const Color surfaceColor = Colors.white;
-  
+
   // Text Colors
   static const Color textPrimaryColor = Color(0xFF212121);
   static const Color textSecondaryColor = Color(0xFF757575);
   static const Color textHintColor = Color(0xFFBDBDBD);
   static const Color textOnPrimaryColor = Colors.white;
-  
+
   // Other Colors
   static const Color errorColor = Color(0xFFF44336);
   static const Color successColor = Color(0xFF4CAF50);
   static const Color warningColor = Color(0xFFFF9800);
   static const Color infoColor = Color(0xFF2196F3);
   static const Color dividerColor = Color(0xFFE0E0E0);
-  
+
   /// Get color for document status
   static Color getStatusColor(DocumentStatus status) {
     switch (status) {
@@ -61,7 +63,7 @@ class AppTheme {
         return statusCoordinatorMeeting;
     }
   }
-  
+
   /// Get color for meeting status
   static Color getMeetingStatusColor(MeetingStatus status) {
     switch (status) {
@@ -85,7 +87,7 @@ class AppTheme {
         brightness: Brightness.light,
       ),
       scaffoldBackgroundColor: backgroundColor,
-      
+
       // AppBar Theme
       appBarTheme: const AppBarTheme(
         backgroundColor: primaryColor,
@@ -98,7 +100,7 @@ class AppTheme {
           color: textOnPrimaryColor,
         ),
       ),
-      
+
       // Card Theme
       cardTheme: CardThemeData(
         color: cardColor,
@@ -108,7 +110,7 @@ class AppTheme {
         ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
-      
+
       // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -129,9 +131,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: errorColor),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
-      
+
       // Button Themes
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -148,7 +151,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryColor,
@@ -159,7 +162,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryColor,
@@ -174,14 +177,14 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       // Floating Action Button Theme
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: primaryColor,
         foregroundColor: textOnPrimaryColor,
         elevation: 4,
       ),
-      
+
       // Bottom Navigation Bar Theme
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surfaceColor,
@@ -198,14 +201,14 @@ class AppTheme {
           fontWeight: FontWeight.normal,
         ),
       ),
-      
+
       // Divider Theme
       dividerTheme: const DividerThemeData(
         color: dividerColor,
         thickness: 1,
         space: 1,
       ),
-      
+
       // Text Theme
       textTheme: const TextTheme(
         displayLarge: TextStyle(
@@ -290,6 +293,7 @@ class AppTheme {
 
 /// App Spacing Constants
 class AppSpacing {
+  static const double sxs = 2.0;
   static const double xs = 4.0;
   static const double sm = 8.0;
   static const double md = 16.0;
