@@ -273,7 +273,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify validation error message
-    expect(find.text('Minimal pilih 1  disposisi'), findsOneWidget);
+    final errorFinder = find.descendant(
+      of: find.byKey(const ValueKey('group_tindakan_manajemen')),
+      matching: find.text('Minimal pilih 1 disposisi'),
+    );
+    expect(errorFinder, findsOneWidget);
   });
 
   testWidgets(
@@ -300,11 +304,11 @@ void main() {
     expect(find.text('Disposisi'), findsOneWidget);
     expect(find.text('Catatan'), findsOneWidget);
 
-    // Find the DropdownButtonFormField for Tindakan KTU
-    final apiDropdownFinder = find.ancestor(
-      of: find.text('Tindakan '),
-      matching: find.byType(ApiDropdownField),
-    );
+    // Find the ApiDropdownField for Tindakan KTU (Manajemen)
+    final apiDropdownFinder = find.byWidgetPredicate((widget) =>
+        widget is ApiDropdownField &&
+        widget.tableName == 'm_tindakan_manajemen');
+
     final dropdownButtonFinder = find.descendant(
       of: apiDropdownFinder,
       matching: find.byType(DropdownButtonFormField<String>),
@@ -327,14 +331,11 @@ void main() {
 
     // 2. Select 'Koreksi ke Pengirim' (kode '2')
     // We need to re-find the widget because the tree rebuilt
-    // Actually, since the dropdown itself is always visible, we might be able to reuse the finder strategy,
-    // but fetching the widget again is safer.
     final dropdownWidget2 = tester.widget<DropdownButtonFormField<String>>(
       find.descendant(
-        of: find.ancestor(
-          of: find.text('Tindakan '),
-          matching: find.byType(ApiDropdownField),
-        ),
+        of: find.byWidgetPredicate((widget) =>
+            widget is ApiDropdownField &&
+            widget.tableName == 'm_tindakan_manajemen'),
         matching: find.byType(DropdownButtonFormField<String>),
       ),
     );
@@ -349,10 +350,9 @@ void main() {
     // 3. Select 'Teruskan ke Pimpinan' (kode '3')
     final dropdownWidget3 = tester.widget<DropdownButtonFormField<String>>(
       find.descendant(
-        of: find.ancestor(
-          of: find.text('Tindakan '),
-          matching: find.byType(ApiDropdownField),
-        ),
+        of: find.byWidgetPredicate((widget) =>
+            widget is ApiDropdownField &&
+            widget.tableName == 'm_tindakan_manajemen'),
         matching: find.byType(DropdownButtonFormField<String>),
       ),
     );
@@ -487,10 +487,9 @@ void main() {
 
     // Helper to trigger selection
     Future<void> selectTindakan(String kode) async {
-      final dropdownFinder = find.ancestor(
-        of: find.text('Tindakan'),
-        matching: find.byType(ApiDropdownField),
-      );
+      final dropdownFinder = find.byWidgetPredicate((widget) =>
+          widget is ApiDropdownField &&
+          widget.tableName == 'm_tindakan_pimpinan');
       final dropdownWidget = tester.widget<ApiDropdownField>(dropdownFinder);
       dropdownWidget.onChanged!(kode);
       await tester.pumpAndSettle();

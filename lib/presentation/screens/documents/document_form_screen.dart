@@ -2585,306 +2585,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         //_buildUserInfo(),
                         const SizedBox(height: 16),
 
-                        //Pilih tindakan KTU
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showTindakanManajemen
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiDropdownField(
-                                      label: 'Tindakan ',
-                                      placeholder: 'Pilih Tindakan',
-                                      tableName: 'm_tindakan_manajemen',
-                                      controller: _tindakanManajemenController,
-                                      onChanged: (val) {
-                                        final selected =
-                                            _tindakanManajemenController.items
-                                                .firstWhereOrNull(
-                                                    (it) => it.kode == val);
-                                        final deskripsi = selected?.deskripsi;
+                        _buildTindakanManajemenSection(),
 
-                                        setState(() {
-                                          if (deskripsi == 'Di Terima') {
-                                            _showTeruskanPimpinan = false;
-                                            _showKtuDisposisi = false;
-                                            _showCatatanKtu = false;
-                                            _teruskanPimpinanController
-                                                .select('');
-                                            _selectedKtuDisposisi.clear();
-                                            _catatanKtuController.clear();
-                                          } else if (deskripsi ==
-                                              'Koreksi ke Pengirim') {
-                                            _showTeruskanPimpinan = false;
-                                            _showKtuDisposisi = false;
-                                            _showCatatanKtu = true;
-                                            _teruskanPimpinanController
-                                                .select('');
-                                            _selectedKtuDisposisi.clear();
-                                          } else {
-                                            // 'Teruskan ke Pimpinan' or default
-                                            _showTeruskanPimpinan = true;
-                                            _showKtuDisposisi = true;
-                                            _showCatatanKtu = true;
-                                          }
-                                        });
-                                      },
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Tindakan manajemen harus dipilih';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        //Pilih teruskan pimpinan
-                        // SwitchListTile(
-                        //   title: const Text('Tampilkan Teruskan Pimpinan'),
-                        //   value: _showTeruskanPimpinan,
-                        //   onChanged: (bool value) {
-                        //     setState(() {
-                        //       _showTeruskanPimpinan = value;
-                        //       if (!value) {
-                        //         _teruskanPimpinanController.select('');
-                        //       }
-                        //     });
-                        //   },
-                        // ),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showTeruskanPimpinan
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiDropdownField(
-                                      label: 'Teruskan Pimpinan',
-                                      placeholder: 'Pilih Teruskan Pimpinan',
-                                      tableName: 'm_teruskan_pimpinan',
-                                      controller: _teruskanPimpinanController,
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Teruskan pimpinan harus dipilih';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        // Pilih KTU Disposisi
-                        // SwitchListTile(
-                        //   title: const Text('Tampilkan KTU Disposisi'),
-                        //   value: _showKtuDisposisi,
-                        //   onChanged: (bool value) {
-                        //     setState(() {
-                        //       _showKtuDisposisi = value;
-                        //       if (!value) {
-                        //         _selectedKtuDisposisi.clear();
-                        //       }
-                        //     });
-                        //   },
-                        // ),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showKtuDisposisi
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiMultiSelectField(
-                                      label: 'Disposisi',
-                                      placeholder: 'Pilih  Disposisi',
-                                      tableName: 'm_tujuan_disposisi',
-                                      controller: _ktuDisposisiController,
-                                      selectedValues: _selectedKtuDisposisi,
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (values) {
-                                        if (values == null || values.isEmpty) {
-                                          return 'Minimal pilih 1  disposisi';
-                                        }
-                                        return null;
-                                      },
-                                      onChanged: (vals) {
-                                        _selectedKtuDisposisi
-                                          ..clear()
-                                          ..addAll(vals);
-                                        setState(() {});
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        // Action buttons
-
-                        //Group Catatan manajemen / KTU
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showCatatanKtu
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Catatan',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    TextFormField(
-                                      controller: _catatanKtuController,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Masukkan catatan',
-                                        border: OutlineInputBorder(),
-                                        prefixIcon: Icon(Icons.notes_outlined),
-                                        alignLabelWithHint: true,
-                                      ),
-                                      maxLines: 2,
-                                      textCapitalization:
-                                          TextCapitalization.sentences,
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        //Tindakan pimpinan / Koordinator
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showTindakanPimpinan
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiDropdownField(
-                                      label: 'Tindakan',
-                                      placeholder: 'Pilih Tindakan',
-                                      tableName: 'm_tindakan_pimpinan',
-                                      controller: _tindakanPimpinanController,
-                                      onChanged: (val) {
-                                        setState(() {
-                                          if (val == '3' ||
-                                              val == '4' ||
-                                              val == '20') {
-                                            _showKoordinatorDisposisi = true;
-                                            _showCatatanKoordinator = true;
-                                          } else if (val == '8') {
-                                            _showKoordinatorDisposisi = false;
-                                            _showCatatanKoordinator = false;
-                                            _selectedKoordinatorDisposisi
-                                                .clear();
-                                            _catatanKoordinatorController
-                                                .clear();
-                                          } else if (val == '9') {
-                                            _showKoordinatorDisposisi = false;
-                                            _showCatatanKoordinator = true;
-                                            _selectedKoordinatorDisposisi
-                                                .clear();
-                                          }
-                                        });
-                                      },
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Tindakan harus dipilih';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        //Disposisi pimpinan / Koordinator
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showKoordinatorDisposisi
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiMultiSelectField(
-                                      label: 'Disposisi Koordinator',
-                                      placeholder:
-                                          'Pilih Disposisi Koordinator',
-                                      tableName: 'm_tujuan_disposisi',
-                                      controller:
-                                          _koordinatorDisposisiController,
-                                      selectedValues:
-                                          _selectedKoordinatorDisposisi,
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (values) {
-                                        if (values == null || values.isEmpty) {
-                                          return 'Minimal pilih 1 disposisi';
-                                        }
-                                        return null;
-                                      },
-                                      onChanged: (vals) {
-                                        _selectedKoordinatorDisposisi
-                                          ..clear()
-                                          ..addAll(vals);
-                                        setState(() {});
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        //Catatan pimpinan / Koordinator
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showCatatanKoordinator
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Catatan Koordinator',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    TextFormField(
-                                      controller: _catatanKoordinatorController,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Masukkan catatan',
-                                        border: OutlineInputBorder(),
-                                        prefixIcon: Icon(Icons.notes_outlined),
-                                        alignLabelWithHint: true,
-                                      ),
-                                      maxLines: 2,
-                                      textCapitalization:
-                                          TextCapitalization.sentences,
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
+                        _buildTindakanKoordinatorSection(),
 
                         _buildActionButtons(),
                       ],
@@ -2893,6 +2596,318 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                 ),
         ),
       ),
+    );
+  }
+
+  // Group Tindakan Manajemen / KTU
+  Widget _buildTindakanManajemenSection() {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, anim) =>
+          SizeTransition(sizeFactor: anim, child: child),
+      child: _showTindakanManajemen
+          ? Container(
+              key: const ValueKey('group_tindakan_manajemen'),
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Label Header Group
+                  const Text(
+                    'Tindakan & Disposisi Manajemen',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 1. Tindakan Dropdown
+                  ApiDropdownField(
+                    label: 'Tindakan',
+                    placeholder: 'Pilih Tindakan',
+                    tableName: 'm_tindakan_manajemen',
+                    controller: _tindakanManajemenController,
+                    onChanged: (val) {
+                      final selected = _tindakanManajemenController.items
+                          .firstWhereOrNull((it) => it.kode == val);
+                      final deskripsi = selected?.deskripsi;
+
+                      setState(() {
+                        if (deskripsi == 'Di Terima') {
+                          _showTeruskanPimpinan = false;
+                          _showKtuDisposisi = false;
+                          _showCatatanKtu = false;
+                          _teruskanPimpinanController.select('');
+                          _selectedKtuDisposisi.clear();
+                          _catatanKtuController.clear();
+                        } else if (deskripsi == 'Koreksi ke Pengirim') {
+                          _showTeruskanPimpinan = false;
+                          _showKtuDisposisi = false;
+                          _showCatatanKtu = true;
+                          _teruskanPimpinanController.select('');
+                          _selectedKtuDisposisi.clear();
+                        } else {
+                          // 'Teruskan ke Pimpinan' or default
+                          _showTeruskanPimpinan = true;
+                          _showKtuDisposisi = true;
+                          _showCatatanKtu = true;
+                        }
+                      });
+                    },
+                    itemTextBuilder: (it) => it.deskripsi,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Tindakan manajemen harus dipilih';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 2. Teruskan Pimpinan
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, anim) =>
+                        SizeTransition(sizeFactor: anim, child: child),
+                    child: _showTeruskanPimpinan
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ApiDropdownField(
+                                label: 'Teruskan Pimpinan',
+                                placeholder: 'Pilih Teruskan Pimpinan',
+                                tableName: 'm_teruskan_pimpinan',
+                                controller: _teruskanPimpinanController,
+                                itemTextBuilder: (it) => it.deskripsi,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Teruskan pimpinan harus dipilih';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+
+                  // 3. KTU Disposisi
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, anim) =>
+                        SizeTransition(sizeFactor: anim, child: child),
+                    child: _showKtuDisposisi
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ApiMultiSelectField(
+                                label: 'Disposisi',
+                                placeholder: 'Pilih Disposisi',
+                                tableName: 'm_tujuan_disposisi',
+                                controller: _ktuDisposisiController,
+                                selectedValues: _selectedKtuDisposisi,
+                                itemTextBuilder: (it) => it.deskripsi,
+                                validator: (values) {
+                                  if (values == null || values.isEmpty) {
+                                    return 'Minimal pilih 1 disposisi';
+                                  }
+                                  return null;
+                                },
+                                onChanged: (vals) {
+                                  _selectedKtuDisposisi
+                                    ..clear()
+                                    ..addAll(vals);
+                                  setState(() {});
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+
+                  // 4. Catatan KTU
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, anim) =>
+                        SizeTransition(sizeFactor: anim, child: child),
+                    child: _showCatatanKtu
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Catatan',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _catatanKtuController,
+                                decoration: const InputDecoration(
+                                  hintText: 'Masukkan catatan',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.notes_outlined),
+                                  alignLabelWithHint: true,
+                                ),
+                                maxLines: 2,
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                              ),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            )
+          : const SizedBox.shrink(),
+    );
+  }
+
+  // Group Tindakan Pimpinan / Koordinator
+  Widget _buildTindakanKoordinatorSection() {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, anim) =>
+          SizeTransition(sizeFactor: anim, child: child),
+      child: _showTindakanPimpinan
+          ? Container(
+              key: const ValueKey('group_tindakan_koordinator'),
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Label Header Group
+                  const Text(
+                    'Tindakan & Disposisi Koordinator',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 1. Tindakan Dropdown
+                  ApiDropdownField(
+                    label: 'Tindakan',
+                    placeholder: 'Pilih Tindakan',
+                    tableName: 'm_tindakan_pimpinan',
+                    controller: _tindakanPimpinanController,
+                    onChanged: (val) {
+                      setState(() {
+                        if (val == '3' || val == '4' || val == '20') {
+                          _showKoordinatorDisposisi = true;
+                          _showCatatanKoordinator = true;
+                        } else if (val == '8') {
+                          _showKoordinatorDisposisi = false;
+                          _showCatatanKoordinator = false;
+                          _selectedKoordinatorDisposisi.clear();
+                          _catatanKoordinatorController.clear();
+                        } else if (val == '9') {
+                          _showKoordinatorDisposisi = false;
+                          _showCatatanKoordinator = true;
+                          _selectedKoordinatorDisposisi.clear();
+                        }
+                      });
+                    },
+                    itemTextBuilder: (it) => it.deskripsi,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Tindakan harus dipilih';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 2. Disposisi Koordinator
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, anim) =>
+                        SizeTransition(sizeFactor: anim, child: child),
+                    child: _showKoordinatorDisposisi
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ApiMultiSelectField(
+                                label: 'Disposisi Koordinator',
+                                placeholder: 'Pilih Disposisi Koordinator',
+                                tableName: 'm_tujuan_disposisi',
+                                controller: _koordinatorDisposisiController,
+                                selectedValues: _selectedKoordinatorDisposisi,
+                                itemTextBuilder: (it) => it.deskripsi,
+                                validator: (values) {
+                                  if (values == null || values.isEmpty) {
+                                    return 'Minimal pilih 1 disposisi';
+                                  }
+                                  return null;
+                                },
+                                onChanged: (vals) {
+                                  _selectedKoordinatorDisposisi
+                                    ..clear()
+                                    ..addAll(vals);
+                                  setState(() {});
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+
+                  // 3. Catatan Koordinator
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, anim) =>
+                        SizeTransition(sizeFactor: anim, child: child),
+                    child: _showCatatanKoordinator
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Catatan Koordinator',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _catatanKoordinatorController,
+                                decoration: const InputDecoration(
+                                  hintText: 'Masukkan catatan',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.notes_outlined),
+                                  alignLabelWithHint: true,
+                                ),
+                                maxLines: 2,
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                              ),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 
