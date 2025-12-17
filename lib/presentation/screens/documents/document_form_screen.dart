@@ -176,6 +176,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final _meetingTimeController = TextEditingController();
   DateTime? _selectedMeetingDate;
   final _kategoriKodeController = TextEditingController();
+  final _catatanKtuController = TextEditingController();
+  final _catatanKoordinatorController = TextEditingController();
+
   bool _showGroupIdentitasDokumen = true;
   bool _showNomorDokumen = true;
   bool _showTanggalBuat = true;
@@ -192,6 +195,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   bool _showKategoriLaporan = false;
   bool _showUndanganKepada = false;
   bool _showGroupUploadImages = true;
+  bool _showTindakanManajemen = true;
+  bool _showTeruskanPimpinan = true;
+  bool _showKtuDisposisi = true;
+  bool _showCatatanKtu = true;
+  bool _showTindakanPimpinan = true;
+  bool _showKoordinatorDisposisi = true;
+  bool _showCatatanKoordinator = true;
+
   static const List<String> _romanMonths = [
     'I',
     'II',
@@ -218,8 +229,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   late final DropdownController _ruangRapatController;
   late final DropdownController _pesertaRapatController;
   late final DropdownController _pimpinanRapatController;
-  late final _UsersDropdownController _usersDropdownController;
+  late final UsersDropdownController _usersDropdownController;
   late final LastNoSuratController _lastNoSuratController;
+  late final DropdownController _tindakanManajemenController;
+  late final DropdownController _tindakanPimpinanController;
+  late final DropdownController _teruskanPimpinanController;
+  late final DropdownController _ktuDisposisiController;
+  late final DropdownController _koordinatorDisposisiController;
   // Workers to observe GetX state changes for last-no-surat fetching
   late final Worker _lastNoSuratResultWorker;
   late final Worker _lastNoSuratErrorWorker;
@@ -232,6 +248,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   late final Worker _part2SyncWorker;
   final List<String> _selectedTujuanDisposisi = <String>[];
   final List<String> _selectedPesertaRapat = <String>[];
+  final List<String> _selectedKtuDisposisi = <String>[];
+  final List<String> _selectedKoordinatorDisposisi = <String>[];
 
   final ImagePicker _imagePicker = ImagePicker();
   final ApiService _api = ApiService();
@@ -851,6 +869,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     }
   }
 
+  T _putOrFind<T>(T instance, {required String tag}) {
+    if (Get.isRegistered<T>(tag: tag)) {
+      return Get.find<T>(tag: tag);
+    }
+    return Get.put<T>(instance, tag: tag);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -858,22 +883,33 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     final user = authController.currentUser.value;
     _pengirimController.text = user?.instansiName ?? '';
 
-    _kategoriController = Get.put(DropdownController(), tag: 'kategori');
-    _jenisController = Get.put(DropdownController(), tag: 'jenis');
+    _kategoriController = _putOrFind(DropdownController(), tag: 'kategori');
+    _jenisController = _putOrFind(DropdownController(), tag: 'jenis');
+    _tindakanManajemenController =
+        _putOrFind(DropdownController(), tag: 'tindakan_manajemen');
+    _tindakanPimpinanController =
+        _putOrFind(DropdownController(), tag: 'tindakan_pimpinan');
+    _teruskanPimpinanController =
+        _putOrFind(DropdownController(), tag: 'teruskan_pimpinan');
+    _ktuDisposisiController =
+        _putOrFind(DropdownController(), tag: 'ktu_disposisi');
+    _koordinatorDisposisiController =
+        _putOrFind(DropdownController(), tag: 'koordinator_disposisi');
     _kategoriLaporanController =
-        Get.put(DropdownController(), tag: 'kategori_laporan');
+        _putOrFind(DropdownController(), tag: 'kategori_laporan');
     _tujuanDisposisiController =
-        Get.put(DropdownController(), tag: 'tujuan_disposisi');
-    _ruangRapatController = Get.put(DropdownController(), tag: 'ruang_rapat');
+        _putOrFind(DropdownController(), tag: 'tujuan_disposisi');
+    _ruangRapatController =
+        _putOrFind(DropdownController(), tag: 'ruang_rapat');
     _pesertaRapatController =
-        Get.put(DropdownController(), tag: 'peserta_rapat');
+        _putOrFind(DropdownController(), tag: 'peserta_rapat');
     _pimpinanRapatController =
-        Get.put(DropdownController(), tag: 'pimpinan_rapat');
+        _putOrFind(DropdownController(), tag: 'pimpinan_rapat');
     _usersDropdownController =
-        Get.put(_UsersDropdownController(), tag: 'users_dropdown');
+        _putOrFind(UsersDropdownController(), tag: 'users_dropdown');
 
     _lastNoSuratController =
-        Get.put(LastNoSuratController(), tag: 'last_no_surat');
+        _putOrFind(LastNoSuratController(), tag: 'last_no_surat');
 
     _initializeForm();
     if (widget.noSurat != null && widget.noSurat!.trim().isNotEmpty) {
@@ -884,6 +920,11 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     Get.put(SuratMasukController(), permanent: true);
     _kategoriController.loadTable('m_kategori_formulir');
     _jenisController.loadTable('m_jenis_dokumen');
+    _tindakanManajemenController.loadTable('m_tindakan_manajemen');
+    _tindakanPimpinanController.loadTable('m_tindakan_pimpinan');
+    _teruskanPimpinanController.loadTable('m_teruskan_pimpinan');
+    _ktuDisposisiController.loadTable('m_tujuan_disposisi');
+    _koordinatorDisposisiController.loadTable('m_tujuan_disposisi');
     _kategoriLaporanController.loadTable('m_kategori_laporan');
     _tujuanDisposisiController.loadTable('m_tujuan_disposisi');
     _ruangRapatController.loadTable('m_ruang_rapat');
@@ -1002,6 +1043,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _letterNumberPart1Controller.dispose();
     _letterNumberPart2Controller.dispose();
     _ringkasanController.dispose();
+    _catatanKtuController.dispose();
     _pokokBahasanController.dispose();
     _meetingDateController.dispose();
     _meetingTimeController.dispose();
@@ -2541,9 +2583,309 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
                         // User information display
                         //_buildUserInfo(),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 16),
+
+                        //Pilih tindakan KTU
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showTindakanManajemen
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ApiDropdownField(
+                                      label: 'Tindakan ',
+                                      placeholder: 'Pilih Tindakan',
+                                      tableName: 'm_tindakan_manajemen',
+                                      controller: _tindakanManajemenController,
+                                      onChanged: (val) {
+                                        final selected =
+                                            _tindakanManajemenController.items
+                                                .firstWhereOrNull(
+                                                    (it) => it.kode == val);
+                                        final deskripsi = selected?.deskripsi;
+
+                                        setState(() {
+                                          if (deskripsi == 'Di Terima') {
+                                            _showTeruskanPimpinan = false;
+                                            _showKtuDisposisi = false;
+                                            _showCatatanKtu = false;
+                                            _teruskanPimpinanController
+                                                .select('');
+                                            _selectedKtuDisposisi.clear();
+                                            _catatanKtuController.clear();
+                                          } else if (deskripsi ==
+                                              'Koreksi ke Pengirim') {
+                                            _showTeruskanPimpinan = false;
+                                            _showKtuDisposisi = false;
+                                            _showCatatanKtu = true;
+                                            _teruskanPimpinanController
+                                                .select('');
+                                            _selectedKtuDisposisi.clear();
+                                          } else {
+                                            // 'Teruskan ke Pimpinan' or default
+                                            _showTeruskanPimpinan = true;
+                                            _showKtuDisposisi = true;
+                                            _showCatatanKtu = true;
+                                          }
+                                        });
+                                      },
+                                      itemTextBuilder: (it) => it.deskripsi,
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Tindakan manajemen harus dipilih';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+
+                        //Pilih teruskan pimpinan
+                        // SwitchListTile(
+                        //   title: const Text('Tampilkan Teruskan Pimpinan'),
+                        //   value: _showTeruskanPimpinan,
+                        //   onChanged: (bool value) {
+                        //     setState(() {
+                        //       _showTeruskanPimpinan = value;
+                        //       if (!value) {
+                        //         _teruskanPimpinanController.select('');
+                        //       }
+                        //     });
+                        //   },
+                        // ),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showTeruskanPimpinan
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ApiDropdownField(
+                                      label: 'Teruskan Pimpinan',
+                                      placeholder: 'Pilih Teruskan Pimpinan',
+                                      tableName: 'm_teruskan_pimpinan',
+                                      controller: _teruskanPimpinanController,
+                                      itemTextBuilder: (it) => it.deskripsi,
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Teruskan pimpinan harus dipilih';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+
+                        // Pilih KTU Disposisi
+                        // SwitchListTile(
+                        //   title: const Text('Tampilkan KTU Disposisi'),
+                        //   value: _showKtuDisposisi,
+                        //   onChanged: (bool value) {
+                        //     setState(() {
+                        //       _showKtuDisposisi = value;
+                        //       if (!value) {
+                        //         _selectedKtuDisposisi.clear();
+                        //       }
+                        //     });
+                        //   },
+                        // ),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showKtuDisposisi
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ApiMultiSelectField(
+                                      label: 'Disposisi',
+                                      placeholder: 'Pilih  Disposisi',
+                                      tableName: 'm_tujuan_disposisi',
+                                      controller: _ktuDisposisiController,
+                                      selectedValues: _selectedKtuDisposisi,
+                                      itemTextBuilder: (it) => it.deskripsi,
+                                      validator: (values) {
+                                        if (values == null || values.isEmpty) {
+                                          return 'Minimal pilih 1  disposisi';
+                                        }
+                                        return null;
+                                      },
+                                      onChanged: (vals) {
+                                        _selectedKtuDisposisi
+                                          ..clear()
+                                          ..addAll(vals);
+                                        setState(() {});
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
 
                         // Action buttons
+
+                        //Group Catatan manajemen / KTU
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showCatatanKtu
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Catatan',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    TextFormField(
+                                      controller: _catatanKtuController,
+                                      decoration: const InputDecoration(
+                                        hintText: 'Masukkan catatan',
+                                        border: OutlineInputBorder(),
+                                        prefixIcon: Icon(Icons.notes_outlined),
+                                        alignLabelWithHint: true,
+                                      ),
+                                      maxLines: 2,
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
+                                    ),
+                                    const SizedBox(height: 12),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+
+                        //Tindakan pimpinan / Koordinator
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showTindakanPimpinan
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ApiDropdownField(
+                                      label: 'Tindakan',
+                                      placeholder: 'Pilih Tindakan',
+                                      tableName: 'm_tindakan_pimpinan',
+                                      controller: _tindakanPimpinanController,
+                                      onChanged: (val) {
+                                        setState(() {
+                                          if (val == '3' ||
+                                              val == '4' ||
+                                              val == '20') {
+                                            _showKoordinatorDisposisi = true;
+                                            _showCatatanKoordinator = true;
+                                          } else if (val == '8') {
+                                            _showKoordinatorDisposisi = false;
+                                            _showCatatanKoordinator = false;
+                                            _selectedKoordinatorDisposisi
+                                                .clear();
+                                            _catatanKoordinatorController
+                                                .clear();
+                                          } else if (val == '9') {
+                                            _showKoordinatorDisposisi = false;
+                                            _showCatatanKoordinator = true;
+                                            _selectedKoordinatorDisposisi
+                                                .clear();
+                                          }
+                                        });
+                                      },
+                                      itemTextBuilder: (it) => it.deskripsi,
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Tindakan harus dipilih';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+
+                        //Disposisi pimpinan / Koordinator
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showKoordinatorDisposisi
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ApiMultiSelectField(
+                                      label: 'Disposisi Koordinator',
+                                      placeholder:
+                                          'Pilih Disposisi Koordinator',
+                                      tableName: 'm_tujuan_disposisi',
+                                      controller:
+                                          _koordinatorDisposisiController,
+                                      selectedValues:
+                                          _selectedKoordinatorDisposisi,
+                                      itemTextBuilder: (it) => it.deskripsi,
+                                      validator: (values) {
+                                        if (values == null || values.isEmpty) {
+                                          return 'Minimal pilih 1 disposisi';
+                                        }
+                                        return null;
+                                      },
+                                      onChanged: (vals) {
+                                        _selectedKoordinatorDisposisi
+                                          ..clear()
+                                          ..addAll(vals);
+                                        setState(() {});
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+
+                        //Catatan pimpinan / Koordinator
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showCatatanKoordinator
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Catatan Koordinator',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    TextFormField(
+                                      controller: _catatanKoordinatorController,
+                                      decoration: const InputDecoration(
+                                        hintText: 'Masukkan catatan',
+                                        border: OutlineInputBorder(),
+                                        prefixIcon: Icon(Icons.notes_outlined),
+                                        alignLabelWithHint: true,
+                                      ),
+                                      maxLines: 2,
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
+                                    ),
+                                    const SizedBox(height: 12),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+
                         _buildActionButtons(),
                       ],
                     ),
@@ -2767,6 +3109,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         'kode_berkas': kategoriKode,
         'kategori_kode': _getSelectedKode(_kategoriController) ?? '',
         'klasifikasi_surat': _letterNumberPart2Controller.text.trim(),
+        if (_showTeruskanPimpinan)
+          'teruskan_pimpinan':
+              _getSelectedKode(_teruskanPimpinanController) ?? '',
+        if (_showKtuDisposisi)
+          'ktu_disposisi': _getSelectedDescriptions(
+                  _ktuDisposisiController, _selectedKtuDisposisi)
+              .join('<br>'),
       };
 
       if (kategoriKode == 'Rapat') {
@@ -3182,6 +3531,48 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
               .w('doc.ditujukan kosong/null, skip preselect tujuan disposisi');
         }
 
+        // KTU Disposisi (multi-select)
+        final rawKtuDisposisi = doc.ktuDisposisi;
+        if (rawKtuDisposisi != null && rawKtuDisposisi.trim().isNotEmpty) {
+          if (_ktuDisposisiController.items.isNotEmpty) {
+            final codes = getDataFromDocDitujukan(
+              raw: rawKtuDisposisi,
+              items: _ktuDisposisiController.items,
+              logger: _logger,
+            );
+            if (codes.isNotEmpty) {
+              _selectedKtuDisposisi
+                ..clear()
+                ..addAll(codes);
+              setState(() {});
+            }
+          } else {
+            _logger.w(
+                'Items KTU disposisi belum tersedia, menunggu load untuk mapping');
+            once(_ktuDisposisiController.items, (_) {
+              final codes = getDataFromDocDitujukan(
+                raw: rawKtuDisposisi,
+                items: _ktuDisposisiController.items,
+                logger: _logger,
+              );
+              if (codes.isNotEmpty) {
+                _selectedKtuDisposisi
+                  ..clear()
+                  ..addAll(codes);
+                setState(() {});
+              } else {
+                _logger.w(
+                    'Mapping KTU disposisi menghasilkan kosong setelah load items');
+              }
+            });
+          }
+        } else {
+          _logger
+              .w('doc.ktuDisposisi kosong/null, skip preselect KTU disposisi');
+        }
+
+        _catatanKtuController.text = doc.notes ?? '';
+
         // ------------------ R A P A T --------------------
 
         //tanggal agenda rapat
@@ -3199,7 +3590,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         //Waktu / Jam rapat
         _meetingTimeController.text = doc.jamRapat ?? '';
 
-        // Pimpinan Rapat (single-select)
+        // Ruang Rapat (single-select)
         final rawRuangRapat = doc.ruangRapat?.trim();
         if (rawRuangRapat != null && rawRuangRapat.isNotEmpty) {
           if (_ruangRapatController.items.isNotEmpty) {
@@ -3338,6 +3729,39 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
             );
           }).toList(growable: false),
         );
+
+        //Di buka ole KTU untuk ganti status terima:3, teruskan:2 atau tolak:0
+        //_tindakanManajemenController
+        // final rawTindakanManajemen = doc.dibaca ?? '';
+        // if (rawTindakanManajemen != null &&
+        //     rawTindakanManajemen.trim().isNotEmpty) {
+        //   if (_tindakanManajemenController.items.isNotEmpty) {
+        //     final exists = _tindakanManajemenController.items
+        //         .any((it) => it.kode == rawTindakanManajemen);
+        //     if (exists) {
+        //       _tindakanManajemenController.select(rawTindakanManajemen);
+        //       setState(() {});
+        //     } else {
+        //       _logger.w(
+        //           'tindakan_manajemen tidak ditemukan di items: $rawTindakanManajemen');
+        //     }
+        //   } else {
+        //     once(_tindakanManajemenController.items, (_) {
+        //       final exists = _tindakanManajemenController.items
+        //           .any((it) => it.kode == rawTindakanManajemen);
+        //       if (exists) {
+        //         _tindakanManajemenController.select(rawTindakanManajemen);
+        //         setState(() {});
+        //       } else {
+        //         _logger.w(
+        //             'tindakan_manajemen tidak ditemukan (after load): $rawTindakanManajemen');
+        //       }
+        //     });
+        //   }
+        // } else {
+        //   _logger
+        //       .w('doc.dibaca kosong/null, skip preselect tindakan manajemen');
+        // }
       }
     } catch (e) {
       Get.snackbar(
@@ -3438,13 +3862,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 /// - Mengelola state loading/error
 /// - Menyimpan daftar user dan nilai yang dipilih
 /// - Melakukan inisialisasi data saat screen dibuka dan mendukung refresh
-class _UsersDropdownController extends GetxController {
+class UsersDropdownController extends GetxController {
   final _api = ApiService();
 
   // State
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
-  final RxList<_UserOption> items = <_UserOption>[].obs;
+  final RxList<UserOption> items = <UserOption>[].obs;
   final RxString selectedUserId = ''.obs;
 
   /// Memuat data user dari API dengan filter `kode_user=YS`
@@ -3464,7 +3888,7 @@ class _UsersDropdownController extends GetxController {
       final data = resp.data;
       if (data is Map && data['success'] == true && data['data'] is List) {
         final list = (data['data'] as List)
-            .map((e) => _UserOption(
+            .map((e) => UserOption(
                   id: (e['id']?.toString() ?? '').trim(),
                   namaLengkap: (e['nama_lengkap']?.toString() ?? '').trim(),
                   username: (e['username']?.toString() ?? '').trim(),
@@ -3497,12 +3921,12 @@ class _UsersDropdownController extends GetxController {
 }
 
 /// Representasi opsi user untuk dropdown
-class _UserOption {
+class UserOption {
   final String id;
   final String namaLengkap;
   final String username;
   final String? jabatan;
-  _UserOption({
+  UserOption({
     required this.id,
     required this.namaLengkap,
     required this.username,

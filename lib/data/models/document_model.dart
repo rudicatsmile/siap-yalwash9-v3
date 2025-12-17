@@ -78,6 +78,9 @@ class DocumentModel extends Equatable {
   /// Disposisi memo terkait rapat/dokumen
   final String? disposisiMemo;
 
+  /// KTU Disposisi
+  final String? ktuDisposisi;
+
   /// Daftar lampiran (tbl_lampiran) terkait dokumen, mengikuti struktur JSON backend
   /// berisi objek dengan properti:
   /// - id_lampiran (String)
@@ -140,6 +143,7 @@ class DocumentModel extends Equatable {
     this.ditujukan,
     this.instruksiKerja,
     this.disposisiMemo,
+    this.ktuDisposisi,
     this.lampirans = const <LampiranModel>[],
   });
 
@@ -301,6 +305,7 @@ class DocumentModel extends Equatable {
       instruksiKerja:
           _asString(json['instruksi_kerja'] ?? json['instruksiKerja']),
       disposisiMemo: _asString(json['disposisi_memo'] ?? json['disposisiMemo']),
+      ktuDisposisi: _asString(json['ktu_disposisi'] ?? json['ktuDisposisi']),
       lampirans: (() {
         final raw = json['lampirans'];
         if (raw is List) {
@@ -481,6 +486,7 @@ class DocumentModel extends Equatable {
       ditujukan: ditujukan ?? this.ditujukan,
       instruksiKerja: instruksiKerja ?? this.instruksiKerja,
       disposisiMemo: disposisiMemo ?? this.disposisiMemo,
+      ktuDisposisi: ktuDisposisi ?? this.ktuDisposisi,
       lampirans: lampirans ?? this.lampirans,
     );
   }
@@ -547,6 +553,7 @@ class DocumentModel extends Equatable {
         ditujukan,
         instruksiKerja,
         disposisiMemo,
+        ktuDisposisi,
         lampirans,
       ];
 }

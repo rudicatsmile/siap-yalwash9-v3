@@ -47,6 +47,12 @@ class DocumentDetailScreen extends StatelessWidget {
                   document.description!.isNotEmpty)
                 _buildInfoRow('Deskripsi', document.description!),
               _buildInfoRow('Status', document.status.displayName),
+              if (document.ktuDisposisi != null &&
+                  document.ktuDisposisi!.isNotEmpty)
+                _buildInfoRow(
+                  'KTU Disposisi',
+                  document.ktuDisposisi!.replaceAll('<br>', '\n'),
+                ),
               if (document.hasMeeting)
                 _buildInfoRow('Status Rapat', 'Dijadwalkan'),
             ]),
