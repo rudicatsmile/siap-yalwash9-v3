@@ -3646,12 +3646,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       if (_isEditMode && _editingDocumentId != null) {
         final repo = DocumentRepository();
 
-        //Buatkan log
-        _logger.i('kodeManajemen: $payloadManajemen  '
-            '  ${widget.qParam} widget.qParam');
-
+       
         //Jika action KTU, maka hanya input form KTU yg di update
-        if (widget.qParam == '4') {
+        if (widget.qParam == '4') {         
           await repo.updateDocument(_editingDocumentId!, payloadManajemen);
         } else {
           await repo.updateDocument(_editingDocumentId!, payload);

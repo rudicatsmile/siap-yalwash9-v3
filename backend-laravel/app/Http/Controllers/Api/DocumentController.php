@@ -350,7 +350,9 @@ class DocumentController extends Controller
             ], 403);
         }
 
-        $document->update($request->validated());
+        // $document->update($request->validated());
+        $document->update($request->only($document->getFillable()));
+
 
         // Log activity
         ActivityHistory::log(
