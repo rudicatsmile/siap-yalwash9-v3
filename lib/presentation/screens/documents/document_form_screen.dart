@@ -1189,6 +1189,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     return kode == 'Dokumen' || kode == 'Undangan' || kode == 'Laporan';
   }
 
+  String? getDibaca() {
+    return _existingDocument?.dibaca;
+  }
+
   bool _validateUploadRequirement() {
     if (_isUploadRequiredForSelectedCategory() && _uploadItems.isEmpty) {
       _uploadValidationError =
@@ -2713,57 +2717,84 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                   const SizedBox(height: 16),
 
                   // 1. Tindakan Dropdown
-                  ApiDropdownField(
-                    label: 'Tindakan',
-                    placeholder: 'Pilih Tindakan',
-                    tableName: 'm_tindakan_manajemen',
-                    controller: _tindakanManajemenController,
-                    onChanged: (val) {
-                      final selected = _tindakanManajemenController.items
-                          .firstWhereOrNull((it) => it.kode == val);
-                      final deskripsi = selected?.kode;
-
-                      setState(() {
-                        if (deskripsi == '3') {
-                          //Di terima
-                          _showTeruskanPimpinan = false;
-                          _showKtuDisposisi = false;
-                          _showCatatanKtu = false;
-                          _showGroupRapatManajemen = false;
-                          _teruskanPimpinanController.select('');
-                          _selectedKtuDisposisi.clear();
-                          _catatanKtuController.clear();
-                        } else if (deskripsi == '0') {
-                          //Koreksi ke pengirim
-                          _showTeruskanPimpinan = false;
-                          _showKtuDisposisi = false;
-                          _showCatatanKtu = true;
-                          _showGroupRapatManajemen = false;
-                          _teruskanPimpinanController.select('');
-                          _selectedKtuDisposisi.clear();
-                        } else if (deskripsi == '7') {
-                          //Agenda Rapat
-                          _showTeruskanPimpinan = false;
-                          _showKtuDisposisi = false;
-                          _showCatatanKtu = false;
-                          _showGroupRapatManajemen = true;
-                          _teruskanPimpinanController.select('');
-                          _selectedKtuDisposisi.clear();
-                        } else {
-                          // 'Teruskan ke Pimpinan' or default
-                          _showTeruskanPimpinan = true;
-                          _showKtuDisposisi = true;
-                          _showCatatanKtu = true;
-                          _showGroupRapatManajemen = false;
+                  Builder(
+                    builder: (context) {
+                      final gDibaca = getDibaca();
+                      if (gDibaca == '8') {
+                        _tindakanManajemenController.items.assignAll([
+                          DropdownItem(kode: '8', deskripsi: 'Rapat'),
+                        ]);
+                        if (_tindakanManajemenController.selectedKode.value !=
+                            '8') {
+                          _tindakanManajemenController.select('8');
                         }
-                      });
-                    },
-                    itemTextBuilder: (it) => it.deskripsi,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Tindakan manajemen harus dipilih';
+                        _tindakanManajemenController.error.value = '';
+                      } else {
+                        if (gDibaca != null &&
+                            gDibaca.trim().isNotEmpty &&
+                            !RegExp(r'^\d+$').hasMatch(gDibaca)) {
+                          _tindakanManajemenController.items.clear();
+                          _tindakanManajemenController.error.value =
+                              'Nilai dibaca tidak valid';
+                        } else {
+                          _tindakanManajemenController.error.value = '';
+                        }
                       }
-                      return null;
+                      return ApiDropdownField(
+                        label: 'Tindakan',
+                        placeholder: 'Pilih Tindakan',
+                        tableName: 'm_tindakan_manajemen',
+                        controller: _tindakanManajemenController,
+                        onChanged: (val) {
+                          final selected = _tindakanManajemenController.items
+                              .firstWhereOrNull((it) => it.kode == val);
+                          final deskripsi = selected?.kode;
+                          setState(() {
+                            if (deskripsi == '3') {
+                              _showTeruskanPimpinan = false;
+                              _showKtuDisposisi = false;
+                              _showCatatanKtu = false;
+                              _showGroupRapatManajemen = false;
+                              _teruskanPimpinanController.select('');
+                              _selectedKtuDisposisi.clear();
+                              _catatanKtuController.clear();
+                            } else if (deskripsi == '0') {
+                              _showTeruskanPimpinan = false;
+                              _showKtuDisposisi = false;
+                              _showCatatanKtu = true;
+                              _showGroupRapatManajemen = false;
+                              _teruskanPimpinanController.select('');
+                              _selectedKtuDisposisi.clear();
+                            } else if (deskripsi == '7') {
+                              _showTeruskanPimpinan = false;
+                              _showKtuDisposisi = false;
+                              _showCatatanKtu = false;
+                              _showGroupRapatManajemen = true;
+                              _teruskanPimpinanController.select('');
+                              _selectedKtuDisposisi.clear();
+                            } else if (deskripsi == '8') {
+                              _showTeruskanPimpinan = false;
+                              _showKtuDisposisi = false;
+                              _showCatatanKtu = false;
+                              _showGroupRapatManajemen = false;
+                              _teruskanPimpinanController.select('');
+                              _selectedKtuDisposisi.clear();
+                            } else {
+                              _showTeruskanPimpinan = true;
+                              _showKtuDisposisi = true;
+                              _showCatatanKtu = true;
+                              _showGroupRapatManajemen = false;
+                            }
+                          });
+                        },
+                        itemTextBuilder: (it) => it.deskripsi,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Tindakan manajemen harus dipilih';
+                          }
+                          return null;
+                        },
+                      );
                     },
                   ),
                   const SizedBox(height: 16),
@@ -3646,9 +3677,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       if (_isEditMode && _editingDocumentId != null) {
         final repo = DocumentRepository();
 
-       
         //Jika action KTU, maka hanya input form KTU yg di update
-        if (widget.qParam == '4') {         
+        if (widget.qParam == '4') {
           await repo.updateDocument(_editingDocumentId!, payloadManajemen);
         } else {
           await repo.updateDocument(_editingDocumentId!, payload);
@@ -4216,38 +4246,38 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           }).toList(growable: false),
         );
 
-        //Di buka ole KTU untuk ganti status terima:3, teruskan:2 atau tolak:0
-        //_tindakanManajemenController
-        // final rawTindakanManajemen = doc.dibaca ?? '';
-        // if (rawTindakanManajemen != null &&
-        //     rawTindakanManajemen.trim().isNotEmpty) {
-        //   if (_tindakanManajemenController.items.isNotEmpty) {
-        //     final exists = _tindakanManajemenController.items
-        //         .any((it) => it.kode == rawTindakanManajemen);
-        //     if (exists) {
-        //       _tindakanManajemenController.select(rawTindakanManajemen);
-        //       setState(() {});
-        //     } else {
-        //       _logger.w(
-        //           'tindakan_manajemen tidak ditemukan di items: $rawTindakanManajemen');
-        //     }
-        //   } else {
-        //     once(_tindakanManajemenController.items, (_) {
-        //       final exists = _tindakanManajemenController.items
-        //           .any((it) => it.kode == rawTindakanManajemen);
-        //       if (exists) {
-        //         _tindakanManajemenController.select(rawTindakanManajemen);
-        //         setState(() {});
-        //       } else {
-        //         _logger.w(
-        //             'tindakan_manajemen tidak ditemukan (after load): $rawTindakanManajemen');
-        //       }
-        //     });
-        //   }
-        // } else {
-        //   _logger
-        //       .w('doc.dibaca kosong/null, skip preselect tindakan manajemen');
-        // }
+        //Di buka oleh KTU untuk ganti status terima:3, teruskan:2 atau tolak:0
+        // Preselect tindakan manajemen dari field 'dibaca' di tbl_sm
+        final rawTindakanManajemen = doc.dibaca ?? '';
+        if (rawTindakanManajemen.trim().isNotEmpty) {
+          if (_tindakanManajemenController.items.isNotEmpty) {
+            final exists = _tindakanManajemenController.items
+                .any((it) => it.kode == rawTindakanManajemen);
+            if (exists) {
+              _tindakanManajemenController.select(rawTindakanManajemen);
+              setState(() {});
+            } else {
+              _logger.w(
+                  'tindakan_manajemen tidak ditemukan di items: $rawTindakanManajemen');
+            }
+          } else {
+            once(_tindakanManajemenController.items, (_) {
+              final exists = _tindakanManajemenController.items
+                  .any((it) => it.kode == rawTindakanManajemen);
+              if (exists) {
+                _tindakanManajemenController.select(rawTindakanManajemen);
+                setState(() {});
+              } else {
+                _logger.w(
+                    'tindakan_manajemen tidak ditemukan (after load): $rawTindakanManajemen');
+              }
+            });
+          }
+        } else {
+          //   _logger
+          //       .w('doc.dibaca kosong/null, skip preselect tindakan manajemen');
+          // }
+        }
       }
     } catch (e) {
       Get.snackbar(

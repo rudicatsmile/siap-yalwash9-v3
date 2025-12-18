@@ -84,7 +84,7 @@ class DocumentController extends Controller
                         break;
                     case '4':
                         $q->where('dibaca', '1')
-                            ->orWhere('dibaca', '1');
+                            ->orWhere('dibaca', '8');
                         break;
                     case '5':
                         $q->where('dibaca', '2');
