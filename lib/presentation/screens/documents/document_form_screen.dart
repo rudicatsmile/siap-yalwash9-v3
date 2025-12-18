@@ -172,9 +172,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final _letterNumberPart2Controller = TextEditingController();
   final _ringkasanController = TextEditingController();
   final _pokokBahasanController = TextEditingController();
+  final _pokokBahasanManajemenController = TextEditingController();
   final _meetingDateController = TextEditingController();
+
+  /// Controller untuk mengelola input tanggal meeting pada bagian Manajemen.
+  /// Digunakan untuk menyimpan dan menampilkan tanggal meeting yang dipilih user.
+  final _meetingDateManajemenController = TextEditingController();
+  final _meetingTimeManajemenController = TextEditingController();
   final _meetingTimeController = TextEditingController();
   DateTime? _selectedMeetingDate;
+  DateTime? _selectedMeetingManajemenDate;
   final _kategoriKodeController = TextEditingController();
   final _catatanKtuController = TextEditingController();
   final _catatanKoordinatorController = TextEditingController();
@@ -186,6 +193,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   bool _showGroupRapat = false;
   bool _showGroupRapatManajemen = true;
   bool _showWaktuRapat = false;
+  bool _showMeetingDateManajemen = true;
   bool _showWaktuRapatManajemen = true;
   bool _showRuangRapat = false;
   bool _showRuangRapatManajemen = true;
@@ -233,8 +241,11 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   late final DropdownController _kategoriLaporanController;
   late final DropdownController _tujuanDisposisiController;
   late final DropdownController _ruangRapatController;
+  late final DropdownController _ruangRapatManajemenController;
   late final DropdownController _pesertaRapatController;
+  late final DropdownController _pesertaRapatManajemenController;
   late final DropdownController _pimpinanRapatController;
+  late final DropdownController _pimpinanRapatManajemenController;
   late final UsersDropdownController _usersDropdownController;
   late final LastNoSuratController _lastNoSuratController;
   late final DropdownController _tindakanManajemenController;
@@ -254,6 +265,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   late final Worker _part2SyncWorker;
   final List<String> _selectedTujuanDisposisi = <String>[];
   final List<String> _selectedPesertaRapat = <String>[];
+  final List<String> _selectedPesertaManajemenRapat = <String>[];
   final List<String> _selectedKtuDisposisi = <String>[];
   final List<String> _selectedKoordinatorDisposisi = <String>[];
 
@@ -907,10 +919,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _putOrFind(DropdownController(), tag: 'tujuan_disposisi');
     _ruangRapatController =
         _putOrFind(DropdownController(), tag: 'ruang_rapat');
+    _ruangRapatManajemenController =
+        _putOrFind(DropdownController(), tag: 'ruang_rapat_manajemen');
     _pesertaRapatController =
         _putOrFind(DropdownController(), tag: 'peserta_rapat');
+    _pesertaRapatManajemenController = _pesertaRapatController;
     _pimpinanRapatController =
         _putOrFind(DropdownController(), tag: 'pimpinan_rapat');
+    _pimpinanRapatManajemenController =
+        _putOrFind(DropdownController(), tag: 'pimpinan_rapat_manajemen');
     _usersDropdownController =
         _putOrFind(UsersDropdownController(), tag: 'users_dropdown');
 
@@ -934,8 +951,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _kategoriLaporanController.loadTable('m_kategori_laporan');
     _tujuanDisposisiController.loadTable('m_tujuan_disposisi');
     _ruangRapatController.loadTable('m_ruang_rapat');
+    _ruangRapatManajemenController.loadTable('m_ruang_rapat');
     _pesertaRapatController.loadTable('m_tujuan_disposisi');
     _pimpinanRapatController.loadTable('m_tujuan_disposisi');
+    _pimpinanRapatManajemenController.loadTable('m_tujuan_disposisi');
     _usersDropdownController.loadUsers();
     _lastNoSuratController.fetch();
 
@@ -1024,6 +1043,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _letterDateController.text = DateFormat('dd-MM-yyyy').format(now);
     _selectedMeetingDate = now;
     _meetingDateController.text = DateFormat('dd/MM/yyyy').format(now);
+    // Inisialisasi tanggal meeting manajemen dengan tanggal hari ini
+    _selectedMeetingManajemenDate = now;
+    _meetingDateManajemenController.text = DateFormat('dd/MM/yyyy').format(now);
     _computeLetterNumberPart2();
   }
 
@@ -1051,7 +1073,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _ringkasanController.dispose();
     _catatanKtuController.dispose();
     _pokokBahasanController.dispose();
+    _pokokBahasanManajemenController.dispose();
     _meetingDateController.dispose();
+    _meetingDateManajemenController.dispose();
+    _meetingTimeManajemenController.dispose();
     _meetingTimeController.dispose();
     // Dispose workers to avoid memory leaks
     _lastNoSuratResultWorker.dispose();
@@ -2675,20 +2700,32 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                     onChanged: (val) {
                       final selected = _tindakanManajemenController.items
                           .firstWhereOrNull((it) => it.kode == val);
-                      final deskripsi = selected?.deskripsi;
+                      final deskripsi = selected?.kode;
 
                       setState(() {
-                        if (deskripsi == 'Di Terima') {
+                        if (deskripsi == '3') {
+                          //Di terima
                           _showTeruskanPimpinan = false;
                           _showKtuDisposisi = false;
                           _showCatatanKtu = false;
+                          _showGroupRapatManajemen = false;
                           _teruskanPimpinanController.select('');
                           _selectedKtuDisposisi.clear();
                           _catatanKtuController.clear();
-                        } else if (deskripsi == 'Koreksi ke Pengirim') {
+                        } else if (deskripsi == '0') {
+                          //Koreksi ke pengirim
                           _showTeruskanPimpinan = false;
                           _showKtuDisposisi = false;
                           _showCatatanKtu = true;
+                          _showGroupRapatManajemen = false;
+                          _teruskanPimpinanController.select('');
+                          _selectedKtuDisposisi.clear();
+                        } else if (deskripsi == '7') {
+                          //Agenda Rapat
+                          _showTeruskanPimpinan = false;
+                          _showKtuDisposisi = false;
+                          _showCatatanKtu = false;
+                          _showGroupRapatManajemen = true;
                           _teruskanPimpinanController.select('');
                           _selectedKtuDisposisi.clear();
                         } else {
@@ -2696,6 +2733,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                           _showTeruskanPimpinan = true;
                           _showKtuDisposisi = true;
                           _showCatatanKtu = true;
+                          _showGroupRapatManajemen = false;
                         }
                       });
                     },
@@ -2837,7 +2875,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                 flex: 5,
                                                 child: TextFormField(
                                                   controller:
-                                                      _meetingDateController,
+                                                      _meetingDateManajemenController,
                                                   decoration:
                                                       const InputDecoration(
                                                     hintText: 'DD/MM/YYYY',
@@ -2862,7 +2900,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                   },
                                                   onTap: () async {
                                                     final initial =
-                                                        _selectedMeetingDate ??
+                                                        _selectedMeetingManajemenDate ??
                                                             DateTime.now();
                                                     final picked =
                                                         await showDatePicker(
@@ -2874,9 +2912,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                           2100, 12, 31),
                                                     );
                                                     if (picked != null) {
-                                                      _selectedMeetingDate =
+                                                      _selectedMeetingManajemenDate =
                                                           picked;
-                                                      _meetingDateController
+                                                      _meetingDateManajemenController
                                                           .text = DateFormat(
                                                               'dd/MM/yyyy')
                                                           .format(picked);
@@ -2885,13 +2923,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                   },
                                                   onChanged: (v) {
                                                     try {
-                                                      _selectedMeetingDate =
+                                                      _selectedMeetingManajemenDate =
                                                           DateFormat(
                                                                   'dd/MM/yyyy')
                                                               .parseStrict(
                                                                   v.trim());
                                                     } catch (_) {
-                                                      _selectedMeetingDate =
+                                                      _selectedMeetingManajemenDate =
                                                           null;
                                                     }
                                                     setState(() {});
@@ -2903,7 +2941,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                 flex: 5,
                                                 child: TextFormField(
                                                   controller:
-                                                      _meetingTimeController,
+                                                      _meetingTimeManajemenController,
                                                   decoration:
                                                       const InputDecoration(
                                                     hintText: 'waktu rapat',
@@ -2945,7 +2983,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                             label: 'Ruang Rapat',
                                             placeholder: 'Pilih Ruang Rapat',
                                             tableName: 'm_ruang_rapat',
-                                            controller: _ruangRapatController,
+                                            controller:
+                                                _ruangRapatManajemenController,
                                             itemTextBuilder: (it) =>
                                                 it.deskripsi,
                                             validator: (value) {
@@ -2977,9 +3016,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                             label: 'Peserta Rapat',
                                             placeholder: 'Pilih Peserta rapat',
                                             tableName: 'm_tujuan_disposisi',
-                                            controller: _pesertaRapatController,
+                                            controller:
+                                                _pesertaRapatManajemenController,
                                             selectedValues:
-                                                _selectedPesertaRapat,
+                                                _selectedPesertaManajemenRapat,
                                             itemTextBuilder: (it) =>
                                                 it.deskripsi,
                                             validator: (values) {
@@ -2990,7 +3030,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                               return null;
                                             },
                                             onChanged: (vals) {
-                                              _selectedPesertaRapat
+                                              _selectedPesertaManajemenRapat
                                                 ..clear()
                                                 ..addAll(vals);
                                               setState(() {});
@@ -3018,7 +3058,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                             placeholder: 'Pilih Piminan rapat',
                                             tableName: 'm_tujuan_disposisi',
                                             controller:
-                                                _pimpinanRapatController,
+                                                _pimpinanRapatManajemenController,
                                             itemTextBuilder: (it) =>
                                                 it.deskripsi,
                                             validator: (value) {
@@ -3052,7 +3092,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                 fontWeight: FontWeight.bold),
                                           ),
                                           TextFormField(
-                                            controller: _pokokBahasanController,
+                                            controller:
+                                                _pokokBahasanManajemenController,
                                             decoration: const InputDecoration(
                                               hintText:
                                                   'Masukkan pokok bahasan rapat',
