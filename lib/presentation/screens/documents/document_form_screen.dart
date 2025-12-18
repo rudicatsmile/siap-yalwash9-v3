@@ -15,6 +15,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart' as dio;
 import '../../../core/constants/api_constants.dart';
+import '../../../core/constants/app_constants.dart';
 import 'dart:typed_data';
 import 'dart:async';
 import 'dart:io';
@@ -191,7 +192,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   bool _showTanggalBuat = true;
   bool _showPengirim = true;
   bool _showGroupRapat = false;
-  bool _showGroupRapatManajemen = true;
   bool _showWaktuRapat = false;
   bool _showMeetingDateManajemen = true;
   bool _showWaktuRapatManajemen = true;
@@ -209,13 +209,18 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   bool _showKategoriLaporan = false;
   bool _showUndanganKepada = false;
   bool _showGroupUploadImages = true;
+
+  // Group Manajemen : Tindalan dan disposisi
   bool _showTindakanManajemen = true;
-  bool _showTeruskanPimpinan = true;
-  bool _showKtuDisposisi = true;
-  bool _showCatatanKtu = true;
+  bool _showTeruskanPimpinan = false;
+  bool _showKtuDisposisi = false;
+  bool _showCatatanKtu = false;
+  bool _showGroupRapatManajemen = false; // Group Manajemen Rapat
+
+  // Group Pimpinan : Tindalan dan disposisi
   bool _showTindakanPimpinan = true;
-  bool _showKoordinatorDisposisi = true;
-  bool _showCatatanKoordinator = true;
+  bool _showKoordinatorDisposisi = false;
+  bool _showCatatanKoordinator = false;
 
   static const List<String> _romanMonths = [
     'I',
@@ -934,6 +939,21 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _lastNoSuratController =
         _putOrFind(LastNoSuratController(), tag: 'last_no_surat');
 
+    // Cek qParam untuk menentukan visibilitas _showGroupRapatManajemen
+    if (widget.qParam != '4') {
+      _showTindakanManajemen = false;
+      _showGroupRapatManajemen = false;
+    } else {
+      _showTindakanManajemen = true;
+    }
+
+    //_showTindakanPimpinan
+    if (widget.qParam != '7') {
+      _showTindakanPimpinan = false;
+    } else {
+      _showTindakanPimpinan = true;
+    }
+
     _initializeForm();
     if (widget.noSurat != null && widget.noSurat!.trim().isNotEmpty) {
       _docNumberPart1Controller.text = widget.noSurat!.trim();
@@ -1238,8 +1258,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       onWillPop: _confirmLeaveIfDirty,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(
-              _isEditMode ? 'Edit Pengajuan Berkas' : 'Buat Pengajuan Berkas'),
+          title: Text(_isEditMode
+              ? 'Edit Pengajuan Berkas ${widget.qParam}'
+              : 'Buat Pengajuan Berkas'),
         ),
         body: Obx(
           () => _isLoading.value
@@ -2672,7 +2693,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.05),
+                color: Colors.grey.withOpacity(0.35),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: Colors.grey.withOpacity(0.2),
@@ -3519,6 +3540,88 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
             _usersDropdownController.selectedUserId.value;
       }
 
+      //Actio Manajemen / ktu_disposisi
+      final payloadManajemen = <String, dynamic>{};
+      final kodeManajemen =
+          _getSelectedKode(_tindakanManajemenController) ?? '';
+      payloadManajemen['dibaca'] = kodeManajemen;
+
+      //Buatkan log kodeManajemen
+      _logger.i('kodeManajemen: $kodeManajemen  '
+          '  ${widget.qParam} $_isEditMode  $_editingDocumentId ');
+      if (kodeManajemen == '3') {
+        payloadManajemen['tgl_approved'] = DateTime.now().toIso8601String();
+      } else if (kodeManajemen == '2') {
+        payloadManajemen['dibaca_pimpinan'] =
+            _getSelectedKode(_teruskanPimpinanController) ?? '';
+        final koreksi = _catatanKtuController.text.trim();
+        if (koreksi.isNotEmpty) {
+          payloadManajemen['catatan_koreksi'] = koreksi;
+        }
+        final disposisiLeader = _getSelectedDescriptions(
+                _ktuDisposisiController, _selectedKtuDisposisi)
+            .join('<br>');
+        if (disposisiLeader.isNotEmpty) {
+          payloadManajemen['disposisi_ktu_leader'] = disposisiLeader;
+        }
+        payloadManajemen['status_instansi'] = '1';
+        payloadManajemen['kode_user_pimpinan'] =
+            AppConstants.LEADER_KOORDINATOR_USER_CODE;
+      } else if (kodeManajemen == '0') {
+        final koreksi = _catatanKtuController.text.trim();
+        if (koreksi.isNotEmpty) {
+          payloadManajemen['catatan_koreksi'] = koreksi;
+        }
+      } else if (kodeManajemen == '7') {
+        final rawTgl = _meetingDateManajemenController.text.trim();
+        DateTime? dt;
+        if (rawTgl.isNotEmpty) {
+          dt = DateTime.tryParse(rawTgl);
+          dt ??= () {
+            try {
+              return DateFormat('dd/MM/yyyy').parseStrict(rawTgl);
+            } catch (_) {
+              return null;
+            }
+          }();
+        }
+        if (dt != null) {
+          payloadManajemen['tgl_agenda_rapat'] =
+              DateFormat('yyyy-MM-dd').format(dt);
+          payloadManajemen['tgl_delegasi_rapat'] =
+              DateFormat('yyyy-MM-dd').format(dt);
+        }
+        final jam = _meetingTimeManajemenController.text.trim();
+        if (jam.isNotEmpty) {
+          payloadManajemen['jam_rapat'] = jam;
+        }
+        final ruangDesc =
+            _getSelectedDeskripsi(_ruangRapatManajemenController) ?? '';
+        if (ruangDesc.isNotEmpty) {
+          payloadManajemen['ruang_rapat'] = ruangDesc;
+        }
+        final peserta = _getSelectedDescriptions(
+                _pesertaRapatManajemenController,
+                _selectedPesertaManajemenRapat)
+            .join('<br>');
+        if (peserta.isNotEmpty) {
+          payloadManajemen['peserta_rapat'] = peserta;
+        }
+        final pimpinanDesc =
+            _getSelectedDeskripsi(_pimpinanRapatManajemenController) ?? '';
+        if (pimpinanDesc.isNotEmpty) {
+          payloadManajemen['pimpinan_rapat'] = pimpinanDesc;
+        }
+        final bahasan = _pokokBahasanManajemenController.text.trim();
+        if (bahasan.isNotEmpty) {
+          payloadManajemen['bahasan_rapat'] = bahasan;
+        }
+        payloadManajemen['delegasi_tu'] = 'roihan***087817989449';
+        payloadManajemen['status_tu'] = '2';
+      }
+
+      //Action Pimpinan : Koordinator / Wapim
+
       final uploadMeta = _uploadItems
           .map((it) => {
                 'name': it.name,
@@ -3538,9 +3641,23 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         await _uploadLampiranForSubmission(noSurat, ymd);
       }
 
+      //Do Todo :
+
       if (_isEditMode && _editingDocumentId != null) {
         final repo = DocumentRepository();
-        await repo.updateDocument(_editingDocumentId!, payload);
+
+        //Buatkan log
+        _logger.i('kodeManajemen: $payloadManajemen  '
+            '  ${widget.qParam} widget.qParam');
+
+        //Jika action KTU, maka hanya input form KTU yg di update
+        if (widget.qParam == '4') {
+          await repo.updateDocument(_editingDocumentId!, payloadManajemen);
+        } else {
+          await repo.updateDocument(_editingDocumentId!, payload);
+        }
+
+        //Jika action Pimpinan, maka hanya input form Pimpinan yg di update
       } else {
         final smCtrl = Get.isRegistered<SuratMasukController>()
             ? Get.find<SuratMasukController>()

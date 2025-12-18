@@ -83,7 +83,10 @@ class DataTab extends StatelessWidget {
                                 try {
                                   final result = await Get.toNamed(
                                     AppRoutes.documentForm,
-                                    arguments: {'no_surat': doc.documentNumber, 'qParam': qp},
+                                    arguments: {
+                                      'no_surat': doc.documentNumber,
+                                      'qParam': qp
+                                    },
                                   );
                                   if (result != null) {
                                     final dashboardController =
@@ -123,7 +126,10 @@ class DataTab extends StatelessWidget {
                                 try {
                                   final result = await Get.toNamed(
                                     AppRoutes.documentForm,
-                                    arguments: {'no_surat': doc.documentNumber},
+                                    arguments: {
+                                      'no_surat': doc.documentNumber,
+                                      'qParam': qp
+                                    },
                                   );
                                   if (result != null) {
                                     final dashboardController =

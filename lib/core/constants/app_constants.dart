@@ -51,6 +51,9 @@ class AppConstants {
     0: 'Tidak Ada Rapat',
     1: 'Dijadwalkan Rapat',
   };
+
+  // Manajemen constants
+  static const String LEADER_KOORDINATOR_USER_CODE = 'YS-01-KHR-001';
 }
 
 /// User roles in the system

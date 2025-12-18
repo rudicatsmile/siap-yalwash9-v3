@@ -153,8 +153,8 @@ void main() {
     // Verify that the screen is rendered
     expect(find.byType(DocumentFormScreen), findsOneWidget);
 
-    // Verify that the new field label exists (since it's visible by default)
-    expect(find.text('Teruskan Pimpinan'), findsOneWidget);
+    // Verify that the label is hidden by default
+    expect(find.text('Teruskan Pimpinan'), findsNothing);
 
     // Verify that the controller tag is registered
     expect(
@@ -246,13 +246,31 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DocumentFormScreen(),
+        home: DocumentFormScreen(qParam: '4'),
       ),
     );
     await tester.pumpAndSettle();
 
-    // Ensure KTU Disposisi is visible (default is true)
-    // The label is 'Disposisi', not 'KTU Disposisi'
+    // Make KTU Disposisi visible by selecting 'Teruskan ke Pimpinan' (kode '1')
+    final tindakanController =
+        Get.find<DropdownController>(tag: 'tindakan_manajemen');
+    tindakanController.items.assignAll([
+      DropdownItem(kode: '3', deskripsi: 'Di Terima'),
+      DropdownItem(kode: '0', deskripsi: 'Koreksi ke Pengirim'),
+      DropdownItem(kode: '1', deskripsi: 'Teruskan ke Pimpinan'),
+    ]);
+    final apiDropdownFinder = find.byWidgetPredicate((widget) =>
+        widget is ApiDropdownField &&
+        widget.tableName == 'm_tindakan_manajemen');
+    final dropdownButtonFinder = find.descendant(
+      of: apiDropdownFinder,
+      matching: find.byType(DropdownButtonFormField<String>),
+    );
+    final dropdownWidget =
+        tester.widget<DropdownButtonFormField<String>>(dropdownButtonFinder);
+    dropdownWidget.onChanged!('1');
+    await tester.pumpAndSettle();
+
     expect(find.text('Disposisi'), findsOneWidget);
 
     // Find the submit button text
@@ -285,7 +303,7 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DocumentFormScreen(),
+        home: DocumentFormScreen(qParam: '4'),
       ),
     );
     await tester.pumpAndSettle();
@@ -294,15 +312,15 @@ void main() {
     final tindakanController =
         Get.find<DropdownController>(tag: 'tindakan_manajemen');
     tindakanController.items.assignAll([
-      DropdownItem(kode: '1', deskripsi: 'Di Terima'),
-      DropdownItem(kode: '2', deskripsi: 'Koreksi ke Pengirim'),
-      DropdownItem(kode: '3', deskripsi: 'Teruskan ke Pimpinan'),
+      DropdownItem(kode: '3', deskripsi: 'Di Terima'),
+      DropdownItem(kode: '0', deskripsi: 'Koreksi ke Pengirim'),
+      DropdownItem(kode: '1', deskripsi: 'Teruskan ke Pimpinan'),
     ]);
 
-    // Verify initial state: fields are visible
-    expect(find.text('Teruskan Pimpinan'), findsOneWidget);
-    expect(find.text('Disposisi'), findsOneWidget);
-    expect(find.text('Catatan'), findsOneWidget);
+    // Verify initial state: fields are hidden
+    expect(find.text('Teruskan Pimpinan'), findsNothing);
+    expect(find.text('Disposisi'), findsNothing);
+    expect(find.text('Catatan'), findsNothing);
 
     // Find the ApiDropdownField for Tindakan KTU (Manajemen)
     final apiDropdownFinder = find.byWidgetPredicate((widget) =>
@@ -322,14 +340,14 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    // 1. Select 'Di Terima' (kode '1')
-    await selectValue('1');
+    // 1. Select 'Di Terima' (kode '3')
+    await selectValue('3');
     // Expect: All hidden
     expect(find.text('Teruskan Pimpinan'), findsNothing);
     expect(find.text('Disposisi'), findsNothing);
     expect(find.text('Catatan'), findsNothing);
 
-    // 2. Select 'Koreksi ke Pengirim' (kode '2')
+    // 2. Select 'Koreksi ke Pengirim' (kode '0')
     // We need to re-find the widget because the tree rebuilt
     final dropdownWidget2 = tester.widget<DropdownButtonFormField<String>>(
       find.descendant(
@@ -339,7 +357,7 @@ void main() {
         matching: find.byType(DropdownButtonFormField<String>),
       ),
     );
-    dropdownWidget2.onChanged!('2');
+    dropdownWidget2.onChanged!('0');
     await tester.pumpAndSettle();
 
     // Expect: Pimpinan & Disposisi hidden, Catatan visible
@@ -347,7 +365,7 @@ void main() {
     expect(find.text('Disposisi'), findsNothing);
     expect(find.text('Catatan'), findsOneWidget);
 
-    // 3. Select 'Teruskan ke Pimpinan' (kode '3')
+    // 3. Select 'Teruskan ke Pimpinan' (kode '1')
     final dropdownWidget3 = tester.widget<DropdownButtonFormField<String>>(
       find.descendant(
         of: find.byWidgetPredicate((widget) =>
@@ -356,7 +374,7 @@ void main() {
         matching: find.byType(DropdownButtonFormField<String>),
       ),
     );
-    dropdownWidget3.onChanged!('3');
+    dropdownWidget3.onChanged!('1');
     await tester.pumpAndSettle();
 
     // Expect: All visible
@@ -369,7 +387,7 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DocumentFormScreen(),
+        home: DocumentFormScreen(qParam: '7'),
       ),
     );
     await tester.pumpAndSettle();
@@ -403,9 +421,29 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DocumentFormScreen(),
+        home: DocumentFormScreen(qParam: '7'),
       ),
     );
+    await tester.pumpAndSettle();
+
+    // Trigger visibility by selecting a valid Tindakan (e.g. '3')
+    // We need to register the controller and mock items first if not already done
+    // But DocumentFormScreen registers controllers. We might need to populate items.
+    final tindakanController =
+        Get.find<DropdownController>(tag: 'tindakan_pimpinan');
+    tindakanController.items.assignAll([
+      DropdownItem(kode: '3', deskripsi: 'Di Terima'),
+    ]);
+    tindakanController.select('3'); // Select directly via controller
+    await tester.pumpAndSettle();
+
+    // Select '3' via UI to trigger onChanged listener which sets visibility
+    final tindakanFinder = find.byWidgetPredicate((widget) =>
+        widget is ApiDropdownField &&
+        widget.tableName == 'm_tindakan_pimpinan');
+    final tindakanDropdownWidget =
+        tester.widget<ApiDropdownField>(tindakanFinder);
+    tindakanDropdownWidget.onChanged!('3');
     await tester.pumpAndSettle();
 
     // Verify controller registration
@@ -437,12 +475,27 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DocumentFormScreen(),
+        home: DocumentFormScreen(qParam: '7'),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Catatan Koordinator'), findsOneWidget);
+    // Trigger visibility by selecting a valid Tindakan (e.g. '3')
+    final tindakanController =
+        Get.find<DropdownController>(tag: 'tindakan_pimpinan');
+    tindakanController.items.assignAll([
+      DropdownItem(kode: '3', deskripsi: 'Di Terima'),
+    ]);
+
+    final tindakanFinder = find.byWidgetPredicate((widget) =>
+        widget is ApiDropdownField &&
+        widget.tableName == 'm_tindakan_pimpinan');
+    final dropdownWidget = tester.widget<ApiDropdownField>(tindakanFinder);
+    dropdownWidget.onChanged!('3');
+    await tester.pumpAndSettle();
+
+    expect(
+        find.text('Catatan Koordinator', skipOffstage: false), findsOneWidget);
 
     // Find the Column that contains the label 'Catatan Koordinator'
     final columnFinder = find.byWidgetPredicate((widget) {
@@ -471,7 +524,7 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DocumentFormScreen(),
+        home: DocumentFormScreen(qParam: '7'),
       ),
     );
     await tester.pumpAndSettle();
@@ -508,6 +561,57 @@ void main() {
     // 3. Select '3' -> Show Both
     await selectTindakan('3');
     expect(find.text('Disposisi Koordinator'), findsOneWidget);
-    expect(find.text('Catatan Koordinator'), findsOneWidget);
+    expect(
+        find.text('Catatan Koordinator', skipOffstage: false), findsOneWidget);
+  });
+
+  testWidgets('Group Rapat Manajemen should be visible only when qParam is "4"',
+      (WidgetTester tester) async {
+    // 1. qParam != '4' (e.g., '1') -> Hidden
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: DocumentFormScreen(qParam: '1', key: UniqueKey()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Check if visible (even if offstage)
+    expect(find.text('Waktu Rapat', skipOffstage: false), findsNothing);
+
+    // 2. qParam == '4' -> Visible
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: DocumentFormScreen(qParam: '4', key: UniqueKey()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Setup mock items for Tindakan Manajemen
+    final tindakanController =
+        Get.find<DropdownController>(tag: 'tindakan_manajemen');
+    tindakanController.items.assignAll([
+      DropdownItem(kode: '7', deskripsi: 'Agenda Rapat'),
+      DropdownItem(kode: '3', deskripsi: 'Di Terima'),
+    ]);
+
+    // Select '7' (Agenda Rapat) to trigger visibility
+    final dropdownFinder = find.byWidgetPredicate((widget) =>
+        widget is ApiDropdownField &&
+        widget.tableName == 'm_tindakan_manajemen');
+    final dropdownWidget = tester.widget<ApiDropdownField>(dropdownFinder);
+    dropdownWidget.onChanged!('7');
+    await tester.pumpAndSettle();
+
+    // Check if visible (even if offstage)
+    expect(find.text('Waktu Rapat', skipOffstage: false), findsOneWidget);
+
+    // 3. qParam == null -> Hidden
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: DocumentFormScreen(qParam: null, key: UniqueKey()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Waktu Rapat', skipOffstage: false), findsNothing);
   });
 }
