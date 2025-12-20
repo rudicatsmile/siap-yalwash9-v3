@@ -996,8 +996,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _loadExistingDocumentByNoSurat(widget.noSurat!.trim());
     }
     Get.put(SuratMasukController(), permanent: true);
-    _kategoriController.loadTable('m_kategori_formulir');
-    // _kategoriController.loadTable('m_kategori_formulir', forceRefresh: true);
+    // _kategoriController.loadTable('m_kategori_formulir');
+    _kategoriController.loadTable('m_kategori_formulir', forceRefresh: true);
     _jenisController.loadTable('m_jenis_dokumen');
     _tindakanManajemenController.loadTable('m_tindakan_manajemen');
     _tindakanPimpinanController.loadTable('m_tindakan_pimpinan');
@@ -2095,15 +2095,26 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Instruksi Kerja',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
+                                    Obx(() {
+                                      final desc = _getSelectedDeskripsi(
+                                          _kategoriController);
+                                      String label = 'Instruksi Kerja';
+                                      if (desc != null &&
+                                          desc
+                                              .toLowerCase()
+                                              .contains('koordinasi')) {
+                                        label = 'Catatan Koordinasi';
+                                      }
+                                      return Text(
+                                        label,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      );
+                                    }),
                                     TextFormField(
                                       controller: _InstruksiMemoController,
                                       decoration: const InputDecoration(
-                                        hintText: 'Masukkan instruksi kerja',
+                                        hintText: 'Input di sini',
                                         border: OutlineInputBorder(),
                                         prefixIcon: Icon(Icons.notes_outlined),
                                         alignLabelWithHint: true,

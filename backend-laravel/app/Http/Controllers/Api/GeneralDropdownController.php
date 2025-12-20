@@ -35,7 +35,7 @@ class GeneralDropdownController extends Controller
                 ], 404);
             }
 
-            foreach (['kode','deskripsi','keterangan'] as $col) {
+            foreach (['kode', 'deskripsi', 'keterangan'] as $col) {
                 if (!Schema::hasColumn($table, $col)) {
                     return response()->json([
                         'success' => false,
@@ -45,10 +45,12 @@ class GeneralDropdownController extends Controller
             }
 
             $limit = (int) ($request->input('limit', 10));
-            if ($limit <= 0) { $limit = 10; }
+            if ($limit <= 0) {
+                $limit = 10;
+            }
             $limit = min($limit, 1000);
 
-            $query = DB::table($table)->select(['kode','deskripsi','keterangan']);
+            $query = DB::table($table)->select(['kode', 'deskripsi', 'keterangan']);
 
             if ($table === 'm_tujuan_disposisi' && Schema::hasColumn($table, 'urut')) {
                 $query->orderBy('urut');
@@ -61,6 +63,16 @@ class GeneralDropdownController extends Controller
             if ($request->filled('search')) {
                 $s = $request->input('search');
                 $query->where('deskripsi', 'like', "%$s%");
+            }
+
+            // Filter specific for m_kategori_formulir based on user code
+            if ($table === 'm_kategori_formulir') {
+                $user = $request->user();
+                if ($user && in_array($user->kode_user, ['YS-01-PMP-001', 'YS-01-WPM-001', 'YS-01-KHR-001'])) {
+                    $query->whereIn('kode', ['Memo', 'Koordinasi']);
+                } else {
+                    $query->whereNotIn('kode', ['Memo', 'Koordinasi']);
+                }
             }
 
             $total = (clone $query)->count();
