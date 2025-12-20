@@ -49,7 +49,9 @@ class DataTab extends StatelessWidget {
                 final doc = dashboardController.documents[index];
                 return Card(
                   child: ListTile(
-                    title: Text(doc.title),
+                    title: Text(doc.title == '-----'
+                        ? (doc.bahasanRapat ?? doc.title)
+                        : doc.title),
                     subtitle: Text(doc.documentNumber),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -66,7 +68,10 @@ class DataTab extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            doc.status.displayName,
+                            doc.status.displayName +
+                                (doc.kategoriSurat != null
+                                    ? '\n${doc.kategoriSurat!}'
+                                    : ''),
                             style: TextStyle(
                               fontSize: 11,
                               color: AppTheme.getStatusColor(doc.status),

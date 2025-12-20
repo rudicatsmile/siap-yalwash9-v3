@@ -1193,6 +1193,21 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     return _existingDocument?.dibaca;
   }
 
+  String? getKodeUser() {
+    // return _existingDocument?.kodeUser;
+    return authController.currentUser.value?.kodeUser;
+  }
+
+  List<int> filterDropdownItems(String kodeUser) {
+    const allItems = [3, 4, 20, 8, 9, 10];
+    if (kodeUser == 'YS-01-KHR-001') {
+      return allItems.where((item) => item != 10).toList();
+    } else if (kodeUser == 'YS-01-WPM-001') {
+      return allItems.where((item) => item != 8 && item != 9).toList();
+    }
+    return allItems;
+  }
+
   bool _validateUploadRequirement() {
     if (_isUploadRequiredForSelectedCategory() && _uploadItems.isEmpty) {
       _uploadValidationError =
@@ -3206,7 +3221,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                 children: [
                   // Label Header Group
                   const Text(
-                    'Tindakan & Disposisi Koordinator',
+                    'Tindakan & Disposisi Pimpinan',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -3215,34 +3230,59 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                   const SizedBox(height: 16),
 
                   // 1. Tindakan Dropdown
-                  ApiDropdownField(
-                    label: 'Tindakan',
-                    placeholder: 'Pilih Tindakan',
-                    tableName: 'm_tindakan_pimpinan',
-                    controller: _tindakanPimpinanController,
-                    onChanged: (val) {
-                      setState(() {
-                        if (val == '3' || val == '4' || val == '20') {
-                          _showKoordinatorDisposisi = true;
-                          _showCatatanKoordinator = true;
-                        } else if (val == '8') {
-                          _showKoordinatorDisposisi = false;
-                          _showCatatanKoordinator = false;
-                          _selectedKoordinatorDisposisi.clear();
-                          _catatanKoordinatorController.clear();
-                        } else if (val == '9') {
-                          _showKoordinatorDisposisi = false;
-                          _showCatatanKoordinator = true;
-                          _selectedKoordinatorDisposisi.clear();
+                  Builder(
+                    builder: (context) {
+                      final gKodeUser = getKodeUser();
+                      //write to log gKodeUser
+                      _logger.d({'gKodeUser': gKodeUser});
+                      final allowed = filterDropdownItems(gKodeUser!)
+                          .map((e) => e.toString())
+                          .toSet();
+                      if (allowed.isNotEmpty) {
+                        final filtered = _tindakanPimpinanController.items
+                            .where((it) => allowed.contains(it.kode))
+                            .toList();
+                        _tindakanPimpinanController.items.assignAll(filtered);
+                        if (!_tindakanPimpinanController.items.any((it) =>
+                            it.kode ==
+                            _tindakanPimpinanController.selectedKode.value)) {
+                          _tindakanPimpinanController.select('');
                         }
-                      });
-                    },
-                    itemTextBuilder: (it) => it.deskripsi,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Tindakan harus dipilih';
                       }
-                      return null;
+                      return ApiDropdownField(
+                        label: 'Tindakan',
+                        placeholder: 'Pilih Tindakan',
+                        tableName: 'm_tindakan_pimpinan',
+                        controller: _tindakanPimpinanController,
+                        onChanged: (val) {
+                          setState(() {
+                            if (val == '3' || val == '4' || val == '20') {
+                              _showKoordinatorDisposisi = true;
+                              _showCatatanKoordinator = true;
+                            } else if (val == '8') {
+                              _showKoordinatorDisposisi = false;
+                              _showCatatanKoordinator = false;
+                              _selectedKoordinatorDisposisi.clear();
+                              _catatanKoordinatorController.clear();
+                            } else if (val == '9') {
+                              _showKoordinatorDisposisi = false;
+                              _showCatatanKoordinator = true;
+                              _selectedKoordinatorDisposisi.clear();
+                            } else if (val == '10') {
+                              _showKoordinatorDisposisi = true;
+                              _showCatatanKoordinator = true;
+                              _selectedKoordinatorDisposisi.clear();
+                            }
+                          });
+                        },
+                        itemTextBuilder: (it) => it.deskripsi,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Tindakan harus dipilih';
+                          }
+                          return null;
+                        },
+                      );
                     },
                   ),
                   const SizedBox(height: 16),
@@ -3571,7 +3611,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
             _usersDropdownController.selectedUserId.value;
       }
 
-      //Actio Manajemen / ktu_disposisi
+      //Action Manajemen / ktu_disposisi
       final payloadManajemen = <String, dynamic>{};
       final kodeManajemen =
           _getSelectedKode(_tindakanManajemenController) ?? '';
@@ -3652,6 +3692,50 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       }
 
       //Action Pimpinan : Koordinator / Wapim
+      final payloadPimpinan = <String, dynamic>{};
+      final kodePimpinan = _getSelectedKode(_tindakanPimpinanController) ?? '';
+      payloadPimpinan['dibaca'] = kodePimpinan;
+
+      final disposisiPimpinan = _getSelectedDescriptions(
+              _koordinatorDisposisiController, _selectedKoordinatorDisposisi)
+          .join('<br>');
+      payloadPimpinan['disposisi'] = disposisiPimpinan;
+
+      final catatanPimpinan = _catatanKoordinatorController.text.trim();
+      payloadPimpinan['catatan'] = catatanPimpinan;
+
+      final now = DateTime.now().toIso8601String();
+      payloadPimpinan['tgl_disposisi'] = now;
+      payloadPimpinan['tgl_approved'] = now;
+
+      if (user != null) {
+        payloadPimpinan['id_user_approved'] = user.id;
+        payloadPimpinan['kode_user_approved'] = user.kodeUser;
+      }
+
+      if (kodePimpinan == '9') {
+        //Teruskan ke Pimpinan atas / Wapim
+        payloadPimpinan['dibaca'] = '2';
+        payloadPimpinan['dibaca_pimpinan'] = '8';
+        payloadPimpinan['delegasi_pimpinan'] = '1';
+        payloadPimpinan['kode_user_pimpinan'] =
+            AppConstants.LEADER_KOORDINATOR_USER_CODE;
+      } else if (kodePimpinan == '4') {
+        //Disetujui dengan catatan
+        payloadPimpinan['dibaca'] = '3';
+        payloadPimpinan['is_notes_pimpinan'] = '1';
+      } else if (kodePimpinan == '8') {
+        //Koordinasikan / Agenda rapat
+        payloadPimpinan['status_tu'] = '2';
+      } else if (kodePimpinan == '10') {
+        //Koordinasikan langsung. Action by Wapim
+        payloadPimpinan['dibaca'] = '1';
+        payloadPimpinan['dibaca_pimpinan'] = '8';
+        payloadPimpinan['kode_user_pimpinan'] =
+            AppConstants.LEADER_WAPIM_USER_CODE;
+        payloadPimpinan['delegasi_pimpinan'] = '1';
+        payloadPimpinan['status'] = 'Memo';
+      }
 
       final uploadMeta = _uploadItems
           .map((it) => {
@@ -3680,6 +3764,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         //Jika action KTU, maka hanya input form KTU yg di update
         if (widget.qParam == '4') {
           await repo.updateDocument(_editingDocumentId!, payloadManajemen);
+        } else if (widget.qParam == '7') {
+          await repo.updateDocument(_editingDocumentId!, payloadPimpinan);
         } else {
           await repo.updateDocument(_editingDocumentId!, payload);
         }

@@ -4,8 +4,8 @@ class ApiConstants {
   // For Android Emulator: use 10.0.2.2 (special alias to host machine's localhost)
   // For iOS Simulator: use 127.0.0.1 or localhost directly
   // For Physical Device: use your machine's local IP (e.g., 192.168.x.x)
-  // static const String baseUrl = 'http://192.168.1.10:8000';
-  static const String baseUrl = 'https://backend-siap.yalwash9.org';
+  static const String baseUrl = 'http://192.168.43.23:8000';
+  // static const String baseUrl = 'https://backend-siap.yalwash9.org';
 
   // API Endpoints - Authentication
   static const String login = '/api/login';
@@ -50,7 +50,7 @@ class Environment {
   static const String production = 'production';
 
   // Current environment - Change this based on build
-  static const String current = production;
+  static const String current = dev;
 
   static bool get isDevelopment => current == dev;
   static bool get isStaging => current == staging;
@@ -60,13 +60,13 @@ class Environment {
   static String get apiBaseUrl {
     switch (current) {
       case dev:
-        return 'http://10.0.2.2:8000'; // Android emulator -> host machine
+        return 'http://192.168.1.10:8000';
       case staging:
         return 'https://staging-api.siap.example.com'; // Staging server
       case production:
         return 'https://backend-siap.yalwash9.org'; // Production server
       default:
-        return 'http://10.0.2.2:8000';
+        return 'http://192.168.43.23:8000';
     }
   }
 }

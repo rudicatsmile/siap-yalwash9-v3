@@ -15,8 +15,6 @@ use App\Http\Controllers\Api\SuratMasukController;
 use App\Http\Controllers\Api\UploadsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Cache\RateLimiting\Limit;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,13 +27,6 @@ use Illuminate\Cache\RateLimiting\Limit;
 |
 */
 
-// Configure rate limiter for login attempts
-RateLimiter::for('login', function (Request $request) {
-    return Limit::perMinute(5)->by($request->ip());
-});
-RateLimiter::for('general_dropdown', function (Request $request) {
-    return Limit::perMinute(60)->by(optional($request->user())->id_user ?: $request->ip());
-});
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');

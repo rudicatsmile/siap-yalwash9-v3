@@ -54,6 +54,7 @@ class AppConstants {
 
   // Manajemen constants
   static const String LEADER_KOORDINATOR_USER_CODE = 'YS-01-KHR-001';
+  static const String LEADER_WAPIM_USER_CODE = 'YS-01-WAPIM-001';
 }
 
 /// User roles in the system
@@ -100,11 +101,11 @@ enum UserRole {
 /// Document status codes
 enum DocumentStatus {
   rejected(0, 'Ditolak'),
-  pending(1, 'Diajukan'),
+  pending(1, 'Pengajuan'),
   forwardedToCoordinator(2, 'Diteruskan ke Koordinator'),
   approved(3, 'Disetujui'),
-  coordinatorMeeting(8, 'Rapat Koordinator'),
-  forwardedToMainLeader(9, 'Diteruskan ke Pimpinan Utama'),
+  coordinatorMeeting(8, 'Pengajuan Rapat'),
+  forwardedToMainLeader(9, 'Diteruskan ke Wakil Pimpinan'),
   returned(20, 'Dikembalikan');
 
   final int code;

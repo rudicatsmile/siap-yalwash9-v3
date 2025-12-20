@@ -108,10 +108,12 @@ class HomeTab extends StatelessWidget {
                         case '2':
                           return code == 'user' ||
                               code == 'coordinator' ||
+                              code == 'main_leader' ||
                               code == 'super_admin';
                         case '3':
                           return code == 'general_head' ||
                               code == 'coordinator' ||
+                              code == 'main_leader' ||
                               code == 'super_admin';
                         case '4':
                         case '5':
@@ -121,7 +123,9 @@ class HomeTab extends StatelessWidget {
                         case '7':
                         case '8':
                         case '9':
-                          return code == 'coordinator' || code == 'super_admin';
+                          return code == 'main_leader' ||
+                              code == 'coordinator' ||
+                              code == 'super_admin';
                         case '10':
                           return code == 'dept_head' || code == 'super_admin';
                         case '11':

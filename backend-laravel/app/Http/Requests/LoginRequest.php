@@ -22,7 +22,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'username' => ['required', 'string', 'exists:users,username'],
+            'username' => ['required', 'string', 'exists:tbl_user,username'],
             'password' => ['required', 'string', 'min:6'],
             'fcm_token' => ['nullable', 'string', 'max:500'],
         ];
