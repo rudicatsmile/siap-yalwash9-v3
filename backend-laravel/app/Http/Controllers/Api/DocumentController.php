@@ -80,7 +80,7 @@ class DocumentController extends Controller
                         break;
                     case '3':
                         $q->where('dibaca', '3')
-                            ->where('id_status_rapat', '4');
+                            ->orWhere('id_status_rapat', '4');
                         break;
                     case '4':
                         $q->where('dibaca', '1')

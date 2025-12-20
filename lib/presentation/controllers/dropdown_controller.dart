@@ -19,11 +19,16 @@ class DropdownController extends GetxController {
 
   static final Map<String, List<DropdownItem>> _cache = {};
 
-  Future<void> loadTable(String tableName, {int limit = 100}) async {
+  Future<void> loadTable(String tableName,
+      {int limit = 100, bool forceRefresh = false}) async {
     error.value = '';
     isLoading.value = true;
 
     try {
+      if (forceRefresh) {
+        _cache.remove(tableName);
+      }
+
       if (_cache.containsKey(tableName)) {
         items.assignAll(_cache[tableName]!);
         return;

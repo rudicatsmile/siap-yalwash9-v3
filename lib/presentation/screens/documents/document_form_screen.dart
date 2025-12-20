@@ -172,6 +172,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final _letterNumberPart1Controller = TextEditingController();
   final _letterNumberPart2Controller = TextEditingController();
   final _ringkasanController = TextEditingController();
+  final _InstruksiMemoController = TextEditingController();
   final _pokokBahasanController = TextEditingController();
   final _pokokBahasanManajemenController = TextEditingController();
   final _meetingDateController = TextEditingController();
@@ -204,10 +205,12 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   bool _showPokokBahasanRapat = false;
   bool _showPokokBahasanRapatManajemen = true;
   bool _showGroupLampirandanRingkasan = false;
+  bool _showGroupInstruksiMemo = false;
   bool _showGroupDitujukan = false;
   bool _showJenisDokumen = false;
   bool _showKategoriLaporan = false;
   bool _showUndanganKepada = false;
+  bool _showGroupDisposisiPimpinan = false;
   bool _showGroupUploadImages = true;
 
   // Group Manajemen : Tindalan dan disposisi
@@ -258,6 +261,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   late final DropdownController _teruskanPimpinanController;
   late final DropdownController _ktuDisposisiController;
   late final DropdownController _koordinatorDisposisiController;
+  late final DropdownController _disposisiPimpinanController;
   // Workers to observe GetX state changes for last-no-surat fetching
   late final Worker _lastNoSuratResultWorker;
   late final Worker _lastNoSuratErrorWorker;
@@ -273,6 +277,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final List<String> _selectedPesertaManajemenRapat = <String>[];
   final List<String> _selectedKtuDisposisi = <String>[];
   final List<String> _selectedKoordinatorDisposisi = <String>[];
+  final List<String> _selectedDisposisiPimpinan = <String>[];
 
   final ImagePicker _imagePicker = ImagePicker();
   final ApiService _api = ApiService();
@@ -798,6 +803,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showUndanganKepada = true;
         _showGroupLampirandanRingkasan = true;
         _showGroupDitujukan = false;
+        _showGroupDisposisiPimpinan = false;
+        _showGroupInstruksiMemo = false;
         _showGroupRapat = false;
         _showGroupUploadImages = true;
       });
@@ -810,6 +817,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showUndanganKepada = false;
         _showGroupLampirandanRingkasan = false;
         _showGroupDitujukan = false;
+        _showGroupDisposisiPimpinan = false;
+        _showGroupInstruksiMemo = false;
         _showGroupRapat = true;
         _showWaktuRapat = true;
         _showRuangRapat = true;
@@ -839,6 +848,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showUndanganKepada = false;
         _showGroupLampirandanRingkasan = true;
         _showGroupDitujukan = false;
+        _showGroupDisposisiPimpinan = false;
+        _showGroupInstruksiMemo = false;
         _showGroupRapat = false;
         _showGroupUploadImages = true;
       });
@@ -863,8 +874,30 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showUndanganKepada = false;
         _showGroupLampirandanRingkasan = true;
         _showGroupDitujukan = true;
+        _showGroupDisposisiPimpinan = false;
+        _showGroupInstruksiMemo = false;
         _showGroupRapat = false;
         _showGroupUploadImages = true;
+      });
+    } else if (kategoriKode == 'Memo' || kategoriKode == 'Koordinasi') {
+      _isDocNumberPart2ReadOnly = false;
+      final laporanKode = _kategoriLaporanController.selectedKode.value;
+      if (laporanKode.isEmpty) {
+      } else {
+        _docNumberPart2Controller.text = laporanKode;
+      }
+
+      setState(() {
+        _showJenisDokumen = false;
+        _showKategoriLaporan = false;
+        _showUndanganKepada = false;
+        _showGroupDitujukan = true;
+        _showGroupLampirandanRingkasan = false;
+        _showGroupDitujukan = true;
+        _showGroupDisposisiPimpinan = true;
+        _showGroupInstruksiMemo = true;
+        _showGroupRapat = false;
+        _showGroupUploadImages = false;
       });
     } else {
       _isDocNumberPart2ReadOnly = false;
@@ -918,6 +951,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _putOrFind(DropdownController(), tag: 'ktu_disposisi');
     _koordinatorDisposisiController =
         _putOrFind(DropdownController(), tag: 'koordinator_disposisi');
+    _disposisiPimpinanController =
+        _putOrFind(DropdownController(), tag: 'disposisi_pimpinan');
     _kategoriLaporanController =
         _putOrFind(DropdownController(), tag: 'kategori_laporan');
     _tujuanDisposisiController =
@@ -962,12 +997,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     }
     Get.put(SuratMasukController(), permanent: true);
     _kategoriController.loadTable('m_kategori_formulir');
+    // _kategoriController.loadTable('m_kategori_formulir', forceRefresh: true);
     _jenisController.loadTable('m_jenis_dokumen');
     _tindakanManajemenController.loadTable('m_tindakan_manajemen');
     _tindakanPimpinanController.loadTable('m_tindakan_pimpinan');
     _teruskanPimpinanController.loadTable('m_teruskan_pimpinan');
     _ktuDisposisiController.loadTable('m_tujuan_disposisi');
     _koordinatorDisposisiController.loadTable('m_tujuan_disposisi');
+    _disposisiPimpinanController.loadTable('m_tujuan_disposisi');
     _kategoriLaporanController.loadTable('m_kategori_laporan');
     _tujuanDisposisiController.loadTable('m_tujuan_disposisi');
     _ruangRapatController.loadTable('m_ruang_rapat');
@@ -1091,6 +1128,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _letterNumberPart1Controller.dispose();
     _letterNumberPart2Controller.dispose();
     _ringkasanController.dispose();
+    _InstruksiMemoController.dispose();
     _catatanKtuController.dispose();
     _pokokBahasanController.dispose();
     _pokokBahasanManajemenController.dispose();
@@ -2007,11 +2045,85 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                         setState(() {});
                                       },
                                     ),
+                                    const SizedBox(height: 12),
                                   ],
                                 )
                               : const SizedBox.shrink(),
                         ),
 
+                        //_showGroupDisposisiPimpinan
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showGroupDisposisiPimpinan
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ApiMultiSelectField(
+                                      label: 'Disposisi',
+                                      placeholder: 'Pilih tujuan disposisi',
+                                      tableName: 'm_tujuan_disposisi',
+                                      controller: _disposisiPimpinanController,
+                                      selectedValues:
+                                          _selectedDisposisiPimpinan,
+                                      itemTextBuilder: (it) => it.deskripsi,
+                                      validator: (values) {
+                                        if (values == null || values.isEmpty) {
+                                          return 'Minimal pilih 1 tujuan disposisi';
+                                        }
+                                        return null;
+                                      },
+                                      onChanged: (vals) {
+                                        _selectedDisposisiPimpinan
+                                          ..clear()
+                                          ..addAll(vals);
+                                        setState(() {});
+                                      },
+                                    ),
+                                    const SizedBox(height: 12),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, anim) =>
+                              SizeTransition(sizeFactor: anim, child: child),
+                          child: _showGroupInstruksiMemo
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Instruksi Kerja',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    TextFormField(
+                                      controller: _InstruksiMemoController,
+                                      decoration: const InputDecoration(
+                                        hintText: 'Masukkan instruksi kerja',
+                                        border: OutlineInputBorder(),
+                                        prefixIcon: Icon(Icons.notes_outlined),
+                                        alignLabelWithHint: true,
+                                      ),
+                                      validator: (value) {
+                                        final v = (value ?? '').trim();
+                                        if (v.length < 5) {
+                                          return 'Ringkasan minimal 5 karakter';
+                                        }
+                                        return null;
+                                      },
+                                      maxLines: 4,
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
+                                    ),
+                                    const SizedBox(height: 12),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                         // Wrap(
                         //   spacing: 8,
                         //   runSpacing: 8,
@@ -3249,39 +3361,138 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                           _tindakanPimpinanController.select('');
                         }
                       }
-                      return ApiDropdownField(
-                        label: 'Tindakan',
-                        placeholder: 'Pilih Tindakan',
-                        tableName: 'm_tindakan_pimpinan',
-                        controller: _tindakanPimpinanController,
-                        onChanged: (val) {
-                          setState(() {
-                            if (val == '3' || val == '4' || val == '20') {
-                              _showKoordinatorDisposisi = true;
-                              _showCatatanKoordinator = true;
-                            } else if (val == '8') {
-                              _showKoordinatorDisposisi = false;
-                              _showCatatanKoordinator = false;
-                              _selectedKoordinatorDisposisi.clear();
-                              _catatanKoordinatorController.clear();
-                            } else if (val == '9') {
-                              _showKoordinatorDisposisi = false;
-                              _showCatatanKoordinator = true;
-                              _selectedKoordinatorDisposisi.clear();
-                            } else if (val == '10') {
-                              _showKoordinatorDisposisi = true;
-                              _showCatatanKoordinator = true;
-                              _selectedKoordinatorDisposisi.clear();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Tindakan',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Obx(() {
+                            if (_tindakanPimpinanController.isLoading.value &&
+                                _tindakanPimpinanController.items.isEmpty) {
+                              return const SizedBox(
+                                height: 56,
+                                child:
+                                    Center(child: CircularProgressIndicator()),
+                              );
                             }
-                          });
-                        },
-                        itemTextBuilder: (it) => it.deskripsi,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Tindakan harus dipilih';
-                          }
-                          return null;
-                        },
+
+                            // Grouping Logic
+                            final items = _tindakanPimpinanController.items;
+                            final group1 = items
+                                .where(
+                                    (it) => ['3', '4', '20'].contains(it.kode))
+                                .toList();
+                            final group2 = items
+                                .where(
+                                    (it) => ['8', '9', '10'].contains(it.kode))
+                                .toList();
+
+                            final menuItems = <DropdownMenuItem<String>>[];
+
+                            if (group1.isNotEmpty) {
+                              menuItems.add(const DropdownMenuItem<String>(
+                                enabled: false,
+                                value: 'HEADER_1',
+                                child: Text('Persetujuan',
+                                    style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue)),
+                              ));
+                              for (var it in group1) {
+                                menuItems.add(DropdownMenuItem<String>(
+                                  value: it.kode,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 16.0),
+                                    child: Text(it.deskripsi),
+                                  ),
+                                ));
+                              }
+                            }
+
+                            if (group2.isNotEmpty) {
+                              menuItems.add(const DropdownMenuItem<String>(
+                                enabled: false,
+                                value: 'HEADER_2',
+                                child: Text('Tindakan lanjut',
+                                    style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue)),
+                              ));
+                              for (var it in group2) {
+                                menuItems.add(DropdownMenuItem<String>(
+                                  value: it.kode,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 16.0),
+                                    child: Text(it.deskripsi),
+                                  ),
+                                ));
+                              }
+                            }
+
+                            // Fallback for others
+                            final others = items
+                                .where((it) => !['3', '4', '20', '8', '9', '10']
+                                    .contains(it.kode))
+                                .toList();
+                            for (var it in others) {
+                              menuItems.add(DropdownMenuItem<String>(
+                                value: it.kode,
+                                child: Text(it.deskripsi),
+                              ));
+                            }
+
+                            return DropdownButtonFormField<String>(
+                              value: _tindakanPimpinanController
+                                      .selectedKode.value.isEmpty
+                                  ? null
+                                  : _tindakanPimpinanController
+                                      .selectedKode.value,
+                              isExpanded: true,
+                              items: menuItems,
+                              onChanged: (val) {
+                                if (val == null || val.startsWith('HEADER_')) {
+                                  return;
+                                }
+                                _tindakanPimpinanController.select(val);
+                                setState(() {
+                                  if (val == '3' || val == '4' || val == '20') {
+                                    _showKoordinatorDisposisi = true;
+                                    _showCatatanKoordinator = true;
+                                  } else if (val == '8') {
+                                    _showKoordinatorDisposisi = false;
+                                    _showCatatanKoordinator = false;
+                                    _selectedKoordinatorDisposisi.clear();
+                                    _catatanKoordinatorController.clear();
+                                  } else if (val == '9') {
+                                    _showKoordinatorDisposisi = false;
+                                    _showCatatanKoordinator = true;
+                                    _selectedKoordinatorDisposisi.clear();
+                                  } else if (val == '10') {
+                                    _showKoordinatorDisposisi = true;
+                                    _showCatatanKoordinator = true;
+                                    _selectedKoordinatorDisposisi.clear();
+                                  }
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null ||
+                                    value.isEmpty ||
+                                    value.startsWith('HEADER_')) {
+                                  return 'Tindakan harus dipilih';
+                                }
+                                return null;
+                              },
+                              decoration: const InputDecoration(
+                                hintText: 'Pilih Tindakan',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.category_outlined),
+                              ),
+                            );
+                          }),
+                        ],
                       );
                     },
                   ),

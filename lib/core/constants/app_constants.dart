@@ -88,7 +88,8 @@ enum UserRole {
   }
 
   bool get canSubmitDocuments =>
-      level <= 4; // user, dept_head, protocol_head, general_head
+      level <=
+      7; // user, dept_head, protocol_head, general_head, coordinator, main_leader, super_admin
   bool get canApproveDocuments =>
       level >= 4; // general_head, coordinator, main_leader
   bool get canManageMeetings =>
