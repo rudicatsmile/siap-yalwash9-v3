@@ -44,7 +44,23 @@ class DataTab extends StatelessWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: dashboardController.refreshDocuments,
+            onRefresh: () async {
+              // Menggunakan qp (qParam) sebagai nilai untuk parameter 'dibaca'
+              // Ini memastikan filter tetap aktif saat pull-to-refresh
+              final dibacaVal = qp;
+              print('Dashboard loadDocuments start RefreshIndicator : $dibacaVal');
+              
+              try {
+                await dashboardController.refreshDocuments(dibaca: dibacaVal);
+              } catch (e) {
+                Get.snackbar(
+                  'Peringatan',
+                  'Gagal memperbarui data: $e',
+                  backgroundColor: AppTheme.warningColor,
+                  colorText: Colors.white,
+                );
+              }
+            },
             child: ListView.builder(
               itemCount: dashboardController.documents.length,
               itemBuilder: (context, index) {
