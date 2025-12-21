@@ -1,4 +1,4 @@
-package com.siap.siap
+package org.yalwash9.mobile.siap
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -8,7 +8,7 @@
 PRODUCT_NAME = siap
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.siap.siap
+PRODUCT_BUNDLE_IDENTIFIER = org.yalwash9.mobile.siap
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 com.siap. All rights reserved.
