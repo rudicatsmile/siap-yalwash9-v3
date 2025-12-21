@@ -779,6 +779,49 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _docNumberPart2Controller.text = '';
   }
 
+  void _handleTindakanManajemenChanged(String? val) {
+    // Logic update UI flags based on selected Tindakan
+    final selected = _tindakanManajemenController.items
+        .firstWhereOrNull((it) => it.kode == val);
+    final kodeTindakan = selected?.kode ?? val;
+
+    if (kodeTindakan == '3') {
+      _showTeruskanPimpinan = false;
+      _showKtuDisposisi = false;
+      _showCatatanKtu = false;
+      _showGroupRapatManajemen = false;
+      _teruskanPimpinanController.select('');
+      _selectedKtuDisposisi.clear();
+      _catatanKtuController.clear();
+    } else if (kodeTindakan == '0') {
+      _showTeruskanPimpinan = false;
+      _showKtuDisposisi = false;
+      _showCatatanKtu = true;
+      _showGroupRapatManajemen = false;
+      _teruskanPimpinanController.select('');
+      _selectedKtuDisposisi.clear();
+    } else if (kodeTindakan == '7') {
+      _showTeruskanPimpinan = false;
+      _showKtuDisposisi = false;
+      _showCatatanKtu = false;
+      _showGroupRapatManajemen = true;
+      _teruskanPimpinanController.select('');
+      _selectedKtuDisposisi.clear();
+    } else if (kodeTindakan == '8') {
+      _showTeruskanPimpinan = false;
+      _showKtuDisposisi = false;
+      _showCatatanKtu = false;
+      _showGroupRapatManajemen = false;
+      _teruskanPimpinanController.select('');
+      _selectedKtuDisposisi.clear();
+    } else {
+      _showTeruskanPimpinan = true;
+      _showKtuDisposisi = true;
+      _showCatatanKtu = true;
+      _showGroupRapatManajemen = false;
+    }
+  }
+
   // Mengatur nilai bagian kedua nomor dokumen berdasarkan kategori formulir.
   // - Dokumen: menggunakan kode dari dropdown Jenis Dokumen
   // - Undangan: diset statis 'UND' dan readonly
@@ -826,6 +869,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _showPimpinanRapat = true;
         _showPokokBahasanRapat = true;
         _showGroupUploadImages = false;
+
+        // Auto-select Tindakan Manajemen '7' (Rapat)
+        _tindakanManajemenController.items.assignAll([
+          DropdownItem(kode: '7', deskripsi: 'Rapat'),
+        ]);
+        _tindakanManajemenController.select('7');
+        _handleTindakanManajemenChanged('7');
       });
     } else if (kategoriKode == 'Dokumen') {
       _isDocNumberPart2ReadOnly = false;
@@ -857,13 +907,6 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _isDocNumberPart2ReadOnly = false;
       final laporanKode = _kategoriLaporanController.selectedKode.value;
       if (laporanKode.isEmpty) {
-        // Get.snackbar(
-        //   'Error',
-        //   'Kategori laporan harus dipilih untuk menentukan nomor dokumen',
-        //   backgroundColor: AppTheme.errorColor,
-        //   colorText: Colors.white,
-        //   snackPosition: SnackPosition.TOP,
-        // );
       } else {
         _docNumberPart2Controller.text = laporanKode;
       }
@@ -881,11 +924,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       });
     } else if (kategoriKode == 'Memo' || kategoriKode == 'Koordinasi') {
       _isDocNumberPart2ReadOnly = false;
-      final laporanKode = _kategoriLaporanController.selectedKode.value;
-      if (laporanKode.isEmpty) {
-      } else {
-        _docNumberPart2Controller.text = laporanKode;
-      }
+      _docNumberPart2Controller.text = kategoriKode == 'Memo' ? 'MEMO' : 'KRDN';
 
       setState(() {
         _showJenisDokumen = false;
@@ -1007,6 +1046,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _disposisiPimpinanController.loadTable('m_tujuan_disposisi');
     _kategoriLaporanController.loadTable('m_kategori_laporan');
     _tujuanDisposisiController.loadTable('m_tujuan_disposisi');
+    // _disposisiPimpinanController.loadTable('m_tujuan_disposisi');
     _ruangRapatController.loadTable('m_ruang_rapat');
     _ruangRapatManajemenController.loadTable('m_ruang_rapat');
     _pesertaRapatController.loadTable('m_tujuan_disposisi');
@@ -2846,7 +2886,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                 children: [
                   // Label Header Group
                   const Text(
-                    'Tindakan & Disposisi Manajemen',
+                    'Tindakan & Disposisi',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -2858,6 +2898,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                   Builder(
                     builder: (context) {
                       final gDibaca = getDibaca();
+                      // Jika dibaca '8', khusus Rapat (legacy?)
                       if (gDibaca == '8') {
                         _tindakanManajemenController.items.assignAll([
                           DropdownItem(kode: '8', deskripsi: 'Rapat'),
@@ -2867,7 +2908,20 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                           _tindakanManajemenController.select('8');
                         }
                         _tindakanManajemenController.error.value = '';
+                      }
+                      //Jika _kategoriController == 'Undangan' Maka dropdown hanya menampilkan data dengan kode 3 / Di terima
+                      else if (_getSelectedKode(_kategoriController) ==
+                          'Undangan') {
+                        _tindakanManajemenController.items.assignAll([
+                          DropdownItem(kode: '3', deskripsi: 'Di terima'),
+                        ]);
+                        if (_tindakanManajemenController.selectedKode.value !=
+                            '3') {
+                          _tindakanManajemenController.select('3');
+                        }
+                        _tindakanManajemenController.error.value = '';
                       } else {
+                        // Logic 'Rapat' handled in _handleKategoriChanged
                         if (gDibaca != null &&
                             gDibaca.trim().isNotEmpty &&
                             !RegExp(r'^\d+$').hasMatch(gDibaca)) {
@@ -2884,45 +2938,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         tableName: 'm_tindakan_manajemen',
                         controller: _tindakanManajemenController,
                         onChanged: (val) {
-                          final selected = _tindakanManajemenController.items
-                              .firstWhereOrNull((it) => it.kode == val);
-                          final deskripsi = selected?.kode;
                           setState(() {
-                            if (deskripsi == '3') {
-                              _showTeruskanPimpinan = false;
-                              _showKtuDisposisi = false;
-                              _showCatatanKtu = false;
-                              _showGroupRapatManajemen = false;
-                              _teruskanPimpinanController.select('');
-                              _selectedKtuDisposisi.clear();
-                              _catatanKtuController.clear();
-                            } else if (deskripsi == '0') {
-                              _showTeruskanPimpinan = false;
-                              _showKtuDisposisi = false;
-                              _showCatatanKtu = true;
-                              _showGroupRapatManajemen = false;
-                              _teruskanPimpinanController.select('');
-                              _selectedKtuDisposisi.clear();
-                            } else if (deskripsi == '7') {
-                              _showTeruskanPimpinan = false;
-                              _showKtuDisposisi = false;
-                              _showCatatanKtu = false;
-                              _showGroupRapatManajemen = true;
-                              _teruskanPimpinanController.select('');
-                              _selectedKtuDisposisi.clear();
-                            } else if (deskripsi == '8') {
-                              _showTeruskanPimpinan = false;
-                              _showKtuDisposisi = false;
-                              _showCatatanKtu = false;
-                              _showGroupRapatManajemen = false;
-                              _teruskanPimpinanController.select('');
-                              _selectedKtuDisposisi.clear();
-                            } else {
-                              _showTeruskanPimpinan = true;
-                              _showKtuDisposisi = true;
-                              _showCatatanKtu = true;
-                              _showGroupRapatManajemen = false;
-                            }
+                            _handleTindakanManajemenChanged(val);
                           });
                         },
                         itemTextBuilder: (it) => it.deskripsi,
@@ -3828,6 +3845,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
             _getSelectedKode(_kategoriLaporanController) ?? '';
       }
 
+      if (kategoriKode == 'Memo' || kategoriKode == 'Koordinasi') {
+        payload['ditujukan'] = _getSelectedDescriptions(
+                _tujuanDisposisiController, _selectedTujuanDisposisi)
+            .join('<br>');
+        payload['disposisi_memo'] = _getSelectedDescriptions(
+                _disposisiPimpinanController, _selectedDisposisiPimpinan)
+            .join('<br>');
+        payload['instruksi_kerja'] = _InstruksiMemoController.text.trim();
+      }
+
       if (kategoriKode == 'Undangan') {
         payload['kategori_undangan'] =
             _usersDropdownController.selectedUserId.value;
@@ -4395,7 +4422,49 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
               .w('doc.ktuDisposisi kosong/null, skip preselect KTU disposisi');
         }
 
+        // Disposisi Pimpinan (multi-select)
+        final rawDisposisiPimpinan = doc.disposisiMemo;
+        if (rawDisposisiPimpinan != null &&
+            rawDisposisiPimpinan.trim().isNotEmpty) {
+          if (_disposisiPimpinanController.items.isNotEmpty) {
+            final codes = getDataFromDocDitujukan(
+              raw: rawDisposisiPimpinan,
+              items: _disposisiPimpinanController.items,
+              logger: _logger,
+            );
+            if (codes.isNotEmpty) {
+              _selectedDisposisiPimpinan
+                ..clear()
+                ..addAll(codes);
+              setState(() {});
+            }
+          } else {
+            _logger.w(
+                'Items disposisi pimpinan belum tersedia, menunggu load untuk mapping');
+            once(_disposisiPimpinanController.items, (_) {
+              final codes = getDataFromDocDitujukan(
+                raw: rawDisposisiPimpinan,
+                items: _disposisiPimpinanController.items,
+                logger: _logger,
+              );
+              if (codes.isNotEmpty) {
+                _selectedDisposisiPimpinan
+                  ..clear()
+                  ..addAll(codes);
+                setState(() {});
+              } else {
+                _logger.w(
+                    'Mapping disposisi pimpinan menghasilkan kosong setelah load items');
+              }
+            });
+          }
+        } else {
+          _logger.w(
+              'doc.disposisiMemo kosong/null, skip preselect disposisi pimpinan');
+        }
+
         _catatanKtuController.text = doc.notes ?? '';
+        _InstruksiMemoController.text = doc.instruksiKerja ?? '';
 
         // ------------------ R A P A T --------------------
 

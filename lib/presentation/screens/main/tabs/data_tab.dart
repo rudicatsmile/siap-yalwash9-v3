@@ -49,9 +49,12 @@ class DataTab extends StatelessWidget {
                 final doc = dashboardController.documents[index];
                 return Card(
                   child: ListTile(
-                    title: Text(doc.title == '-----'
+                    title: Text(doc.kategoriKode == 'Rapat'
                         ? (doc.bahasanRapat ?? doc.title)
-                        : doc.title),
+                        : (doc.kategoriKode == 'Memo' ||
+                                doc.kategoriKode == 'Koordinasi')
+                            ? (doc.instruksiKerja ?? doc.title)
+                            : doc.title),
                     subtitle: Text(doc.documentNumber),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
