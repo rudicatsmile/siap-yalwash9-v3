@@ -1377,10 +1377,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         const SizedBox(height: 24),
                         // Kategori Formulir: tampilkan "kode - deskripsi" dari m_kategori_formulir
                         ApiDropdownField(
-                          label: 'Kategori Formulir',
+                          label:
+                              'Kategori Formulir ${_existingDocument?.dibaca}',
                           placeholder: 'Pilih Kategori Formulir',
                           tableName: 'm_kategori_formulir',
                           controller: _kategoriController,
+                          disabled:
+                              ((widget.qParam == '1' || widget.qParam == '2') &&
+                                      _existingDocument?.dibaca == '1')
+                                  ? false
+                                  : true,
                           onChanged: (val) {
                             _handleKategoriChanged(val);
                           },
@@ -1403,10 +1409,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     ApiDropdownField(
-                                      label: 'Kategori Laporan',
+                                      label: 'Kategori Laporan ',
                                       placeholder: 'Pilih Kategori Laporan',
                                       tableName: 'm_kategori_laporan',
                                       controller: _kategoriLaporanController,
+                                      disabled: ((widget.qParam == '1' ||
+                                                  widget.qParam == '2') &&
+                                              _existingDocument?.dibaca == '1')
+                                          ? false
+                                          : true,
                                       onChanged: (val) {
                                         _handleKategoriLaporanChanged(val);
                                       },
@@ -1437,6 +1448,11 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                       placeholder: 'Pilih Jenis Dokumen',
                                       tableName: 'm_jenis_dokumen',
                                       controller: _jenisController,
+                                      disabled: ((widget.qParam == '1' ||
+                                                  widget.qParam == '2') &&
+                                              _existingDocument?.dibaca == '1')
+                                          ? false
+                                          : true,
                                       onChanged: (val) {
                                         _handleJenisDokumenChanged(val);
                                       },
@@ -1515,12 +1531,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                               ),
                                             )
                                             .toList(),
-                                        onChanged: (val) =>
-                                            _usersDropdownController
-                                                .select(val),
+                                        onChanged: ((widget.qParam == '1' ||
+                                                    widget.qParam == '2') &&
+                                                _existingDocument?.dibaca ==
+                                                    '1')
+                                            ? (val) => _usersDropdownController
+                                                .select(val)
+                                            : null,
                                         validator: (value) {
                                           if (value == null || value.isEmpty) {
-                                            return 'User harus dipilih';
+                                            return 'undangan harus dipilih';
                                           }
                                           return null;
                                         },
@@ -1841,6 +1861,11 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         TextFormField(
+                          enabled:
+                              // (widget.qParam == '1' || widget.qParam == '2'),
+                              ((widget.qParam == '1' || widget.qParam == '2') &&
+                                  _existingDocument?.dibaca == '1'),
+                          readOnly: true,
                           controller: _letterDateController,
                           decoration: const InputDecoration(
                             hintText: 'dd-MM-yyyy',
@@ -1900,6 +1925,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                             Expanded(
                               flex: 4,
                               child: TextFormField(
+                                enabled: ((widget.qParam == '1' ||
+                                        widget.qParam == '2') &&
+                                    _existingDocument?.dibaca == '1'),
                                 controller: _letterNumberPart1Controller,
                                 decoration: const InputDecoration(
                                   border: OutlineInputBorder(),
@@ -1996,6 +2024,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                           fontWeight: FontWeight.bold),
                                     ),
                                     TextFormField(
+                                      enabled: ((widget.qParam == '1' ||
+                                              widget.qParam == '2') &&
+                                          _existingDocument?.dibaca == '1'),
                                       controller: _perihalController,
                                       decoration: const InputDecoration(
                                         hintText: 'Masukkan perihal surat',
@@ -2018,6 +2049,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                           fontWeight: FontWeight.bold),
                                     ),
                                     TextFormField(
+                                      enabled: ((widget.qParam == '1' ||
+                                              widget.qParam == '2') &&
+                                          _existingDocument?.dibaca == '1'),
                                       controller: _ringkasanController,
                                       decoration: const InputDecoration(
                                         hintText: 'Masukkan ringkasan',
@@ -2070,6 +2104,11 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                       placeholder: 'Pilih tujuan disposisi',
                                       tableName: 'm_tujuan_disposisi',
                                       controller: _tujuanDisposisiController,
+                                      disabled: ((widget.qParam == '1' ||
+                                                  widget.qParam == '2') &&
+                                              _existingDocument?.dibaca == '1')
+                                          ? false
+                                          : true,
                                       selectedValues: _selectedTujuanDisposisi,
                                       itemTextBuilder: (it) => it.deskripsi,
                                       validator: (values) {
@@ -2105,6 +2144,11 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                       placeholder: 'Pilih tujuan disposisi',
                                       tableName: 'm_tujuan_disposisi',
                                       controller: _disposisiPimpinanController,
+                                      disabled: ((widget.qParam == '1' ||
+                                                  widget.qParam == '2') &&
+                                              _existingDocument?.dibaca == '1')
+                                          ? false
+                                          : true,
                                       selectedValues:
                                           _selectedDisposisiPimpinan,
                                       itemTextBuilder: (it) => it.deskripsi,
@@ -2153,6 +2197,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                     }),
                                     TextFormField(
                                       controller: _InstruksiMemoController,
+                                      enabled: ((widget.qParam == '1' ||
+                                              widget.qParam == '2') &&
+                                          _existingDocument?.dibaca == '1'),
                                       decoration: const InputDecoration(
                                         hintText: 'Input di sini',
                                         border: OutlineInputBorder(),
@@ -2257,6 +2304,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                     Expanded(
                                                       flex: 5,
                                                       child: TextFormField(
+                                                        enabled: ((widget
+                                                                        .qParam ==
+                                                                    '1' ||
+                                                                widget.qParam ==
+                                                                    '2') &&
+                                                            _existingDocument
+                                                                    ?.dibaca ==
+                                                                '1'),
                                                         controller:
                                                             _meetingDateController,
                                                         decoration:
@@ -2328,6 +2383,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                     Expanded(
                                                       flex: 5,
                                                       child: TextFormField(
+                                                        enabled: ((widget
+                                                                        .qParam ==
+                                                                    '1' ||
+                                                                widget.qParam ==
+                                                                    '2') &&
+                                                            _existingDocument
+                                                                    ?.dibaca ==
+                                                                '1'),
                                                         controller:
                                                             _meetingTimeController,
                                                         decoration:
@@ -2377,6 +2440,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                   tableName: 'm_ruang_rapat',
                                                   controller:
                                                       _ruangRapatController,
+                                                  disabled: ((widget.qParam ==
+                                                                  '1' ||
+                                                              widget.qParam ==
+                                                                  '2') &&
+                                                          _existingDocument
+                                                                  ?.dibaca ==
+                                                              '1')
+                                                      ? false
+                                                      : true,
                                                   itemTextBuilder: (it) =>
                                                       it.deskripsi,
                                                   validator: (value) {
@@ -2413,6 +2485,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                       'm_tujuan_disposisi',
                                                   controller:
                                                       _pesertaRapatController,
+                                                  disabled: ((widget.qParam ==
+                                                                  '1' ||
+                                                              widget.qParam ==
+                                                                  '2') &&
+                                                          _existingDocument
+                                                                  ?.dibaca ==
+                                                              '1')
+                                                      ? false
+                                                      : true,
                                                   selectedValues:
                                                       _selectedPesertaRapat,
                                                   itemTextBuilder: (it) =>
@@ -2457,6 +2538,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                       'm_tujuan_disposisi',
                                                   controller:
                                                       _pimpinanRapatController,
+                                                  disabled: ((widget.qParam ==
+                                                                  '1' ||
+                                                              widget.qParam ==
+                                                                  '2') &&
+                                                          _existingDocument
+                                                                  ?.dibaca ==
+                                                              '1')
+                                                      ? false
+                                                      : true,
                                                   itemTextBuilder: (it) =>
                                                       it.deskripsi,
                                                   validator: (value) {
@@ -2494,6 +2584,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                 TextFormField(
                                                   controller:
                                                       _pokokBahasanController,
+                                                  enabled:
+                                                      ((widget.qParam == '1' ||
+                                                              widget.qParam ==
+                                                                  '2') &&
+                                                          _existingDocument
+                                                                  ?.dibaca ==
+                                                              '1'),
                                                   decoration:
                                                       const InputDecoration(
                                                     hintText:
@@ -2556,19 +2653,24 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                               spacing: 8,
                                               runSpacing: 8,
                                               children: [
-                                                TextButton.icon(
-                                                  onPressed: _pickDocuments,
-                                                  icon: const Icon(Icons
-                                                      .photo_library_outlined),
-                                                  label: const Text('Galeri'),
-                                                ),
-                                                TextButton.icon(
-                                                  onPressed:
-                                                      _takePhotoWithCamera,
-                                                  icon: const Icon(Icons
-                                                      .photo_camera_outlined),
-                                                  label: const Text('Kamera'),
-                                                ),
+                                                if ((widget.qParam == '1' ||
+                                                        widget.qParam == '2') &&
+                                                    _existingDocument?.dibaca ==
+                                                        '1') ...[
+                                                  TextButton.icon(
+                                                    onPressed: _pickDocuments,
+                                                    icon: const Icon(Icons
+                                                        .photo_library_outlined),
+                                                    label: const Text('Galeri'),
+                                                  ),
+                                                  TextButton.icon(
+                                                    onPressed:
+                                                        _takePhotoWithCamera,
+                                                    icon: const Icon(Icons
+                                                        .photo_camera_outlined),
+                                                    label: const Text('Kamera'),
+                                                  ),
+                                                ],
                                                 if (_uploadItems
                                                     .any((it) => it.uploading))
                                                   TextButton.icon(

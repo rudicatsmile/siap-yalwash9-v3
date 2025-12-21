@@ -13,6 +13,7 @@ class ApiMultiSelectField extends StatefulWidget {
   final void Function(List<String>)? onChanged;
   final int limit;
   final String Function(DropdownItem)? itemTextBuilder;
+  final bool disabled;
 
   const ApiMultiSelectField({
     super.key,
@@ -25,6 +26,7 @@ class ApiMultiSelectField extends StatefulWidget {
     this.onChanged,
     this.limit = 100,
     this.itemTextBuilder,
+    this.disabled = false,
   });
 
   @override
@@ -182,13 +184,14 @@ class _ApiMultiSelectFieldState extends State<ApiMultiSelectField> {
                   .toList();
 
               return InkWell(
-                onTap: () => _openSelector(state),
+                onTap: widget.disabled ? null : () => _openSelector(state),
                 child: InputDecorator(
                   decoration: InputDecoration(
                     hintText: widget.placeholder,
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.list_alt_outlined),
                     errorText: state.errorText,
+                    enabled: !widget.disabled,
                   ),
                   isEmpty: selectedItems.isEmpty,
                   child: selectedItems.isEmpty
@@ -209,14 +212,16 @@ class _ApiMultiSelectFieldState extends State<ApiMultiSelectField> {
                                         ? widget.itemTextBuilder!(it)
                                         : it.deskripsi,
                                   ),
-                                  onDeleted: () {
-                                    final next = List<String>.from(
-                                        state.value ?? <String>[]);
-                                    next.remove(it.kode);
-                                    state.didChange(next);
-                                    widget.onChanged?.call(next);
-                                    setState(() {});
-                                  },
+                                  onDeleted: widget.disabled
+                                      ? null
+                                      : () {
+                                          final next = List<String>.from(
+                                              state.value ?? <String>[]);
+                                          next.remove(it.kode);
+                                          state.didChange(next);
+                                          widget.onChanged?.call(next);
+                                          setState(() {});
+                                        },
                                 ),
                               )
                               .toList(),

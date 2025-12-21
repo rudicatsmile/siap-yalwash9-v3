@@ -12,6 +12,7 @@ class ApiDropdownField extends StatelessWidget {
   final void Function(String?)? onChanged;
   final int limit;
   final String Function(DropdownItem)? itemTextBuilder;
+  final bool disabled;
 
   const ApiDropdownField({
     super.key,
@@ -23,6 +24,7 @@ class ApiDropdownField extends StatelessWidget {
     this.onChanged,
     this.limit = 100,
     this.itemTextBuilder,
+    this.disabled = false,
   });
 
   @override
@@ -87,10 +89,12 @@ class ApiDropdownField extends StatelessWidget {
                   ),
                 )
                 .toList(),
-            onChanged: (val) {
-              controller.select(val);
-              if (onChanged != null) onChanged!(val);
-            },
+            onChanged: disabled
+                ? null
+                : (val) {
+                    controller.select(val);
+                    if (onChanged != null) onChanged!(val);
+                  },
             validator: validator,
             decoration: InputDecoration(
               hintText: placeholder,

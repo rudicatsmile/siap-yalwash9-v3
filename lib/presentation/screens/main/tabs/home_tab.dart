@@ -284,7 +284,7 @@ const List<Color> _cardColors = <Color>[
 
 const List<_HomeStat> _gridStats = <_HomeStat>[
   _HomeStat(1, 'Pengajuan Berkas', '1'), //dept_head, dept_head,general_head
-  _HomeStat(2, 'Buat Berkas', '2'), //user, coordinator
+  _HomeStat(2, 'Pengajuan Berkas', '2'), //user, coordinator
 
   _HomeStat(4, 'Berkas Masuk', '4'), //general_head
   _HomeStat(5, 'Berkas naik', '5'), //general_head
