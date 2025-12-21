@@ -131,28 +131,62 @@ class DataTab extends StatelessWidget {
                                 }
                                 break;
                               case 'edit':
-                                try {
-                                  final result = await Get.toNamed(
-                                    AppRoutes.documentForm,
-                                    arguments: {
-                                      'no_surat': doc.documentNumber,
-                                      'qParam': qp
-                                    },
-                                  );
+                                Get.toNamed(
+                                  AppRoutes.documentForm,
+                                  arguments: {
+                                    'no_surat': doc.documentNumber,
+                                    'qParam': qp
+                                  },
+                                )?.then((result) {
                                   if (result != null) {
-                                    final dashboardController =
-                                        Get.find<DashboardController>();
-                                    await dashboardController
-                                        .refreshDocuments();
+                                    String? dibacaVal;
+                                    // Handle result as Map (new format) or String (legacy/fallback)
+                                    if (result is Map) {
+                                      if (result['status'] == 'created' ||
+                                          result['status'] == 'updated') {
+                                        dibacaVal =
+                                            result['dibaca']?.toString();
+                                      }
+                                      print(
+                                          'Dashboard loadDocuments start Data tab Edit [2] : $dibacaVal');
+                                    } else if (result == 'created' ||
+                                        result == 'updated') {
+                                      // Fallback if just string returned
+                                      dibacaVal = null;
+                                      print(
+                                          'Dashboard loadDocuments start Data tab Edit Fallback [2]: $dibacaVal');
+                                    }
+
+                                    // Refresh documents with filter 'dibaca' received from form
+                                    dashboardController
+                                        .refreshDocuments(dibaca: dibacaVal)
+                                        .then((_) {
+                                      Get.snackbar(
+                                        'Berhasil',
+                                        'Data berhasil diperbarui',
+                                        backgroundColor:
+                                            AppTheme.statusApproved,
+                                        colorText: Colors.white,
+                                        snackPosition: SnackPosition.BOTTOM,
+                                        margin: const EdgeInsets.all(16),
+                                      );
+                                    }).catchError((e) {
+                                      Get.snackbar(
+                                        'Peringatan',
+                                        'Gagal memperbarui data: $e',
+                                        backgroundColor: AppTheme.warningColor,
+                                        colorText: Colors.white,
+                                      );
+                                    });
                                   }
-                                } catch (e) {
+                                }).catchError((e) {
                                   Get.snackbar(
                                     'Error',
                                     'Gagal membuka form edit: $e',
                                     backgroundColor: AppTheme.errorColor,
                                     colorText: Colors.white,
                                   );
-                                }
+                                });
                                 break;
                               case 'delete':
                                 try {
