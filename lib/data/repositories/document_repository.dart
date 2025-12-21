@@ -44,7 +44,7 @@ class DocumentRepository {
     String? search,
     String? dibaca,
     int page = 1,
-    int limit = 20,
+    int limit = 10,
   }) async {
     try {
       _logger.d('GET /api/documents - start');

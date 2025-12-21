@@ -176,9 +176,9 @@ class DashboardController extends GetxController {
   }
 
   /// Load more documents (pagination)
-  Future<void> loadMore() async {
+  Future<void> loadMore({String? dibaca}) async {
     if (!hasMoreData.value || isLoading.value) return;
-    await loadDocuments();
+    await loadDocuments(dibaca: dibaca);
   }
 
   /// Get meeting count for general head and protocol head

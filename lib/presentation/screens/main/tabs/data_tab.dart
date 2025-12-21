@@ -7,30 +7,63 @@ import '../../../../routes/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Data tab with role-based dashboard
-class DataTab extends StatelessWidget {
+class DataTab extends StatefulWidget {
   final String? qParam;
   final String? title;
 
   const DataTab({super.key, this.qParam, this.title});
 
   @override
-  Widget build(BuildContext context) {
-    final dashboardController = Get.put(DashboardController(), permanent: true);
-    final authController = Get.find<AuthController>();
+  State<DataTab> createState() => _DataTabState();
+}
 
-    final qp = qParam ??
+class _DataTabState extends State<DataTab> {
+  final ScrollController _scrollController = ScrollController();
+  late DashboardController dashboardController;
+  late AuthController authController;
+  String? qp;
+
+  @override
+  void initState() {
+    super.initState();
+    dashboardController = Get.put(DashboardController(), permanent: true);
+    authController = Get.find<AuthController>();
+    _scrollController.addListener(_onScroll);
+
+    qp = widget.qParam ??
         ((Get.arguments is Map)
             ? (Get.arguments as Map)['qParam'] as String?
             : null);
+
     if (qp != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         dashboardController.loadDocuments(
-            refresh: true, search: null, dibaca: qParam);
+            refresh: true, search: null, dibaca: qp);
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.position.pixels;
+      if (currentScroll >= maxScroll * 0.8) {
+        dashboardController.loadMore(dibaca: qp);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(title ?? 'Dashboard SIAP'),
+        title: Text(widget.title ?? 'Dashboard SIAP'),
       ),
       body: Obx(
         () {
@@ -47,11 +80,10 @@ class DataTab extends StatelessWidget {
             onRefresh: () async {
               // Menggunakan qp (qParam) sebagai nilai untuk parameter 'dibaca'
               // Ini memastikan filter tetap aktif saat pull-to-refresh
-              final dibacaVal = qp;
-              print('Dashboard loadDocuments start RefreshIndicator : $dibacaVal');
-              
+              print('Dashboard loadDocuments start RefreshIndicator : $qp');
+
               try {
-                await dashboardController.refreshDocuments(dibaca: dibacaVal);
+                await dashboardController.refreshDocuments(dibaca: qp);
               } catch (e) {
                 Get.snackbar(
                   'Peringatan',
@@ -62,8 +94,20 @@ class DataTab extends StatelessWidget {
               }
             },
             child: ListView.builder(
-              itemCount: dashboardController.documents.length,
+              physics: const AlwaysScrollableScrollPhysics(),
+              controller: _scrollController,
+              itemCount: dashboardController.documents.length +
+                  (dashboardController.hasMoreData.value ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index == dashboardController.documents.length) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
                 final doc = dashboardController.documents[index];
                 return Card(
                   child: ListTile(
@@ -115,8 +159,8 @@ class DataTab extends StatelessWidget {
                                     },
                                   );
                                   if (result != null) {
-                                    final dashboardController =
-                                        Get.find<DashboardController>();
+                                    // final dashboardController =
+                                    //     Get.find<DashboardController>();
                                     await dashboardController
                                         .refreshDocuments();
                                   }
@@ -216,8 +260,8 @@ class DataTab extends StatelessWidget {
                                   }
                                   final repo = DocumentRepository();
                                   await repo.deleteDocument(doc.id);
-                                  final dashboardController =
-                                      Get.find<DashboardController>();
+                                  // final dashboardController =
+                                  //     Get.find<DashboardController>();
                                   dashboardController.documents.removeAt(index);
                                   Get.snackbar(
                                     'Berhasil',

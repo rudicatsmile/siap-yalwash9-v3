@@ -5,11 +5,11 @@ class AppConstants {
   // Application Info
   static const String appName = 'SIAP';
   static const String appFullName = 'Sistem Informasi Administrasi Protokoler';
-  static const String appTagline = 'Sistem Administrasi Protokoler Terpadu';
+  static const String appTagline = 'Sistem Informasi Administrasi Protokoler';
 
   // Pagination
-  static const int documentsPerPage = 20;
-  static const int historyItemLimit = 10;
+  static const int documentsPerPage = 10;
+  static const int historyItemLimit = 5;
 
   // Timeouts
   static const int apiTimeoutSeconds = 30;
