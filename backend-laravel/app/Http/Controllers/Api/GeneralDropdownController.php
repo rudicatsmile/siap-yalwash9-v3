@@ -68,10 +68,20 @@ class GeneralDropdownController extends Controller
             // Filter specific for m_kategori_formulir based on user code
             if ($table === 'm_kategori_formulir') {
                 $user = $request->user();
+                
+                // Cek parameter khusus untuk mode edit Memo/Koordinasi
+                $specialMode = filter_var($request->input('special_mode'), FILTER_VALIDATE_BOOLEAN);
+                $qParam = $request->input('qParam');
+                $klasifikasi = $request->input('klasifikasi');
+                $isSpecialCase = $specialMode && $qParam == '4' && in_array($klasifikasi, ['MEMO', 'KRDN']);
+
                 if ($user && in_array($user->kode_user, ['YS-01-PMP-001', 'YS-01-WPM-001', 'YS-01-KHR-001'])) {
                     $query->whereIn('kode', ['Memo', 'Koordinasi']);
                 } else {
-                    $query->whereNotIn('kode', ['Memo', 'Koordinasi']);
+                    // Jika bukan special case, terapkan filter exclude
+                    if (!$isSpecialCase) {
+                        $query->whereNotIn('kode', ['Memo', 'Koordinasi']);
+                    }
                 }
             }
 

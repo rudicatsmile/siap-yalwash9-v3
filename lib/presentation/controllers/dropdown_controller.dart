@@ -20,7 +20,9 @@ class DropdownController extends GetxController {
   static final Map<String, List<DropdownItem>> _cache = {};
 
   Future<void> loadTable(String tableName,
-      {int limit = 100, bool forceRefresh = false}) async {
+      {int limit = 100,
+      bool forceRefresh = false,
+      Map<String, dynamic>? params}) async {
     error.value = '';
     isLoading.value = true;
 
@@ -34,12 +36,18 @@ class DropdownController extends GetxController {
         return;
       }
 
+      final Map<String, dynamic> queryParams = {
+        'table_name': tableName,
+        'limit': limit,
+      };
+
+      if (params != null) {
+        queryParams.addAll(params);
+      }
+
       final resp = await _api.get(
         ApiConstants.generalDropdown,
-        queryParameters: {
-          'table_name': tableName,
-          'limit': limit,
-        },
+        queryParameters: queryParams,
       );
 
       final data = resp.data;

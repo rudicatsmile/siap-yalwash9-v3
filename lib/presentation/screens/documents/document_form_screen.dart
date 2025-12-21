@@ -2900,6 +2900,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       final gDibaca = getDibaca();
                       // Jika dibaca '8', khusus Rapat (legacy?)
                       if (gDibaca == '8') {
+                        //Jika Koordinator meminta rapat, maka dropdown tindakan hanya Rapat
                         _tindakanManajemenController.items.assignAll([
                           DropdownItem(kode: '8', deskripsi: 'Rapat'),
                         ]);
@@ -2914,6 +2915,21 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                           'Undangan') {
                         _tindakanManajemenController.items.assignAll([
                           DropdownItem(kode: '3', deskripsi: 'Di terima'),
+                        ]);
+                        if (_tindakanManajemenController.selectedKode.value !=
+                            '3') {
+                          _tindakanManajemenController.select('3');
+                        }
+                        _tindakanManajemenController.error.value = '';
+                      }
+                      //Jika _kategoriController == 'Memo' atau 'Koordinasi' Maka dropdown hanya menampilkan data dengan kode 3 / Di terima dan sebarkan
+                      else if (_getSelectedKode(_kategoriController) ==
+                              'Memo' ||
+                          _getSelectedKode(_kategoriController) ==
+                              'Koordinasi') {
+                        _tindakanManajemenController.items.assignAll([
+                          DropdownItem(
+                              kode: '3', deskripsi: 'Di terima dan sebarkan'),
                         ]);
                         if (_tindakanManajemenController.selectedKode.value !=
                             '3') {
@@ -4191,6 +4207,24 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         final doc = results.first;
         _existingDocument = doc;
         _editingDocumentId = doc.id;
+
+        // Cek kondisi khusus untuk reload kategori (qParam=4 dan klasifikasi MEMO/KRDN)
+        _logger.i(
+            'Reloading document with noSurat: $noSurat, qParam: ${widget.qParam}, klasifikasi: ${doc.kategoriSurat}');
+        if (widget.qParam == '4' &&
+            (doc.kategoriSurat == 'MEMO' || doc.kategoriSurat == 'KRDN')) {
+          _logger.i(
+              'Reloading kategori table with special params for Memo/KRDN : ${doc.kategoriSurat}');
+          await _kategoriController.loadTable(
+            'm_kategori_formulir',
+            forceRefresh: true,
+            params: {
+              'special_mode': true,
+              'qParam': '4',
+              'klasifikasi': doc.kategoriSurat,
+            },
+          );
+        }
 
         // Set default kategori Formulir (edit mode) berdasarkan doc.kategoriKode
         final kk = doc.kategoriKode?.trim();
