@@ -29,7 +29,7 @@ class DashboardController extends GetxController {
   Future<void> loadDocuments(
       {bool refresh = false, String? search, String? dibaca}) async {
     try {
-      _logger.d('Dashboard loadDocuments start');
+      _logger.d('Dashboard loadDocuments start : $refresh, $search, $dibaca');
       if (refresh) {
         isRefreshing.value = true;
         currentPage.value = 1;
@@ -166,9 +166,13 @@ class DashboardController extends GetxController {
   }
 
   /// Refresh documents
-  Future<void> refreshDocuments() async {
+  ///
+  /// [dibaca] Optional parameter to filter documents by read status
+  Future<void> refreshDocuments({String? dibaca}) async {
     hasMoreData.value = true;
-    await loadDocuments(refresh: true);
+    print('Dashboard loadDocuments start controller [3] : $dibaca');
+
+    await loadDocuments(refresh: true, dibaca: dibaca);
   }
 
   /// Load more documents (pagination)

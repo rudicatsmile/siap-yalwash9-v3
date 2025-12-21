@@ -4027,7 +4027,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         await smCtrl.submit(payload);
       }
 
-      Get.back(result: 'created');
+      // Kirim hasil balik ke pemanggil dengan data 'dibaca'
+      final dibacaVal = widget.qParam; //getDibaca();
+      _logger.d('Dashboard loadDocuments start Form [1] : ${widget.qParam}');
+
+      Get.back(result: {
+        'status': 'created',
+        'dibaca': widget.qParam,
+      });
       Get.snackbar(
         'Berhasil',
         _isEditMode
