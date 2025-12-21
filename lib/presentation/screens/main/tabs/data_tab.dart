@@ -86,7 +86,6 @@ class _DataTabState extends State<DataTab> {
             onRefresh: () async {
               // Menggunakan qp (qParam) sebagai nilai untuk parameter 'dibaca'
               // Ini memastikan filter tetap aktif saat pull-to-refresh
-              print('Dashboard loadDocuments start RefreshIndicator : $qp');
 
               try {
                 await dashboardController.refreshDocuments(dibaca: qp);
@@ -122,6 +121,16 @@ class _DataTabState extends State<DataTab> {
                 }
 
                 final doc = dashboardController.documents[index];
+                final statusColor = switch (doc.dibaca) {
+                  '1' => AppTheme.getStatusColor(doc.status),
+                  '2' => Colors.green,
+                  '3' => Colors.blue,
+                  '7' || '8' => Colors.green,
+                  '20' => Colors.red,
+                  '0' => Colors.red,
+                  _ => AppTheme.getStatusColor(doc.status),
+                };
+
                 return Card(
                   child: ListTile(
                     title: Text(doc.kategoriKode == 'Rapat'
@@ -129,7 +138,7 @@ class _DataTabState extends State<DataTab> {
                         : (doc.kategoriKode == 'Memo' ||
                                 doc.kategoriKode == 'Koordinasi')
                             ? (doc.instruksiKerja ?? doc.title)
-                            : doc.title),
+                            : (doc.perihal ?? doc.title)),
                     subtitle: Text(doc.documentNumber),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -138,21 +147,28 @@ class _DataTabState extends State<DataTab> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppTheme.getStatusColor(doc.status)
-                                .withOpacity(0.1),
+                            color: statusColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: AppTheme.getStatusColor(doc.status),
+                              color: statusColor,
                             ),
                           ),
                           child: Text(
-                            doc.status.displayName +
+                            (switch (doc.dibaca) {
+                                  '1' => 'Progres Kabag. Umum',
+                                  '2' => 'Progres Pimpinan',
+                                  '3' => 'Di terima',
+                                  '7' || '8' => 'Rapat Koordinasi',
+                                  '20' => 'Tidak diterima',
+                                  '0' => 'Di kembalikan',
+                                  _ => doc.status.displayName
+                                }) +
                                 (doc.kategoriSurat != null
                                     ? '\n${doc.kategoriSurat!}'
                                     : ''),
                             style: TextStyle(
                               fontSize: 11,
-                              color: AppTheme.getStatusColor(doc.status),
+                              color: statusColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -162,7 +178,6 @@ class _DataTabState extends State<DataTab> {
                           onSelected: (value) async {
                             switch (value) {
                               case 'detail':
-                                // qParam = '2' hanya menampilkan menu Detail; aksi sama seperti 'view'
                                 try {
                                   final result = await Get.toNamed(
                                     AppRoutes.documentForm,
@@ -215,7 +230,6 @@ class _DataTabState extends State<DataTab> {
                                 )?.then((result) {
                                   if (result != null) {
                                     String? dibacaVal;
-                                    // Handle result as Map (new format) or String (legacy/fallback)
                                     if (result is Map) {
                                       if (result['status'] == 'created' ||
                                           result['status'] == 'updated') {
@@ -295,25 +309,26 @@ class _DataTabState extends State<DataTab> {
                           },
                           // Menampilkan menu kondisional berdasarkan qParam
                           itemBuilder: (context) {
-                            if (qp == '2') {
-                              return [
-                                PopupMenuItem(
-                                  value: 'detail',
-                                  child: Row(
-                                    children: const [
-                                      Icon(Icons.info_outline),
-                                      SizedBox(width: 8),
-                                      Text('Detail'),
-                                    ],
-                                  ),
-                                ),
-                              ];
-                            }
+                            // if (qp == '2') {
+                            //   //Buat berkas : oleh user, coordinator
+                            //   return [
+                            //     PopupMenuItem(
+                            //       value: 'detail',
+                            //       child: Row(
+                            //         children: const [
+                            //           Icon(Icons.info_outline),
+                            //           SizedBox(width: 8),
+                            //           Text('Detail'),
+                            //         ],
+                            //       ),
+                            //     ),
+                            //   ];
+                            // }
                             return [
-                              const PopupMenuItem(
-                                value: 'view',
-                                child: Text('Lihat'),
-                              ),
+                              // const PopupMenuItem(
+                              //   value: 'view',
+                              //   child: Text('Lihat'),
+                              // ),
                               const PopupMenuItem(
                                 value: 'edit',
                                 child: Text('Edit'),

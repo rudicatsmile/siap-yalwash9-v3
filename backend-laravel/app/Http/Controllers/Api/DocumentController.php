@@ -71,8 +71,9 @@ class DocumentController extends Controller
             $query->where(function ($q) use ($dibaca, $user) {
                 switch ($dibaca) {
                     case '1':
-                        $q->where('dibaca', '1')
-                            ->where('id_instansi', $user->instansi);
+                        $q->where('id_instansi', $user->instansi);
+                        // $q->where('dibaca', '1')
+                        //     ->where('id_instansi', $user->instansi);
                         break;
                     case '2':
                         $q->where('dibaca', '1')

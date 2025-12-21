@@ -60,7 +60,7 @@ class Environment {
   static String get apiBaseUrl {
     switch (current) {
       case dev:
-        return 'http://192.168.1.10:8000';
+        return 'http://192.168.1.11:8000';
       case staging:
         return 'https://staging-api.siap.example.com'; // Staging server
       case production:
