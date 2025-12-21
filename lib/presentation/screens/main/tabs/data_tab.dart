@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:get/get.dart';
 import '../../../../data/repositories/document_repository.dart';
 import '../../../controllers/dashboard_controller.dart';
@@ -22,11 +23,12 @@ class _DataTabState extends State<DataTab> {
   late DashboardController dashboardController;
   late AuthController authController;
   String? qp;
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    dashboardController = Get.put(DashboardController(), permanent: true);
+    dashboardController = Get.put(DashboardController());
     authController = Get.find<AuthController>();
     _scrollController.addListener(_onScroll);
 
@@ -45,18 +47,22 @@ class _DataTabState extends State<DataTab> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
 
   void _onScroll() {
-    if (_scrollController.hasClients) {
-      final maxScroll = _scrollController.position.maxScrollExtent;
-      final currentScroll = _scrollController.position.pixels;
-      if (currentScroll >= maxScroll * 0.8) {
-        dashboardController.loadMore(dibaca: qp);
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 200), () {
+      if (_scrollController.hasClients) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final currentScroll = _scrollController.position.pixels;
+        if (currentScroll >= maxScroll * 0.8) {
+          dashboardController.loadMore(dibaca: qp);
+        }
       }
-    }
+    });
   }
 
   @override
@@ -96,14 +102,21 @@ class _DataTabState extends State<DataTab> {
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               controller: _scrollController,
-              itemCount: dashboardController.documents.length +
-                  (dashboardController.hasMoreData.value ? 1 : 0),
+              itemCount: dashboardController.documents.length + 1,
               itemBuilder: (context, index) {
                 if (index == dashboardController.documents.length) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16.0),
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
                     child: Center(
-                      child: CircularProgressIndicator(),
+                      child: dashboardController.hasMoreData.value
+                          ? const CircularProgressIndicator()
+                          : Text(
+                              'Tidak ada data lagi',
+                              style: TextStyle(
+                                color: AppTheme.textSecondaryColor,
+                                fontSize: 12,
+                              ),
+                            ),
                     ),
                   );
                 }

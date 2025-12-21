@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/models/models.dart';
 import '../../data/repositories/document_repository.dart';
 import '../../core/constants/app_constants.dart';
@@ -27,13 +28,17 @@ class DashboardController extends GetxController {
 
   /// Load documents based on user role
   Future<void> loadDocuments(
-      {bool refresh = false, String? search, String? dibaca}) async {
+      {bool refresh = false,
+      String? search,
+      String? dibaca,
+      int? limit}) async {
     try {
       _logger.d('Dashboard loadDocuments start : $refresh, $search, $dibaca');
       if (refresh) {
         isRefreshing.value = true;
         currentPage.value = 1;
         documents.clear();
+        hasMoreData.value = true; // Reset hasMoreData on refresh
       } else {
         isLoading.value = true;
       }
@@ -41,6 +46,7 @@ class DashboardController extends GetxController {
       final user = _authController.currentUser.value;
       if (user == null) return;
 
+      final int fetchLimit = limit ?? AppConstants.documentsPerPage;
       List<DocumentModel> newDocuments = [];
 
       // Load documents based on role
@@ -56,6 +62,7 @@ class DashboardController extends GetxController {
           newDocuments = await _documentRepository.getDocuments(
             userId: user.id,
             page: currentPage.value,
+            limit: fetchLimit,
             search: search,
             dibaca: dibaca,
           );
@@ -73,6 +80,7 @@ class DashboardController extends GetxController {
           newDocuments = await _documentRepository.getDocuments(
             departemenId: user.departemenId,
             page: currentPage.value,
+            limit: fetchLimit,
             search: search,
             dibaca: dibaca,
           );
@@ -89,6 +97,7 @@ class DashboardController extends GetxController {
           newDocuments = await _documentRepository.getDocuments(
             status: DocumentStatus.pending.code,
             page: currentPage.value,
+            limit: fetchLimit,
             search: search,
             dibaca: dibaca,
           );
@@ -105,6 +114,7 @@ class DashboardController extends GetxController {
           newDocuments = await _documentRepository.getDocuments(
             status: DocumentStatus.forwardedToCoordinator.code,
             page: currentPage.value,
+            limit: fetchLimit,
             search: search,
             dibaca: dibaca,
           );
@@ -121,6 +131,7 @@ class DashboardController extends GetxController {
           newDocuments = await _documentRepository.getDocuments(
             status: DocumentStatus.forwardedToMainLeader.code,
             page: currentPage.value,
+            limit: fetchLimit,
             search: search,
             dibaca: dibaca,
           );
@@ -135,6 +146,7 @@ class DashboardController extends GetxController {
           });
           newDocuments = await _documentRepository.getDocuments(
             page: currentPage.value,
+            limit: fetchLimit,
             search: search,
             dibaca: dibaca,
           );
@@ -142,24 +154,29 @@ class DashboardController extends GetxController {
       }
 
       _logger.d({'received': newDocuments.length});
-      if (newDocuments.length < AppConstants.documentsPerPage) {
+
+      if (newDocuments.length < fetchLimit) {
         hasMoreData.value = false;
       }
 
-      documents.addAll(newDocuments);
-      currentPage.value++;
+      if (refresh) {
+        documents.assignAll(newDocuments);
+      } else {
+        documents.addAll(newDocuments);
+      }
+
+      if (newDocuments.isNotEmpty) {
+        currentPage.value++;
+      }
     } catch (e) {
-      _logger.e('Dashboard loadDocuments error: $e');
+      _logger.e('Error loading documents: $e');
       Get.snackbar(
         'Error',
-        'Gagal memuat dokumen. Silakan coba lagi.',
-        backgroundColor: Colors.red,
+        'Gagal memuat dokumen: $e',
+        backgroundColor: AppTheme.errorColor,
         colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
       );
-      debugPrint('Failed to load documents: $e');
     } finally {
-      _logger.d('Dashboard loadDocuments end');
       isLoading.value = false;
       isRefreshing.value = false;
     }
