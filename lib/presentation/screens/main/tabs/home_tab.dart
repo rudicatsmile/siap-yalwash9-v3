@@ -182,7 +182,8 @@ class HomeTab extends StatelessWidget {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(12),
                             onTap: () {
-                              Get.to(() => DataTab(qParam: stat.qParam));
+                              Get.to(() => DataTab(
+                                  qParam: stat.qParam, title: stat.label));
                             },
                             child: Padding(
                               padding: const EdgeInsets.all(AppSpacing.md),

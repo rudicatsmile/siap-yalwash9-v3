@@ -9,7 +9,9 @@ import '../../../../core/theme/app_theme.dart';
 /// Data tab with role-based dashboard
 class DataTab extends StatelessWidget {
   final String? qParam;
-  const DataTab({super.key, this.qParam});
+  final String? title;
+
+  const DataTab({super.key, this.qParam, this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +30,7 @@ class DataTab extends StatelessWidget {
     }
     return Scaffold(
       appBar: AppBar(
-        title: Text(qp == null ? 'Dashboard SIAP' : 'Dashboard SIAP — $qp'),
+        title: Text(title ?? 'Dashboard SIAP'),
       ),
       body: Obx(
         () {
@@ -147,14 +149,10 @@ class DataTab extends StatelessWidget {
                                         dibacaVal =
                                             result['dibaca']?.toString();
                                       }
-                                      print(
-                                          'Dashboard loadDocuments start Data tab Edit [2] : $dibacaVal');
                                     } else if (result == 'created' ||
                                         result == 'updated') {
                                       // Fallback if just string returned
                                       dibacaVal = null;
-                                      print(
-                                          'Dashboard loadDocuments start Data tab Edit Fallback [2]: $dibacaVal');
                                     }
 
                                     // Refresh documents with filter 'dibaca' received from form
