@@ -211,6 +211,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   bool _showKategoriLaporan = false;
   bool _showUndanganKepada = false;
   bool _showGroupDisposisiPimpinan = false;
+  bool _showGroupPengajuanBerkas = false;
   bool _showGroupUploadImages = true;
 
   // Group Manajemen : Tindalan dan disposisi
@@ -284,6 +285,39 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   final List<_UploadItem> _uploadItems = <_UploadItem>[];
   String? _uploadValidationError;
   final _logger = Logger();
+
+  // --- Constants for Form Logic ---
+  static const String _qpDraft = '1';
+  static const String _qpRevisi = '2';
+  static const String _statusUnread = '1';
+
+  /// Determines if the main form fields should be editable.
+  ///
+  /// The fields are editable if:
+  /// 1. It is a new document (`dibaca` is null).
+  /// 2. It is a Draft (`1`) or Revisi (`2`) AND the document is Unread (`1`).
+  ///
+  /// This centralizes the editability logic to ensure consistency and ease of maintenance.
+  bool get _isFormEditable {
+    try {
+      final dibaca = _existingDocument?.dibaca;
+
+      // Case 1: New Document
+      if (dibaca == null) return true;
+
+      // Case 2: Draft or Revisi and Unread
+      final isTargetMode =
+          widget.qParam == _qpDraft || widget.qParam == _qpRevisi;
+      final isUnread = dibaca == _statusUnread;
+
+      return isTargetMode && isUnread;
+    } catch (e) {
+      _logger.e('Error determining form editability: $e');
+      // Default to false (disabled) on error for safety
+      return false;
+    }
+  }
+
   final Set<String> _deletedLampiranIds = <String>{};
   Directory? _sessionTempDir;
   final Set<String> _tempFiles = <String>{};
@@ -976,6 +1010,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     super.initState();
 
     final user = authController.currentUser.value;
+    _logger.i({'auth_current_user..': user?.toJson()});
+    //DO todo
     _pengirimController.text = user?.instansiName ?? '';
 
     _kategoriController = _putOrFind(DropdownController(), tag: 'kategori');
@@ -1026,6 +1062,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _showTindakanPimpinan = false;
     } else {
       _showTindakanPimpinan = true;
+    }
+
+    if (widget.qParam == '1' || widget.qParam == '2') {
+      _showGroupPengajuanBerkas = true;
     }
 
     _initializeForm();
@@ -1374,1087 +1414,96 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                       children: [
                         // Information message
                         _buildInfoMessage(),
-                        const SizedBox(height: 24),
-                        // Kategori Formulir: tampilkan "kode - deskripsi" dari m_kategori_formulir
-                        ApiDropdownField(
-                          label:
-                              'Kategori Formulir ${_existingDocument?.dibaca}',
-                          placeholder: 'Pilih Kategori Formulir',
-                          tableName: 'm_kategori_formulir',
-                          controller: _kategoriController,
-                          disabled:
-                              ((widget.qParam == '1' || widget.qParam == '2') &&
-                                      _existingDocument?.dibaca == '1')
-                                  ? false
-                                  : true,
-                          onChanged: (val) {
-                            _handleKategoriChanged(val);
+
+                        //---- START HERE
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _showGroupPengajuanBerkas =
+                                  !_showGroupPengajuanBerkas;
+                            });
                           },
-                          itemTextBuilder: (it) => it.deskripsi,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Kategori formulir harus dipilih';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showKategoriLaporan
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiDropdownField(
-                                      label: 'Kategori Laporan ',
-                                      placeholder: 'Pilih Kategori Laporan',
-                                      tableName: 'm_kategori_laporan',
-                                      controller: _kategoriLaporanController,
-                                      disabled: ((widget.qParam == '1' ||
-                                                  widget.qParam == '2') &&
-                                              _existingDocument?.dibaca == '1')
-                                          ? false
-                                          : true,
-                                      onChanged: (val) {
-                                        _handleKategoriLaporanChanged(val);
-                                      },
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Kategori laporan harus dipilih';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showJenisDokumen
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiDropdownField(
-                                      label: 'Jenis Dokumen',
-                                      placeholder: 'Pilih Jenis Dokumen',
-                                      tableName: 'm_jenis_dokumen',
-                                      controller: _jenisController,
-                                      disabled: ((widget.qParam == '1' ||
-                                                  widget.qParam == '2') &&
-                                              _existingDocument?.dibaca == '1')
-                                          ? false
-                                          : true,
-                                      onChanged: (val) {
-                                        _handleJenisDokumenChanged(val);
-                                      },
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Jenis dokumen harus dipilih';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showUndanganKepada
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Undangan kepada',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    Obx(() {
-                                      if (_usersDropdownController
-                                              .isLoading.value &&
-                                          _usersDropdownController
-                                              .items.isEmpty) {
-                                        return const SizedBox(
-                                          height: 56,
-                                          child: Center(
-                                              child:
-                                                  CircularProgressIndicator()),
-                                        );
-                                      }
-                                      if (_usersDropdownController
-                                          .error.isNotEmpty) {
-                                        return Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.errorColor
-                                                .withOpacity(0.08),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            border: Border.all(
-                                              color: AppTheme.errorColor
-                                                  .withOpacity(0.3),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            _usersDropdownController
-                                                .error.value,
-                                            style: const TextStyle(
-                                                color: AppTheme.errorColor),
-                                          ),
-                                        );
-                                      }
-                                      return DropdownButtonFormField<String>(
-                                        value: _usersDropdownController
-                                                .selectedUserId.value.isEmpty
-                                            ? null
-                                            : _usersDropdownController
-                                                .selectedUserId.value,
-                                        items: _usersDropdownController.items
-                                            .map(
-                                              (u) => DropdownMenuItem<String>(
-                                                value: u.id,
-                                                child: Text(u.namaLengkap),
-                                              ),
-                                            )
-                                            .toList(),
-                                        onChanged: ((widget.qParam == '1' ||
-                                                    widget.qParam == '2') &&
-                                                _existingDocument?.dibaca ==
-                                                    '1')
-                                            ? (val) => _usersDropdownController
-                                                .select(val)
-                                            : null,
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'undangan harus dipilih';
-                                          }
-                                          return null;
-                                        },
-                                        decoration: const InputDecoration(
-                                          hintText: 'Pilih undangan kepada',
-                                          border: OutlineInputBorder(),
-                                          prefixIcon:
-                                              Icon(Icons.person_outline),
-                                        ),
-                                      );
-                                    }),
-                                    const SizedBox(height: 16),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                        // Obx(() {
-                        //   if (_lastNoSuratController.isLoading.value) {
-                        //     return const SizedBox(
-                        //       height: 56,
-                        //       child: Center(child: CircularProgressIndicator()),
-                        //     );
-                        //   }
-                        //   if (_lastNoSuratController.error.isNotEmpty) {
-                        //     return Container(
-                        //       padding: const EdgeInsets.all(12),
-                        //       decoration: BoxDecoration(
-                        //         color: AppTheme.errorColor.withOpacity(0.08),
-                        //         borderRadius: BorderRadius.circular(8),
-                        //         border: Border.all(
-                        //           color: AppTheme.errorColor.withOpacity(0.3),
-                        //         ),
-                        //       ),
-                        //       child: Text(
-                        //         _lastNoSuratController.error.value,
-                        //         style:
-                        //             const TextStyle(color: AppTheme.errorColor),
-                        //       ),
-                        //     );
-                        //   }
-                        //   final data = _lastNoSuratController.result.value;
-                        //   if (data == null) {
-                        //     return const SizedBox.shrink();
-                        //   }
-                        //   return Card(
-                        //     elevation: 2,
-                        //     child: Padding(
-                        //       padding: const EdgeInsets.all(12.0),
-                        //       child: Column(
-                        //         crossAxisAlignment: CrossAxisAlignment.start,
-                        //         children: [
-                        //           Row(
-                        //             children: const [
-                        //               Icon(Icons.info_outline, size: 18),
-                        //               SizedBox(width: 8),
-                        //               Text(
-                        //                 'Informasi Nomor Surat',
-                        //                 style: TextStyle(
-                        //                     fontWeight: FontWeight.bold),
-                        //               ),
-                        //             ],
-                        //           ),
-                        //           const SizedBox(height: 8),
-                        //           Text('Last No Surat: ${data.lastNoSurat}'),
-                        //           Text('Next No Surat: ${data.nextNoSurat}'),
-                        //           Text('Timestamp: ${data.timestamp}'),
-                        //         ],
-                        //       ),
-                        //     ),
-                        //   );
-                        // }),
-                        // Wrap(
-                        //   spacing: 8,
-                        //   runSpacing: 8,
-                        //   children: [
-                        //     FilterChip(
-                        //       label: const Text('Identitas Dokumen'),
-                        //       selected: _showGroupIdentitasDokumen,
-                        //       onSelected: (v) {
-                        //         setState(() => _showGroupIdentitasDokumen = v);
-                        //       },
-                        //     ),
-                        //     FilterChip(
-                        //       label: const Text('Nomor Dokumen'),
-                        //       selected: _showNomorDokumen,
-                        //       onSelected: (v) {
-                        //         setState(() => _showNomorDokumen = v);
-                        //       },
-                        //     ),
-                        //     FilterChip(
-                        //       label: const Text('Tanggal Buat'),
-                        //       selected: _showTanggalBuat,
-                        //       onSelected: (v) {
-                        //         setState(() => _showTanggalBuat = v);
-                        //       },
-                        //     ),
-                        //     FilterChip(
-                        //       label: const Text('Pengirim'),
-                        //       selected: _showPengirim,
-                        //       onSelected: (v) {
-                        //         setState(() => _showPengirim = v);
-                        //       },
-                        //     ),
-                        //   ],
-                        // ),
-
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showGroupIdentitasDokumen
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    AnimatedSwitcher(
-                                      duration:
-                                          const Duration(milliseconds: 250),
-                                      transitionBuilder: (child, anim) =>
-                                          SizeTransition(
-                                        sizeFactor: anim,
-                                        child: child,
-                                      ),
-                                      child: _showNomorDokumen
-                                          ? Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                const SizedBox(height: 16),
-                                                Text(
-                                                  'Nomor dokumen',
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Row(
-                                                  children: [
-                                                    Expanded(
-                                                      flex: 6,
-                                                      child: TextFormField(
-                                                        controller:
-                                                            _docNumberPart1Controller,
-                                                        readOnly: true,
-                                                        decoration:
-                                                            const InputDecoration(
-                                                          border:
-                                                              OutlineInputBorder(),
-                                                          prefixIcon: Icon(Icons
-                                                              .confirmation_number_outlined),
-                                                        ),
-                                                        validator: (value) {
-                                                          final v =
-                                                              (value ?? '')
-                                                                  .trim();
-                                                          if (v.isEmpty) {
-                                                            return 'Nomor dokumen harus diisi';
-                                                          }
-                                                          final isDigits =
-                                                              RegExp(r'^\d+$')
-                                                                  .hasMatch(v);
-                                                          if (!isDigits) {
-                                                            return 'Nomor dokumen berupa angka';
-                                                          }
-                                                          return null;
-                                                        },
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 12),
-                                                    Expanded(
-                                                      flex: 7,
-                                                      child: TextFormField(
-                                                        readOnly: true,
-                                                        controller:
-                                                            _docNumberPart2Controller,
-                                                        decoration:
-                                                            const InputDecoration(
-                                                          border:
-                                                              OutlineInputBorder(),
-                                                          prefixIcon: Icon(Icons
-                                                              .tag_outlined),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            )
-                                          : const SizedBox.shrink(),
-                                    ),
-                                    AnimatedSwitcher(
-                                      duration:
-                                          const Duration(milliseconds: 250),
-                                      transitionBuilder: (child, anim) =>
-                                          SizeTransition(
-                                        sizeFactor: anim,
-                                        child: child,
-                                      ),
-                                      child: _showTanggalBuat
-                                          ? Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                const SizedBox(height: 16),
-                                                Text(
-                                                  'Tanggal buat',
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                TextFormField(
-                                                  controller:
-                                                      _todayDateController,
-                                                  readOnly: true,
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    hintText: 'dd-mm-yyyy',
-                                                    border:
-                                                        OutlineInputBorder(),
-                                                    prefixIcon: Icon(Icons
-                                                        .calendar_today_outlined),
-                                                  ),
-                                                  onChanged:
-                                                      _handleTodayDateChanged,
-                                                ),
-                                              ],
-                                            )
-                                          : const SizedBox.shrink(),
-                                    ),
-                                    AnimatedSwitcher(
-                                      duration:
-                                          const Duration(milliseconds: 250),
-                                      transitionBuilder: (child, anim) =>
-                                          SizeTransition(
-                                        sizeFactor: anim,
-                                        child: child,
-                                      ),
-                                      child: _showPengirim
-                                          ? Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                const SizedBox(height: 16),
-                                                Text(
-                                                  'Pengirim',
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                TextFormField(
-                                                  controller:
-                                                      _pengirimController,
-                                                  readOnly: true,
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    hintText:
-                                                        'Masukkan nama pengirim berkas',
-                                                    border:
-                                                        OutlineInputBorder(),
-                                                    prefixIcon: Icon(
-                                                        Icons.person_outlined),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 16),
-                                              ],
-                                            )
-                                          : const SizedBox.shrink(),
-                                    ),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        // Wrap(
-                        //   spacing: 8,
-                        //   runSpacing: 8,
-                        //   children: [
-                        //     FilterChip(
-                        //       label: const Text('Jenis Dokumen'),
-                        //       selected: _showJenisDokumen,
-                        //       onSelected: (v) {
-                        //         setState(() => _showJenisDokumen = v);
-                        //       },
-                        //     ),
-                        //   ],
-                        // ),
-
-                        // Wrap(
-                        //   spacing: 8,
-                        //   runSpacing: 8,
-                        //   children: [
-                        //     FilterChip(
-                        //       label: const Text('Kategori Laporan'),
-                        //       selected: _showKategoriLaporan,
-                        //       onSelected: (v) {
-                        //         setState(() => _showKategoriLaporan = v);
-                        //       },
-                        //     ),
-                        //   ],
-                        // ),
-
-                        // Dropdown User Undangan (sumber data dari /api/users/dropdown dengan parameter kode_user=YS)
-                        // Wrap(
-                        //   spacing: 8,
-                        //   runSpacing: 8,
-                        //   children: [
-                        //     FilterChip(
-                        //       label: const Text('Undangan Kepada'),
-                        //       selected: _showUndanganKepada,
-                        //       onSelected: (v) {
-                        //         setState(() => _showUndanganKepada = v);
-                        //       },
-                        //     ),
-                        //   ],
-                        // ),
-
-                        //Tanggal Surat
-                        Text(
-                          'Tanggal Surat',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextFormField(
-                          enabled:
-                              // (widget.qParam == '1' || widget.qParam == '2'),
-                              ((widget.qParam == '1' || widget.qParam == '2') &&
-                                  _existingDocument?.dibaca == '1'),
-                          readOnly: true,
-                          controller: _letterDateController,
-                          decoration: const InputDecoration(
-                            hintText: 'dd-MM-yyyy',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.calendar_today_outlined),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Detail Pengajuan Berkas',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Icon(
+                                  _showGroupPengajuanBerkas
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down,
+                                ),
+                              ],
+                            ),
                           ),
-                          validator: (value) {
-                            final v = (value ?? '').trim();
-                            if (v.isEmpty) {
-                              return 'Tanggal surat harus diisi';
-                            }
-                            try {
-                              DateFormat('dd-MM-yyyy').parseStrict(v);
-                            } catch (_) {
-                              return 'Format tanggal tidak valid (dd-MM-yyyy)';
-                            }
-                            return null;
-                          },
-                          onTap: () async {
-                            final initial =
-                                _selectedLetterDate ?? DateTime.now();
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: initial,
-                              firstDate: DateTime(2000, 1, 1),
-                              lastDate: DateTime(2100, 12, 31),
-                            );
-                            if (picked != null) {
-                              _selectedLetterDate = picked;
-                              _letterDateController.text =
-                                  DateFormat('dd-MM-yyyy').format(picked);
-                              setState(() {});
-                              _handleTodayDateChanged(
-                                  _letterDateController.text);
-                            }
-                          },
-                          onChanged: (v) {
-                            try {
-                              _selectedLetterDate = DateFormat('dd-MM-yyyy')
-                                  .parseStrict(v.trim());
-                            } catch (_) {
-                              _selectedLetterDate = null;
-                            }
-                            _handleTodayDateChanged(v);
-                          },
                         ),
-                        const SizedBox(height: 16),
-
-                        //Bagian 1: Nomor surat yang diinput oleh pengguna
-                        //Bagian 2: Gabungan kata dan angka yang tergantung dari bulan controller _todayDateController
-                        Text(
-                          'Nomor Surat',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 4,
-                              child: TextFormField(
-                                enabled: ((widget.qParam == '1' ||
-                                        widget.qParam == '2') &&
-                                    _existingDocument?.dibaca == '1'),
-                                controller: _letterNumberPart1Controller,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  prefixIcon:
-                                      Icon(Icons.confirmation_number_outlined),
-                                  hintText: 'Nomor',
-                                ),
-                                validator: (value) {
-                                  final v = (value ?? '').trim();
-                                  if (v.isEmpty) {
-                                    return 'Nomor surat harus diisi';
-                                  }
-                                  final isAllowed =
-                                      RegExp(r'^[0-9.]+$').hasMatch(v);
-                                  if (!isAllowed) {
-                                    return 'Nomor harus angka atau titik';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 6,
-                              child: TextFormField(
-                                controller: _letterNumberPart2Controller,
-                                readOnly: true,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  // prefixIcon: Icon(Icons.tag_outlined),
-                                  // hintText: 'Kode Bulan-Tahun',
-                                ),
-                                validator: (value) {
-                                  final v = (value ?? '').trim();
-                                  if (v.isEmpty) {
-                                    return 'nomor surat  tidak boleh kosong';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        // Text(
-                        //   'Kategori Kode',
-                        //   style: const TextStyle(fontWeight: FontWeight.bold),
-                        // ),
-                        // TextFormField(
-                        //   controller: _kategoriKodeController,
-                        //   readOnly: true,
-                        //   decoration: const InputDecoration(
-                        //     hintText: 'Kode kategori terpilih',
-                        //     border: OutlineInputBorder(),
-                        //     prefixIcon: Icon(Icons.category_outlined),
-                        //   ),
-                        //   validator: (value) {
-                        //     final v = (value ?? '').trim();
-                        //     if (v.isEmpty) {
-                        //       return 'Kategori kode harus dipilih';
-                        //     }
-                        //     return null;
-                        //   },
-                        // ),
-                        // const SizedBox(height: 16),
-
-                        // Wrap(
-                        //   spacing: 8,
-                        //   runSpacing: 8,
-                        //   children: [
-                        //     FilterChip(
-                        //       label: const Text('Lampiran & Ringkasan'),
-                        //       selected: _showGroupLampirandanRingkasan,
-                        //       onSelected: (v) {
-                        //         setState(
-                        //             () => _showGroupLampirandanRingkasan = v);
-                        //       },
-                        //     ),
-                        //   ],
-                        // ),
-
-                        //Group Lampiran & Ringkasan
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 250),
                           transitionBuilder: (child, anim) =>
                               SizeTransition(sizeFactor: anim, child: child),
-                          child: _showGroupLampirandanRingkasan
+                          child: _showGroupPengajuanBerkas
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Perihal',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    TextFormField(
-                                      enabled: ((widget.qParam == '1' ||
-                                              widget.qParam == '2') &&
-                                          _existingDocument?.dibaca == '1'),
-                                      controller: _perihalController,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Masukkan perihal surat',
-                                        border: OutlineInputBorder(),
-                                        prefixIcon:
-                                            Icon(Icons.subject_outlined),
-                                      ),
+                                    const SizedBox(height: 24),
+                                    // Kategori Formulir: tampilkan "kode - deskripsi" dari m_kategori_formulir
+                                    ApiDropdownField(
+                                      label:
+                                          'Kategori Formulir ${_existingDocument?.dibaca} - ${widget.qParam}',
+                                      placeholder: 'Pilih Kategori Formulir',
+                                      tableName: 'm_kategori_formulir',
+                                      controller: _kategoriController,
+                                      disabled: !_isFormEditable,
+                                      onChanged: (val) {
+                                        _handleKategoriChanged(val);
+                                      },
+                                      itemTextBuilder: (it) => it.deskripsi,
                                       validator: (value) {
-                                        final v = (value ?? '').trim();
-                                        if (v.length < 5) {
-                                          return 'Perihal minimal 5 karakter';
+                                        if (value == null || value.isEmpty) {
+                                          return 'Kategori formulir harus dipilih';
                                         }
                                         return null;
                                       },
                                     ),
                                     const SizedBox(height: 16),
-                                    Text(
-                                      'Ringkasan',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    TextFormField(
-                                      enabled: ((widget.qParam == '1' ||
-                                              widget.qParam == '2') &&
-                                          _existingDocument?.dibaca == '1'),
-                                      controller: _ringkasanController,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Masukkan ringkasan',
-                                        border: OutlineInputBorder(),
-                                        prefixIcon: Icon(Icons.notes_outlined),
-                                        alignLabelWithHint: true,
-                                      ),
-                                      validator: (value) {
-                                        final v = (value ?? '').trim();
-                                        if (v.length < 5) {
-                                          return 'Ringkasan minimal 5 karakter';
-                                        }
-                                        return null;
-                                      },
-                                      maxLines: 4,
-                                      textCapitalization:
-                                          TextCapitalization.sentences,
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
 
-                        // Wrap(
-                        //   spacing: 8,
-                        //   runSpacing: 8,
-                        //   children: [
-                        //     FilterChip(
-                        //       label: const Text('Ditujukan'),
-                        //       selected: _showGroupDitujukan,
-                        //       onSelected: (v) {
-                        //         setState(() => _showGroupDitujukan = v);
-                        //       },
-                        //     ),
-                        //   ],
-                        // ),
-
-                        //Group Ditujukan
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showGroupDitujukan
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiMultiSelectField(
-                                      label: 'Di tujukan',
-                                      placeholder: 'Pilih tujuan disposisi',
-                                      tableName: 'm_tujuan_disposisi',
-                                      controller: _tujuanDisposisiController,
-                                      disabled: ((widget.qParam == '1' ||
-                                                  widget.qParam == '2') &&
-                                              _existingDocument?.dibaca == '1')
-                                          ? false
-                                          : true,
-                                      selectedValues: _selectedTujuanDisposisi,
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (values) {
-                                        if (values == null || values.isEmpty) {
-                                          return 'Minimal pilih 1 tujuan disposisi';
-                                        }
-                                        return null;
-                                      },
-                                      onChanged: (vals) {
-                                        _selectedTujuanDisposisi
-                                          ..clear()
-                                          ..addAll(vals);
-                                        setState(() {});
-                                      },
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        //_showGroupDisposisiPimpinan
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showGroupDisposisiPimpinan
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ApiMultiSelectField(
-                                      label: 'Disposisi',
-                                      placeholder: 'Pilih tujuan disposisi',
-                                      tableName: 'm_tujuan_disposisi',
-                                      controller: _disposisiPimpinanController,
-                                      disabled: ((widget.qParam == '1' ||
-                                                  widget.qParam == '2') &&
-                                              _existingDocument?.dibaca == '1')
-                                          ? false
-                                          : true,
-                                      selectedValues:
-                                          _selectedDisposisiPimpinan,
-                                      itemTextBuilder: (it) => it.deskripsi,
-                                      validator: (values) {
-                                        if (values == null || values.isEmpty) {
-                                          return 'Minimal pilih 1 tujuan disposisi';
-                                        }
-                                        return null;
-                                      },
-                                      onChanged: (vals) {
-                                        _selectedDisposisiPimpinan
-                                          ..clear()
-                                          ..addAll(vals);
-                                        setState(() {});
-                                      },
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showGroupInstruksiMemo
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Obx(() {
-                                      final desc = _getSelectedDeskripsi(
-                                          _kategoriController);
-                                      String label = 'Instruksi Kerja';
-                                      if (desc != null &&
-                                          desc
-                                              .toLowerCase()
-                                              .contains('koordinasi')) {
-                                        label = 'Catatan Koordinasi';
-                                      }
-                                      return Text(
-                                        label,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                      );
-                                    }),
-                                    TextFormField(
-                                      controller: _InstruksiMemoController,
-                                      enabled: ((widget.qParam == '1' ||
-                                              widget.qParam == '2') &&
-                                          _existingDocument?.dibaca == '1'),
-                                      decoration: const InputDecoration(
-                                        hintText: 'Input di sini',
-                                        border: OutlineInputBorder(),
-                                        prefixIcon: Icon(Icons.notes_outlined),
-                                        alignLabelWithHint: true,
-                                      ),
-                                      validator: (value) {
-                                        final v = (value ?? '').trim();
-                                        if (v.length < 5) {
-                                          return 'Ringkasan minimal 5 karakter';
-                                        }
-                                        return null;
-                                      },
-                                      maxLines: 4,
-                                      textCapitalization:
-                                          TextCapitalization.sentences,
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                        // Wrap(
-                        //   spacing: 8,
-                        //   runSpacing: 8,
-                        //   children: [
-                        //     FilterChip(
-                        //       label: const Text('Rapat'),
-                        //       selected: _showGroupRapat,
-                        //       onSelected: (v) {
-                        //         setState(() => _showGroupRapat = v);
-                        //       },
-                        //     ),
-                        //     FilterChip(
-                        //       label: const Text('Waktu Rapat'),
-                        //       selected: _showWaktuRapat,
-                        //       onSelected: (v) {
-                        //         setState(() => _showWaktuRapat = v);
-                        //       },
-                        //     ),
-                        //     FilterChip(
-                        //       label: const Text('Ruang Rapat'),
-                        //       selected: _showRuangRapat,
-                        //       onSelected: (v) {
-                        //         setState(() => _showRuangRapat = v);
-                        //       },
-                        //     ),
-                        //     FilterChip(
-                        //       label: const Text('Peserta Rapat'),
-                        //       selected: _showPesertaRapat,
-                        //       onSelected: (v) {
-                        //         setState(() => _showPesertaRapat = v);
-                        //       },
-                        //     ),
-                        //     FilterChip(
-                        //       label: const Text('Pimpinan Rapat'),
-                        //       selected: _showPimpinanRapat,
-                        //       onSelected: (v) {
-                        //         setState(() => _showPimpinanRapat = v);
-                        //       },
-                        //     ),
-                        //     FilterChip(
-                        //       label: const Text('Pokok Bahasan'),
-                        //       selected: _showPokokBahasanRapat,
-                        //       onSelected: (v) {
-                        //         setState(() => _showPokokBahasanRapat = v);
-                        //       },
-                        //     ),
-                        //   ],
-                        // ),
-
-                        //Group Rapat
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showGroupRapat
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
                                     AnimatedSwitcher(
                                       duration:
                                           const Duration(milliseconds: 250),
                                       transitionBuilder: (child, anim) =>
                                           SizeTransition(
-                                        sizeFactor: anim,
-                                        child: child,
-                                      ),
-                                      child: _showWaktuRapat
-                                          ? Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Waktu Rapat',
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Row(
-                                                  children: [
-                                                    Expanded(
-                                                      flex: 5,
-                                                      child: TextFormField(
-                                                        enabled: ((widget
-                                                                        .qParam ==
-                                                                    '1' ||
-                                                                widget.qParam ==
-                                                                    '2') &&
-                                                            _existingDocument
-                                                                    ?.dibaca ==
-                                                                '1'),
-                                                        controller:
-                                                            _meetingDateController,
-                                                        decoration:
-                                                            const InputDecoration(
-                                                          hintText:
-                                                              'DD/MM/YYYY',
-                                                          border:
-                                                              OutlineInputBorder(),
-                                                          prefixIcon: Icon(Icons
-                                                              .calendar_today_outlined),
-                                                        ),
-                                                        validator: (value) {
-                                                          final v =
-                                                              (value ?? '')
-                                                                  .trim();
-                                                          if (v.isEmpty) {
-                                                            return 'Tanggal rapat harus diisi';
-                                                          }
-                                                          try {
-                                                            DateFormat(
-                                                                    'dd/MM/yyyy')
-                                                                .parseStrict(v);
-                                                          } catch (_) {
-                                                            return 'Format tanggal tidak valid (DD/MM/YYYY)';
-                                                          }
-                                                          return null;
-                                                        },
-                                                        onTap: () async {
-                                                          final initial =
-                                                              _selectedMeetingDate ??
-                                                                  DateTime
-                                                                      .now();
-                                                          final picked =
-                                                              await showDatePicker(
-                                                            context: context,
-                                                            initialDate:
-                                                                initial,
-                                                            firstDate: DateTime(
-                                                                2000, 1, 1),
-                                                            lastDate: DateTime(
-                                                                2100, 12, 31),
-                                                          );
-                                                          if (picked != null) {
-                                                            _selectedMeetingDate =
-                                                                picked;
-                                                            _meetingDateController
-                                                                .text = DateFormat(
-                                                                    'dd/MM/yyyy')
-                                                                .format(picked);
-                                                            setState(() {});
-                                                          }
-                                                        },
-                                                        onChanged: (v) {
-                                                          try {
-                                                            _selectedMeetingDate =
-                                                                DateFormat(
-                                                                        'dd/MM/yyyy')
-                                                                    .parseStrict(
-                                                                        v.trim());
-                                                          } catch (_) {
-                                                            _selectedMeetingDate =
-                                                                null;
-                                                          }
-                                                          setState(() {});
-                                                        },
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 12),
-                                                    Expanded(
-                                                      flex: 5,
-                                                      child: TextFormField(
-                                                        enabled: ((widget
-                                                                        .qParam ==
-                                                                    '1' ||
-                                                                widget.qParam ==
-                                                                    '2') &&
-                                                            _existingDocument
-                                                                    ?.dibaca ==
-                                                                '1'),
-                                                        controller:
-                                                            _meetingTimeController,
-                                                        decoration:
-                                                            const InputDecoration(
-                                                          hintText:
-                                                              'waktu rapat',
-                                                          border:
-                                                              OutlineInputBorder(),
-                                                          prefixIcon: Icon(Icons
-                                                              .access_time_outlined),
-                                                        ),
-                                                        validator: (value) {
-                                                          final v =
-                                                              (value ?? '')
-                                                                  .trim();
-                                                          if (v.isEmpty) {
-                                                            return 'Waktu rapat harus diisi';
-                                                          }
-                                                          return null;
-                                                        },
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 16),
-                                              ],
-                                            )
-                                          : const SizedBox.shrink(),
-                                    ),
-                                    AnimatedSwitcher(
-                                      duration:
-                                          const Duration(milliseconds: 250),
-                                      transitionBuilder: (child, anim) =>
-                                          SizeTransition(
-                                        sizeFactor: anim,
-                                        child: child,
-                                      ),
-                                      child: _showRuangRapat
+                                              sizeFactor: anim, child: child),
+                                      child: _showKategoriLaporan
                                           ? Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 ApiDropdownField(
-                                                  label: 'Ruang Rapat',
+                                                  label: 'Kategori Laporan ',
                                                   placeholder:
-                                                      'Pilih Ruang Rapat',
-                                                  tableName: 'm_ruang_rapat',
+                                                      'Pilih Kategori Laporan',
+                                                  tableName:
+                                                      'm_kategori_laporan',
                                                   controller:
-                                                      _ruangRapatController,
-                                                  disabled: ((widget.qParam ==
-                                                                  '1' ||
-                                                              widget.qParam ==
-                                                                  '2') &&
-                                                          _existingDocument
-                                                                  ?.dibaca ==
-                                                              '1')
-                                                      ? false
-                                                      : true,
+                                                      _kategoriLaporanController,
+                                                  disabled: !_isFormEditable,
+                                                  onChanged: (val) {
+                                                    _handleKategoriLaporanChanged(
+                                                        val);
+                                                  },
                                                   itemTextBuilder: (it) =>
                                                       it.deskripsi,
                                                   validator: (value) {
                                                     if (value == null ||
                                                         value.isEmpty) {
-                                                      return 'Ruang rapat harus dipilih';
+                                                      return 'Kategori laporan harus dipilih';
                                                     }
                                                     return null;
                                                   },
@@ -2464,27 +1513,777 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                             )
                                           : const SizedBox.shrink(),
                                     ),
+
                                     AnimatedSwitcher(
                                       duration:
                                           const Duration(milliseconds: 250),
                                       transitionBuilder: (child, anim) =>
                                           SizeTransition(
-                                        sizeFactor: anim,
-                                        child: child,
+                                              sizeFactor: anim, child: child),
+                                      child: _showJenisDokumen
+                                          ? Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                ApiDropdownField(
+                                                  label: 'Jenis Dokumen',
+                                                  placeholder:
+                                                      'Pilih Jenis Dokumen',
+                                                  tableName: 'm_jenis_dokumen',
+                                                  controller: _jenisController,
+                                                  disabled: !_isFormEditable,
+                                                  onChanged: (val) {
+                                                    _handleJenisDokumenChanged(
+                                                        val);
+                                                  },
+                                                  itemTextBuilder: (it) =>
+                                                      it.deskripsi,
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.isEmpty) {
+                                                      return 'Jenis dokumen harus dipilih';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                                const SizedBox(height: 16),
+                                              ],
+                                            )
+                                          : const SizedBox.shrink(),
+                                    ),
+
+                                    AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 250),
+                                      transitionBuilder: (child, anim) =>
+                                          SizeTransition(
+                                              sizeFactor: anim, child: child),
+                                      child: _showUndanganKepada
+                                          ? Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Undangan kepada',
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                                Obx(() {
+                                                  if (_usersDropdownController
+                                                          .isLoading.value &&
+                                                      _usersDropdownController
+                                                          .items.isEmpty) {
+                                                    return const SizedBox(
+                                                      height: 56,
+                                                      child: Center(
+                                                          child:
+                                                              CircularProgressIndicator()),
+                                                    );
+                                                  }
+                                                  if (_usersDropdownController
+                                                      .error.isNotEmpty) {
+                                                    return Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              12),
+                                                      decoration: BoxDecoration(
+                                                        color: AppTheme
+                                                            .errorColor
+                                                            .withOpacity(0.08),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
+                                                        border: Border.all(
+                                                          color: AppTheme
+                                                              .errorColor
+                                                              .withOpacity(0.3),
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        _usersDropdownController
+                                                            .error.value,
+                                                        style: const TextStyle(
+                                                            color: AppTheme
+                                                                .errorColor),
+                                                      ),
+                                                    );
+                                                  }
+                                                  return DropdownButtonFormField<
+                                                      String>(
+                                                    value: _usersDropdownController
+                                                            .selectedUserId
+                                                            .value
+                                                            .isEmpty
+                                                        ? null
+                                                        : _usersDropdownController
+                                                            .selectedUserId
+                                                            .value,
+                                                    items:
+                                                        _usersDropdownController
+                                                            .items
+                                                            .map(
+                                                              (u) =>
+                                                                  DropdownMenuItem<
+                                                                      String>(
+                                                                value: u.id,
+                                                                child: Text(u
+                                                                    .namaLengkap),
+                                                              ),
+                                                            )
+                                                            .toList(),
+                                                    onChanged: ((widget.qParam ==
+                                                                    '1' ||
+                                                                widget.qParam ==
+                                                                    '2') &&
+                                                            _existingDocument
+                                                                    ?.dibaca ==
+                                                                '1')
+                                                        ? (val) =>
+                                                            _usersDropdownController
+                                                                .select(val)
+                                                        : null,
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value.isEmpty) {
+                                                        return 'undangan harus dipilih';
+                                                      }
+                                                      return null;
+                                                    },
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      hintText:
+                                                          'Pilih undangan kepada',
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                      prefixIcon: Icon(
+                                                          Icons.person_outline),
+                                                    ),
+                                                  );
+                                                }),
+                                                const SizedBox(height: 16),
+                                              ],
+                                            )
+                                          : const SizedBox.shrink(),
+                                    ),
+                                    // Obx(() {
+                                    //   if (_lastNoSuratController.isLoading.value) {
+                                    //     return const SizedBox(
+                                    //       height: 56,
+                                    //       child: Center(child: CircularProgressIndicator()),
+                                    //     );
+                                    //   }
+                                    //   if (_lastNoSuratController.error.isNotEmpty) {
+                                    //     return Container(
+                                    //       padding: const EdgeInsets.all(12),
+                                    //       decoration: BoxDecoration(
+                                    //         color: AppTheme.errorColor.withOpacity(0.08),
+                                    //         borderRadius: BorderRadius.circular(8),
+                                    //         border: Border.all(
+                                    //           color: AppTheme.errorColor.withOpacity(0.3),
+                                    //         ),
+                                    //       ),
+                                    //       child: Text(
+                                    //         _lastNoSuratController.error.value,
+                                    //         style:
+                                    //             const TextStyle(color: AppTheme.errorColor),
+                                    //       ),
+                                    //     );
+                                    //   }
+                                    //   final data = _lastNoSuratController.result.value;
+                                    //   if (data == null) {
+                                    //     return const SizedBox.shrink();
+                                    //   }
+                                    //   return Card(
+                                    //     elevation: 2,
+                                    //     child: Padding(
+                                    //       padding: const EdgeInsets.all(12.0),
+                                    //       child: Column(
+                                    //         crossAxisAlignment: CrossAxisAlignment.start,
+                                    //         children: [
+                                    //           Row(
+                                    //             children: const [
+                                    //               Icon(Icons.info_outline, size: 18),
+                                    //               SizedBox(width: 8),
+                                    //               Text(
+                                    //                 'Informasi Nomor Surat',
+                                    //                 style: TextStyle(
+                                    //                     fontWeight: FontWeight.bold),
+                                    //               ),
+                                    //             ],
+                                    //           ),
+                                    //           const SizedBox(height: 8),
+                                    //           Text('Last No Surat: ${data.lastNoSurat}'),
+                                    //           Text('Next No Surat: ${data.nextNoSurat}'),
+                                    //           Text('Timestamp: ${data.timestamp}'),
+                                    //         ],
+                                    //       ),
+                                    //     ),
+                                    //   );
+                                    // }),
+                                    // Wrap(
+                                    //   spacing: 8,
+                                    //   runSpacing: 8,
+                                    //   children: [
+                                    //     FilterChip(
+                                    //       label: const Text('Identitas Dokumen'),
+                                    //       selected: _showGroupIdentitasDokumen,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showGroupIdentitasDokumen = v);
+                                    //       },
+                                    //     ),
+                                    //     FilterChip(
+                                    //       label: const Text('Nomor Dokumen'),
+                                    //       selected: _showNomorDokumen,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showNomorDokumen = v);
+                                    //       },
+                                    //     ),
+                                    //     FilterChip(
+                                    //       label: const Text('Tanggal Buat'),
+                                    //       selected: _showTanggalBuat,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showTanggalBuat = v);
+                                    //       },
+                                    //     ),
+                                    //     FilterChip(
+                                    //       label: const Text('Pengirim'),
+                                    //       selected: _showPengirim,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showPengirim = v);
+                                    //       },
+                                    //     ),
+                                    //   ],
+                                    // ),
+
+                                    AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 250),
+                                      transitionBuilder: (child, anim) =>
+                                          SizeTransition(
+                                              sizeFactor: anim, child: child),
+                                      child: _showGroupIdentitasDokumen
+                                          ? Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                      milliseconds: 250),
+                                                  transitionBuilder:
+                                                      (child, anim) =>
+                                                          SizeTransition(
+                                                    sizeFactor: anim,
+                                                    child: child,
+                                                  ),
+                                                  child: _showNomorDokumen
+                                                      ? Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            const SizedBox(
+                                                                height: 16),
+                                                            Text(
+                                                              'Nomor dokumen',
+                                                              style: const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold),
+                                                            ),
+                                                            Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  flex: 6,
+                                                                  child:
+                                                                      TextFormField(
+                                                                    controller:
+                                                                        _docNumberPart1Controller,
+                                                                    readOnly:
+                                                                        true,
+                                                                    decoration:
+                                                                        const InputDecoration(
+                                                                      border:
+                                                                          OutlineInputBorder(),
+                                                                      prefixIcon:
+                                                                          Icon(Icons
+                                                                              .confirmation_number_outlined),
+                                                                    ),
+                                                                    validator:
+                                                                        (value) {
+                                                                      final v = (value ??
+                                                                              '')
+                                                                          .trim();
+                                                                      if (v
+                                                                          .isEmpty) {
+                                                                        return 'Nomor dokumen harus diisi';
+                                                                      }
+                                                                      final isDigits = RegExp(
+                                                                              r'^\d+$')
+                                                                          .hasMatch(
+                                                                              v);
+                                                                      if (!isDigits) {
+                                                                        return 'Nomor dokumen berupa angka';
+                                                                      }
+                                                                      return null;
+                                                                    },
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                    width: 12),
+                                                                Expanded(
+                                                                  flex: 7,
+                                                                  child:
+                                                                      TextFormField(
+                                                                    readOnly:
+                                                                        true,
+                                                                    controller:
+                                                                        _docNumberPart2Controller,
+                                                                    decoration:
+                                                                        const InputDecoration(
+                                                                      border:
+                                                                          OutlineInputBorder(),
+                                                                      prefixIcon:
+                                                                          Icon(Icons
+                                                                              .tag_outlined),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                      milliseconds: 250),
+                                                  transitionBuilder:
+                                                      (child, anim) =>
+                                                          SizeTransition(
+                                                    sizeFactor: anim,
+                                                    child: child,
+                                                  ),
+                                                  child: _showTanggalBuat
+                                                      ? Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            const SizedBox(
+                                                                height: 16),
+                                                            Text(
+                                                              'Tanggal buat',
+                                                              style: const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold),
+                                                            ),
+                                                            TextFormField(
+                                                              controller:
+                                                                  _todayDateController,
+                                                              readOnly: true,
+                                                              decoration:
+                                                                  const InputDecoration(
+                                                                hintText:
+                                                                    'dd-mm-yyyy',
+                                                                border:
+                                                                    OutlineInputBorder(),
+                                                                prefixIcon:
+                                                                    Icon(Icons
+                                                                        .calendar_today_outlined),
+                                                              ),
+                                                              onChanged:
+                                                                  _handleTodayDateChanged,
+                                                            ),
+                                                          ],
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                      milliseconds: 250),
+                                                  transitionBuilder:
+                                                      (child, anim) =>
+                                                          SizeTransition(
+                                                    sizeFactor: anim,
+                                                    child: child,
+                                                  ),
+                                                  child: _showPengirim
+                                                      ? Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            const SizedBox(
+                                                                height: 16),
+                                                            Text(
+                                                              'Pengirim',
+                                                              style: const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold),
+                                                            ),
+                                                            TextFormField(
+                                                              controller:
+                                                                  _pengirimController,
+                                                              readOnly: true,
+                                                              decoration:
+                                                                  const InputDecoration(
+                                                                hintText:
+                                                                    'Masukkan nama pengirim berkas',
+                                                                border:
+                                                                    OutlineInputBorder(),
+                                                                prefixIcon:
+                                                                    Icon(Icons
+                                                                        .person_outlined),
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 16),
+                                                          ],
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                              ],
+                                            )
+                                          : const SizedBox.shrink(),
+                                    ),
+
+                                    // Wrap(
+                                    //   spacing: 8,
+                                    //   runSpacing: 8,
+                                    //   children: [
+                                    //     FilterChip(
+                                    //       label: const Text('Jenis Dokumen'),
+                                    //       selected: _showJenisDokumen,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showJenisDokumen = v);
+                                    //       },
+                                    //     ),
+                                    //   ],
+                                    // ),
+
+                                    // Wrap(
+                                    //   spacing: 8,
+                                    //   runSpacing: 8,
+                                    //   children: [
+                                    //     FilterChip(
+                                    //       label: const Text('Kategori Laporan'),
+                                    //       selected: _showKategoriLaporan,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showKategoriLaporan = v);
+                                    //       },
+                                    //     ),
+                                    //   ],
+                                    // ),
+
+                                    // Dropdown User Undangan (sumber data dari /api/users/dropdown dengan parameter kode_user=YS)
+                                    // Wrap(
+                                    //   spacing: 8,
+                                    //   runSpacing: 8,
+                                    //   children: [
+                                    //     FilterChip(
+                                    //       label: const Text('Undangan Kepada'),
+                                    //       selected: _showUndanganKepada,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showUndanganKepada = v);
+                                    //       },
+                                    //     ),
+                                    //   ],
+                                    // ),
+
+                                    //Tanggal Surat
+                                    Text(
+                                      'Tanggal Surat',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    TextFormField(
+                                      enabled:
+                                          // (widget.qParam == '1' || widget.qParam == '2'),
+                                          ((widget.qParam == '1' ||
+                                                  widget.qParam == '2') &&
+                                              _existingDocument?.dibaca == '1'),
+                                      readOnly: true,
+                                      controller: _letterDateController,
+                                      decoration: const InputDecoration(
+                                        hintText: 'dd-MM-yyyy',
+                                        border: OutlineInputBorder(),
+                                        prefixIcon:
+                                            Icon(Icons.calendar_today_outlined),
                                       ),
-                                      child: _showPesertaRapat
+                                      validator: (value) {
+                                        final v = (value ?? '').trim();
+                                        if (v.isEmpty) {
+                                          return 'Tanggal surat harus diisi';
+                                        }
+                                        try {
+                                          DateFormat('dd-MM-yyyy')
+                                              .parseStrict(v);
+                                        } catch (_) {
+                                          return 'Format tanggal tidak valid (dd-MM-yyyy)';
+                                        }
+                                        return null;
+                                      },
+                                      onTap: () async {
+                                        final initial = _selectedLetterDate ??
+                                            DateTime.now();
+                                        final picked = await showDatePicker(
+                                          context: context,
+                                          initialDate: initial,
+                                          firstDate: DateTime(2000, 1, 1),
+                                          lastDate: DateTime(2100, 12, 31),
+                                        );
+                                        if (picked != null) {
+                                          _selectedLetterDate = picked;
+                                          _letterDateController.text =
+                                              DateFormat('dd-MM-yyyy')
+                                                  .format(picked);
+                                          setState(() {});
+                                          _handleTodayDateChanged(
+                                              _letterDateController.text);
+                                        }
+                                      },
+                                      onChanged: (v) {
+                                        try {
+                                          _selectedLetterDate =
+                                              DateFormat('dd-MM-yyyy')
+                                                  .parseStrict(v.trim());
+                                        } catch (_) {
+                                          _selectedLetterDate = null;
+                                        }
+                                        _handleTodayDateChanged(v);
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    //Bagian 1: Nomor surat yang diinput oleh pengguna
+                                    //Bagian 2: Gabungan kata dan angka yang tergantung dari bulan controller _todayDateController
+                                    Text(
+                                      'Nomor Surat',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 4,
+                                          child: TextFormField(
+                                            enabled: ((widget.qParam == '1' ||
+                                                    widget.qParam == '2') &&
+                                                _existingDocument?.dibaca ==
+                                                    '1'),
+                                            controller:
+                                                _letterNumberPart1Controller,
+                                            decoration: const InputDecoration(
+                                              border: OutlineInputBorder(),
+                                              prefixIcon: Icon(Icons
+                                                  .confirmation_number_outlined),
+                                              hintText: 'Nomor',
+                                            ),
+                                            validator: (value) {
+                                              final v = (value ?? '').trim();
+                                              if (v.isEmpty) {
+                                                return 'Nomor surat harus diisi';
+                                              }
+                                              final isAllowed =
+                                                  RegExp(r'^[0-9.]+$')
+                                                      .hasMatch(v);
+                                              if (!isAllowed) {
+                                                return 'Nomor harus angka atau titik';
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          flex: 6,
+                                          child: TextFormField(
+                                            controller:
+                                                _letterNumberPart2Controller,
+                                            readOnly: true,
+                                            decoration: const InputDecoration(
+                                              border: OutlineInputBorder(),
+                                              // prefixIcon: Icon(Icons.tag_outlined),
+                                              // hintText: 'Kode Bulan-Tahun',
+                                            ),
+                                            validator: (value) {
+                                              final v = (value ?? '').trim();
+                                              if (v.isEmpty) {
+                                                return 'nomor surat  tidak boleh kosong';
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    // Text(
+                                    //   'Kategori Kode',
+                                    //   style: const TextStyle(fontWeight: FontWeight.bold),
+                                    // ),
+                                    // TextFormField(
+                                    //   controller: _kategoriKodeController,
+                                    //   readOnly: true,
+                                    //   decoration: const InputDecoration(
+                                    //     hintText: 'Kode kategori terpilih',
+                                    //     border: OutlineInputBorder(),
+                                    //     prefixIcon: Icon(Icons.category_outlined),
+                                    //   ),
+                                    //   validator: (value) {
+                                    //     final v = (value ?? '').trim();
+                                    //     if (v.isEmpty) {
+                                    //       return 'Kategori kode harus dipilih';
+                                    //     }
+                                    //     return null;
+                                    //   },
+                                    // ),
+                                    // const SizedBox(height: 16),
+
+                                    // Wrap(
+                                    //   spacing: 8,
+                                    //   runSpacing: 8,
+                                    //   children: [
+                                    //     FilterChip(
+                                    //       label: const Text('Lampiran & Ringkasan'),
+                                    //       selected: _showGroupLampirandanRingkasan,
+                                    //       onSelected: (v) {
+                                    //         setState(
+                                    //             () => _showGroupLampirandanRingkasan = v);
+                                    //       },
+                                    //     ),
+                                    //   ],
+                                    // ),
+
+                                    //Group Lampiran & Ringkasan
+                                    AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 250),
+                                      transitionBuilder: (child, anim) =>
+                                          SizeTransition(
+                                              sizeFactor: anim, child: child),
+                                      child: _showGroupLampirandanRingkasan
+                                          ? Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Perihal',
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                                TextFormField(
+                                                  enabled:
+                                                      ((widget.qParam == '1' ||
+                                                              widget.qParam ==
+                                                                  '2') &&
+                                                          _existingDocument
+                                                                  ?.dibaca ==
+                                                              '1'),
+                                                  controller:
+                                                      _perihalController,
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    hintText:
+                                                        'Masukkan perihal surat',
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    prefixIcon: Icon(
+                                                        Icons.subject_outlined),
+                                                  ),
+                                                  validator: (value) {
+                                                    final v =
+                                                        (value ?? '').trim();
+                                                    if (v.length < 5) {
+                                                      return 'Perihal minimal 5 karakter';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                                const SizedBox(height: 16),
+                                                Text(
+                                                  'Ringkasan',
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                                TextFormField(
+                                                  enabled:
+                                                      ((widget.qParam == '1' ||
+                                                              widget.qParam ==
+                                                                  '2') &&
+                                                          _existingDocument
+                                                                  ?.dibaca ==
+                                                              '1'),
+                                                  controller:
+                                                      _ringkasanController,
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    hintText:
+                                                        'Masukkan ringkasan',
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    prefixIcon: Icon(
+                                                        Icons.notes_outlined),
+                                                    alignLabelWithHint: true,
+                                                  ),
+                                                  validator: (value) {
+                                                    final v =
+                                                        (value ?? '').trim();
+                                                    if (v.length < 5) {
+                                                      return 'Ringkasan minimal 5 karakter';
+                                                    }
+                                                    return null;
+                                                  },
+                                                  maxLines: 4,
+                                                  textCapitalization:
+                                                      TextCapitalization
+                                                          .sentences,
+                                                ),
+                                                const SizedBox(height: 12),
+                                              ],
+                                            )
+                                          : const SizedBox.shrink(),
+                                    ),
+
+                                    // Wrap(
+                                    //   spacing: 8,
+                                    //   runSpacing: 8,
+                                    //   children: [
+                                    //     FilterChip(
+                                    //       label: const Text('Ditujukan'),
+                                    //       selected: _showGroupDitujukan,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showGroupDitujukan = v);
+                                    //       },
+                                    //     ),
+                                    //   ],
+                                    // ),
+
+                                    //Group Ditujukan
+                                    AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 250),
+                                      transitionBuilder: (child, anim) =>
+                                          SizeTransition(
+                                              sizeFactor: anim, child: child),
+                                      child: _showGroupDitujukan
                                           ? Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 ApiMultiSelectField(
-                                                  label: 'Peserta Rapat',
+                                                  label: 'Di tujukan',
                                                   placeholder:
-                                                      'Pilih Peserta rapat',
+                                                      'Pilih tujuan disposisi',
                                                   tableName:
                                                       'm_tujuan_disposisi',
                                                   controller:
-                                                      _pesertaRapatController,
+                                                      _tujuanDisposisiController,
                                                   disabled: ((widget.qParam ==
                                                                   '1' ||
                                                               widget.qParam ==
@@ -2495,49 +2294,49 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                       ? false
                                                       : true,
                                                   selectedValues:
-                                                      _selectedPesertaRapat,
+                                                      _selectedTujuanDisposisi,
                                                   itemTextBuilder: (it) =>
                                                       it.deskripsi,
                                                   validator: (values) {
                                                     if (values == null ||
                                                         values.isEmpty) {
-                                                      return 'Minimal pilih 1 Peserta rapat';
+                                                      return 'Minimal pilih 1 tujuan disposisi';
                                                     }
                                                     return null;
                                                   },
                                                   onChanged: (vals) {
-                                                    _selectedPesertaRapat
+                                                    _selectedTujuanDisposisi
                                                       ..clear()
                                                       ..addAll(vals);
                                                     setState(() {});
                                                   },
                                                 ),
-                                                const SizedBox(height: 16),
+                                                const SizedBox(height: 12),
                                               ],
                                             )
                                           : const SizedBox.shrink(),
                                     ),
+
+                                    //_showGroupDisposisiPimpinan
                                     AnimatedSwitcher(
                                       duration:
                                           const Duration(milliseconds: 250),
                                       transitionBuilder: (child, anim) =>
                                           SizeTransition(
-                                        sizeFactor: anim,
-                                        child: child,
-                                      ),
-                                      child: _showPimpinanRapat
+                                              sizeFactor: anim, child: child),
+                                      child: _showGroupDisposisiPimpinan
                                           ? Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                ApiDropdownField(
-                                                  label: 'Pimpinan',
+                                                ApiMultiSelectField(
+                                                  label: 'Disposisi',
                                                   placeholder:
-                                                      'Pilih Piminan rapat',
+                                                      'Pilih tujuan disposisi',
                                                   tableName:
                                                       'm_tujuan_disposisi',
                                                   controller:
-                                                      _pimpinanRapatController,
+                                                      _disposisiPimpinanController,
                                                   disabled: ((widget.qParam ==
                                                                   '1' ||
                                                               widget.qParam ==
@@ -2547,43 +2346,65 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                               '1')
                                                       ? false
                                                       : true,
+                                                  selectedValues:
+                                                      _selectedDisposisiPimpinan,
                                                   itemTextBuilder: (it) =>
                                                       it.deskripsi,
-                                                  validator: (value) {
-                                                    if (value == null ||
-                                                        value.isEmpty) {
-                                                      return 'Pimpinan rapat harus dipilih';
+                                                  validator: (values) {
+                                                    if (values == null ||
+                                                        values.isEmpty) {
+                                                      return 'Minimal pilih 1 tujuan disposisi';
                                                     }
                                                     return null;
                                                   },
+                                                  onChanged: (vals) {
+                                                    _selectedDisposisiPimpinan
+                                                      ..clear()
+                                                      ..addAll(vals);
+                                                    setState(() {});
+                                                  },
                                                 ),
-                                                const SizedBox(height: 16),
+                                                const SizedBox(height: 12),
                                               ],
                                             )
                                           : const SizedBox.shrink(),
                                     ),
+
                                     AnimatedSwitcher(
                                       duration:
                                           const Duration(milliseconds: 250),
                                       transitionBuilder: (child, anim) =>
                                           SizeTransition(
-                                        sizeFactor: anim,
-                                        child: child,
-                                      ),
-                                      child: _showPokokBahasanRapat
+                                              sizeFactor: anim, child: child),
+                                      child: _showGroupInstruksiMemo
                                           ? Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                Text(
-                                                  'Pokok Bahasan Rapat',
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
+                                                Obx(() {
+                                                  final desc =
+                                                      _getSelectedDeskripsi(
+                                                          _kategoriController);
+                                                  String label =
+                                                      'Instruksi Kerja';
+                                                  if (desc != null &&
+                                                      desc
+                                                          .toLowerCase()
+                                                          .contains(
+                                                              'koordinasi')) {
+                                                    label =
+                                                        'Catatan Koordinasi';
+                                                  }
+                                                  return Text(
+                                                    label,
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  );
+                                                }),
                                                 TextFormField(
                                                   controller:
-                                                      _pokokBahasanController,
+                                                      _InstruksiMemoController,
                                                   enabled:
                                                       ((widget.qParam == '1' ||
                                                               widget.qParam ==
@@ -2593,363 +2414,797 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                               '1'),
                                                   decoration:
                                                       const InputDecoration(
-                                                    hintText:
-                                                        'Masukkan pokok bahasan rapat',
+                                                    hintText: 'Input di sini',
                                                     border:
                                                         OutlineInputBorder(),
                                                     prefixIcon: Icon(
-                                                        Icons.topic_outlined),
+                                                        Icons.notes_outlined),
                                                     alignLabelWithHint: true,
                                                   ),
+                                                  validator: (value) {
+                                                    final v =
+                                                        (value ?? '').trim();
+                                                    if (v.length < 5) {
+                                                      return 'Ringkasan minimal 5 karakter';
+                                                    }
+                                                    return null;
+                                                  },
                                                   maxLines: 4,
                                                   textCapitalization:
                                                       TextCapitalization
                                                           .sentences,
-                                                  validator: (value) {
-                                                    final v =
-                                                        (value ?? '').trim();
-                                                    if (v.isEmpty) {
-                                                      return 'Pokok bahasan rapat harus diisi';
-                                                    }
-                                                    return null;
-                                                  },
                                                 ),
                                                 const SizedBox(height: 12),
                                               ],
                                             )
                                           : const SizedBox.shrink(),
                                     ),
+                                    // Wrap(
+                                    //   spacing: 8,
+                                    //   runSpacing: 8,
+                                    //   children: [
+                                    //     FilterChip(
+                                    //       label: const Text('Rapat'),
+                                    //       selected: _showGroupRapat,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showGroupRapat = v);
+                                    //       },
+                                    //     ),
+                                    //     FilterChip(
+                                    //       label: const Text('Waktu Rapat'),
+                                    //       selected: _showWaktuRapat,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showWaktuRapat = v);
+                                    //       },
+                                    //     ),
+                                    //     FilterChip(
+                                    //       label: const Text('Ruang Rapat'),
+                                    //       selected: _showRuangRapat,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showRuangRapat = v);
+                                    //       },
+                                    //     ),
+                                    //     FilterChip(
+                                    //       label: const Text('Peserta Rapat'),
+                                    //       selected: _showPesertaRapat,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showPesertaRapat = v);
+                                    //       },
+                                    //     ),
+                                    //     FilterChip(
+                                    //       label: const Text('Pimpinan Rapat'),
+                                    //       selected: _showPimpinanRapat,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showPimpinanRapat = v);
+                                    //       },
+                                    //     ),
+                                    //     FilterChip(
+                                    //       label: const Text('Pokok Bahasan'),
+                                    //       selected: _showPokokBahasanRapat,
+                                    //       onSelected: (v) {
+                                    //         setState(() => _showPokokBahasanRapat = v);
+                                    //       },
+                                    //     ),
+                                    //   ],
+                                    // ),
+
+                                    //Group Rapat
+                                    AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 250),
+                                      transitionBuilder: (child, anim) =>
+                                          SizeTransition(
+                                              sizeFactor: anim, child: child),
+                                      child: _showGroupRapat
+                                          ? Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                      milliseconds: 250),
+                                                  transitionBuilder:
+                                                      (child, anim) =>
+                                                          SizeTransition(
+                                                    sizeFactor: anim,
+                                                    child: child,
+                                                  ),
+                                                  child: _showWaktuRapat
+                                                      ? Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              'Waktu Rapat',
+                                                              style: const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold),
+                                                            ),
+                                                            Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  flex: 5,
+                                                                  child:
+                                                                      TextFormField(
+                                                                    enabled: ((widget.qParam ==
+                                                                                '1' ||
+                                                                            widget.qParam ==
+                                                                                '2') &&
+                                                                        _existingDocument?.dibaca ==
+                                                                            '1'),
+                                                                    controller:
+                                                                        _meetingDateController,
+                                                                    decoration:
+                                                                        const InputDecoration(
+                                                                      hintText:
+                                                                          'DD/MM/YYYY',
+                                                                      border:
+                                                                          OutlineInputBorder(),
+                                                                      prefixIcon:
+                                                                          Icon(Icons
+                                                                              .calendar_today_outlined),
+                                                                    ),
+                                                                    validator:
+                                                                        (value) {
+                                                                      final v = (value ??
+                                                                              '')
+                                                                          .trim();
+                                                                      if (v
+                                                                          .isEmpty) {
+                                                                        return 'Tanggal rapat harus diisi';
+                                                                      }
+                                                                      try {
+                                                                        DateFormat('dd/MM/yyyy')
+                                                                            .parseStrict(v);
+                                                                      } catch (_) {
+                                                                        return 'Format tanggal tidak valid (DD/MM/YYYY)';
+                                                                      }
+                                                                      return null;
+                                                                    },
+                                                                    onTap:
+                                                                        () async {
+                                                                      final initial =
+                                                                          _selectedMeetingDate ??
+                                                                              DateTime.now();
+                                                                      final picked =
+                                                                          await showDatePicker(
+                                                                        context:
+                                                                            context,
+                                                                        initialDate:
+                                                                            initial,
+                                                                        firstDate: DateTime(
+                                                                            2000,
+                                                                            1,
+                                                                            1),
+                                                                        lastDate: DateTime(
+                                                                            2100,
+                                                                            12,
+                                                                            31),
+                                                                      );
+                                                                      if (picked !=
+                                                                          null) {
+                                                                        _selectedMeetingDate =
+                                                                            picked;
+                                                                        _meetingDateController
+                                                                            .text = DateFormat(
+                                                                                'dd/MM/yyyy')
+                                                                            .format(picked);
+                                                                        setState(
+                                                                            () {});
+                                                                      }
+                                                                    },
+                                                                    onChanged:
+                                                                        (v) {
+                                                                      try {
+                                                                        _selectedMeetingDate =
+                                                                            DateFormat('dd/MM/yyyy').parseStrict(v.trim());
+                                                                      } catch (_) {
+                                                                        _selectedMeetingDate =
+                                                                            null;
+                                                                      }
+                                                                      setState(
+                                                                          () {});
+                                                                    },
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                    width: 12),
+                                                                Expanded(
+                                                                  flex: 5,
+                                                                  child:
+                                                                      TextFormField(
+                                                                    enabled: ((widget.qParam ==
+                                                                                '1' ||
+                                                                            widget.qParam ==
+                                                                                '2') &&
+                                                                        _existingDocument?.dibaca ==
+                                                                            '1'),
+                                                                    controller:
+                                                                        _meetingTimeController,
+                                                                    decoration:
+                                                                        const InputDecoration(
+                                                                      hintText:
+                                                                          'waktu rapat',
+                                                                      border:
+                                                                          OutlineInputBorder(),
+                                                                      prefixIcon:
+                                                                          Icon(Icons
+                                                                              .access_time_outlined),
+                                                                    ),
+                                                                    validator:
+                                                                        (value) {
+                                                                      final v = (value ??
+                                                                              '')
+                                                                          .trim();
+                                                                      if (v
+                                                                          .isEmpty) {
+                                                                        return 'Waktu rapat harus diisi';
+                                                                      }
+                                                                      return null;
+                                                                    },
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 16),
+                                                          ],
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                      milliseconds: 250),
+                                                  transitionBuilder:
+                                                      (child, anim) =>
+                                                          SizeTransition(
+                                                    sizeFactor: anim,
+                                                    child: child,
+                                                  ),
+                                                  child: _showRuangRapat
+                                                      ? Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            ApiDropdownField(
+                                                              label:
+                                                                  'Ruang Rapat',
+                                                              placeholder:
+                                                                  'Pilih Ruang Rapat',
+                                                              tableName:
+                                                                  'm_ruang_rapat',
+                                                              controller:
+                                                                  _ruangRapatController,
+                                                              disabled: ((widget.qParam ==
+                                                                              '1' ||
+                                                                          widget.qParam ==
+                                                                              '2') &&
+                                                                      _existingDocument
+                                                                              ?.dibaca ==
+                                                                          '1')
+                                                                  ? false
+                                                                  : true,
+                                                              itemTextBuilder:
+                                                                  (it) => it
+                                                                      .deskripsi,
+                                                              validator:
+                                                                  (value) {
+                                                                if (value ==
+                                                                        null ||
+                                                                    value
+                                                                        .isEmpty) {
+                                                                  return 'Ruang rapat harus dipilih';
+                                                                }
+                                                                return null;
+                                                              },
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 16),
+                                                          ],
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                      milliseconds: 250),
+                                                  transitionBuilder:
+                                                      (child, anim) =>
+                                                          SizeTransition(
+                                                    sizeFactor: anim,
+                                                    child: child,
+                                                  ),
+                                                  child: _showPesertaRapat
+                                                      ? Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            ApiMultiSelectField(
+                                                              label:
+                                                                  'Peserta Rapat',
+                                                              placeholder:
+                                                                  'Pilih Peserta rapat',
+                                                              tableName:
+                                                                  'm_tujuan_disposisi',
+                                                              controller:
+                                                                  _pesertaRapatController,
+                                                              disabled: ((widget.qParam ==
+                                                                              '1' ||
+                                                                          widget.qParam ==
+                                                                              '2') &&
+                                                                      _existingDocument
+                                                                              ?.dibaca ==
+                                                                          '1')
+                                                                  ? false
+                                                                  : true,
+                                                              selectedValues:
+                                                                  _selectedPesertaRapat,
+                                                              itemTextBuilder:
+                                                                  (it) => it
+                                                                      .deskripsi,
+                                                              validator:
+                                                                  (values) {
+                                                                if (values ==
+                                                                        null ||
+                                                                    values
+                                                                        .isEmpty) {
+                                                                  return 'Minimal pilih 1 Peserta rapat';
+                                                                }
+                                                                return null;
+                                                              },
+                                                              onChanged:
+                                                                  (vals) {
+                                                                _selectedPesertaRapat
+                                                                  ..clear()
+                                                                  ..addAll(
+                                                                      vals);
+                                                                setState(() {});
+                                                              },
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 16),
+                                                          ],
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                      milliseconds: 250),
+                                                  transitionBuilder:
+                                                      (child, anim) =>
+                                                          SizeTransition(
+                                                    sizeFactor: anim,
+                                                    child: child,
+                                                  ),
+                                                  child: _showPimpinanRapat
+                                                      ? Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            ApiDropdownField(
+                                                              label: 'Pimpinan',
+                                                              placeholder:
+                                                                  'Pilih Piminan rapat',
+                                                              tableName:
+                                                                  'm_tujuan_disposisi',
+                                                              controller:
+                                                                  _pimpinanRapatController,
+                                                              disabled: ((widget.qParam ==
+                                                                              '1' ||
+                                                                          widget.qParam ==
+                                                                              '2') &&
+                                                                      _existingDocument
+                                                                              ?.dibaca ==
+                                                                          '1')
+                                                                  ? false
+                                                                  : true,
+                                                              itemTextBuilder:
+                                                                  (it) => it
+                                                                      .deskripsi,
+                                                              validator:
+                                                                  (value) {
+                                                                if (value ==
+                                                                        null ||
+                                                                    value
+                                                                        .isEmpty) {
+                                                                  return 'Pimpinan rapat harus dipilih';
+                                                                }
+                                                                return null;
+                                                              },
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 16),
+                                                          ],
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                      milliseconds: 250),
+                                                  transitionBuilder:
+                                                      (child, anim) =>
+                                                          SizeTransition(
+                                                    sizeFactor: anim,
+                                                    child: child,
+                                                  ),
+                                                  child: _showPokokBahasanRapat
+                                                      ? Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              'Pokok Bahasan Rapat',
+                                                              style: const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold),
+                                                            ),
+                                                            TextFormField(
+                                                              controller:
+                                                                  _pokokBahasanController,
+                                                              enabled: ((widget
+                                                                              .qParam ==
+                                                                          '1' ||
+                                                                      widget.qParam ==
+                                                                          '2') &&
+                                                                  _existingDocument
+                                                                          ?.dibaca ==
+                                                                      '1'),
+                                                              decoration:
+                                                                  const InputDecoration(
+                                                                hintText:
+                                                                    'Masukkan pokok bahasan rapat',
+                                                                border:
+                                                                    OutlineInputBorder(),
+                                                                prefixIcon:
+                                                                    Icon(Icons
+                                                                        .topic_outlined),
+                                                                alignLabelWithHint:
+                                                                    true,
+                                                              ),
+                                                              maxLines: 4,
+                                                              textCapitalization:
+                                                                  TextCapitalization
+                                                                      .sentences,
+                                                              validator:
+                                                                  (value) {
+                                                                final v =
+                                                                    (value ??
+                                                                            '')
+                                                                        .trim();
+                                                                if (v.isEmpty) {
+                                                                  return 'Pokok bahasan rapat harus diisi';
+                                                                }
+                                                                return null;
+                                                              },
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 12),
+                                                          ],
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                              ],
+                                            )
+                                          : const SizedBox.shrink(),
+                                    ),
+
+                                    // Upload gambar (multi-file, preview, progress, cancel)
+                                    AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 250),
+                                      transitionBuilder: (child, anim) =>
+                                          SizeTransition(
+                                              sizeFactor: anim, child: child),
+                                      child: _showGroupUploadImages
+                                          ? Card(
+                                              elevation: 2,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(12),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Wrap(
+                                                      spacing: 8,
+                                                      runSpacing: 8,
+                                                      crossAxisAlignment:
+                                                          WrapCrossAlignment
+                                                              .center,
+                                                      children: [
+                                                        const Text(
+                                                          'Lampiran Berkas',
+                                                          style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                        ),
+                                                        Wrap(
+                                                          spacing: 8,
+                                                          runSpacing: 8,
+                                                          children: [
+                                                            if ((widget.qParam ==
+                                                                        '1' ||
+                                                                    widget.qParam ==
+                                                                        '2') &&
+                                                                _existingDocument
+                                                                        ?.dibaca ==
+                                                                    '1') ...[
+                                                              TextButton.icon(
+                                                                onPressed:
+                                                                    _pickDocuments,
+                                                                icon: const Icon(
+                                                                    Icons
+                                                                        .photo_library_outlined),
+                                                                label: const Text(
+                                                                    'Galeri'),
+                                                              ),
+                                                              TextButton.icon(
+                                                                onPressed:
+                                                                    _takePhotoWithCamera,
+                                                                icon: const Icon(
+                                                                    Icons
+                                                                        .photo_camera_outlined),
+                                                                label: const Text(
+                                                                    'Kamera'),
+                                                              ),
+                                                            ],
+                                                            if (_uploadItems
+                                                                .any((it) => it
+                                                                    .uploading))
+                                                              TextButton.icon(
+                                                                onPressed:
+                                                                    _cancelAllUploads,
+                                                                icon: const Icon(
+                                                                    Icons
+                                                                        .pause_circle_outline),
+                                                                label: const Text(
+                                                                    'Batalkan semua'),
+                                                              ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    if (_uploadValidationError !=
+                                                        null)
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(top: 8),
+                                                        child: Text(
+                                                          _uploadValidationError!,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 12,
+                                                            color: AppTheme
+                                                                .errorColor,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    const SizedBox(height: 12),
+                                                    // Content and Preview gambar
+                                                    LayoutBuilder(
+                                                      builder: (context,
+                                                          constraints) {
+                                                        final width =
+                                                            constraints
+                                                                .maxWidth;
+                                                        final crossAxisCount =
+                                                            width >= 1000
+                                                                ? 5
+                                                                : width >= 800
+                                                                    ? 4
+                                                                    : width >=
+                                                                            600
+                                                                        ? 3
+                                                                        : 2;
+                                                        return GridView.builder(
+                                                          shrinkWrap: true,
+                                                          physics:
+                                                              const NeverScrollableScrollPhysics(),
+                                                          gridDelegate:
+                                                              SliverGridDelegateWithFixedCrossAxisCount(
+                                                            crossAxisCount:
+                                                                crossAxisCount,
+                                                            crossAxisSpacing: 8,
+                                                            mainAxisSpacing: 8,
+                                                            childAspectRatio: 1,
+                                                          ),
+                                                          itemCount:
+                                                              _uploadItems
+                                                                  .length,
+                                                          itemBuilder:
+                                                              (context, index) {
+                                                            final it =
+                                                                _uploadItems[
+                                                                    index];
+                                                            return Container(
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                border:
+                                                                    Border.all(
+                                                                  color: it
+                                                                          .success
+                                                                      ? Colors
+                                                                          .green
+                                                                          .withOpacity(
+                                                                              0.5)
+                                                                      : it
+                                                                              .uploading
+                                                                          ? AppTheme.primaryColor.withOpacity(
+                                                                              0.5)
+                                                                          : AppTheme
+                                                                              .errorColor
+                                                                              .withOpacity(0.5),
+                                                                ),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8),
+                                                              ),
+                                                              child: Column(
+                                                                children: [
+                                                                  Expanded(
+                                                                    child:
+                                                                        ClipRRect(
+                                                                      borderRadius:
+                                                                          const BorderRadius
+                                                                              .only(
+                                                                        topLeft:
+                                                                            Radius.circular(8),
+                                                                        topRight:
+                                                                            Radius.circular(8),
+                                                                      ),
+                                                                      child:
+                                                                          (() {
+                                                                        final name = it
+                                                                            .name
+                                                                            .toLowerCase();
+                                                                        if (it.bytes !=
+                                                                            null) {
+                                                                          if (_isImageFile(
+                                                                              name)) {
+                                                                            return Image.memory(
+                                                                              it.bytes!,
+                                                                              fit: BoxFit.cover,
+                                                                              width: double.infinity,
+                                                                            );
+                                                                          } else {
+                                                                            return Center(
+                                                                              child: Icon(
+                                                                                name.endsWith('.pdf') ? Icons.picture_as_pdf : Icons.description_outlined,
+                                                                                size: 48,
+                                                                              ),
+                                                                            );
+                                                                          }
+                                                                        }
+                                                                        if (_isImageFile(name) &&
+                                                                            it.tempUrl !=
+                                                                                null) {
+                                                                          return Image
+                                                                              .network(
+                                                                            it.tempUrl!,
+                                                                            fit:
+                                                                                BoxFit.cover,
+                                                                            width:
+                                                                                double.infinity,
+                                                                            errorBuilder: (_, __, ___) =>
+                                                                                const Center(
+                                                                              child: Icon(Icons.broken_image, size: 48),
+                                                                            ),
+                                                                          );
+                                                                        }
+                                                                        return Center(
+                                                                          child:
+                                                                              Icon(
+                                                                            name.endsWith('.pdf')
+                                                                                ? Icons.picture_as_pdf
+                                                                                : Icons.description_outlined,
+                                                                            size:
+                                                                                48,
+                                                                          ),
+                                                                        );
+                                                                      }()),
+                                                                    ),
+                                                                  ),
+                                                                  Flexible(
+                                                                    child:
+                                                                        Padding(
+                                                                      padding:
+                                                                          const EdgeInsets
+                                                                              .all(
+                                                                              8),
+                                                                      child:
+                                                                          SingleChildScrollView(
+                                                                        child:
+                                                                            Column(
+                                                                          crossAxisAlignment:
+                                                                              CrossAxisAlignment.start,
+                                                                          children: [
+                                                                            Text(
+                                                                              it.name,
+                                                                              maxLines: 1,
+                                                                              overflow: TextOverflow.ellipsis,
+                                                                            ),
+                                                                            Text('${(it.size / (1024 * 1024)).toStringAsFixed(2)} MB',
+                                                                                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                                                            const SizedBox(height: 6),
+                                                                            if (it.uploading)
+                                                                              LinearProgressIndicator(value: it.progress),
+                                                                            if (it.error !=
+                                                                                null)
+                                                                              Text(
+                                                                                it.error!,
+                                                                                style: const TextStyle(fontSize: 12, color: AppTheme.errorColor),
+                                                                              ),
+                                                                            if (it.success &&
+                                                                                it.tempUrl != null)
+                                                                              Text(
+                                                                                'Terupload',
+                                                                                style: const TextStyle(fontSize: 12, color: Colors.green),
+                                                                              ),
+                                                                            const SizedBox(height: 6),
+                                                                            Row(
+                                                                              mainAxisAlignment: MainAxisAlignment.end,
+                                                                              children: [
+                                                                                if (it.uploading)
+                                                                                  IconButton(
+                                                                                    icon: const Icon(Icons.pause_circle_outline),
+                                                                                    tooltip: 'Batalkan',
+                                                                                    onPressed: () => _cancelUpload(it),
+                                                                                  ),
+                                                                                IconButton(
+                                                                                  icon: const Icon(Icons.visibility_outlined),
+                                                                                  tooltip: 'Lihat',
+                                                                                  onPressed: () => _viewUpload(it),
+                                                                                ),
+                                                                                IconButton(
+                                                                                  icon: const Icon(Icons.delete_outline),
+                                                                                  tooltip: 'Hapus',
+                                                                                  onPressed: () => _removeUpload(it),
+                                                                                ),
+                                                                                if (it.error != null && !it.uploading)
+                                                                                  IconButton(
+                                                                                    icon: const Icon(Icons.refresh),
+                                                                                    tooltip: 'Ulangi',
+                                                                                    onPressed: () => _startUpload(it),
+                                                                                  ),
+                                                                              ],
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            );
+                                                          },
+                                                        );
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            )
+                                          : const SizedBox.shrink(),
+                                    ),
+
+                                    // User information display
+                                    //_buildUserInfo(),
+
+                                    // END HERE
+                                    const SizedBox(height: 16),
                                   ],
                                 )
                               : const SizedBox.shrink(),
                         ),
-
-                        // Upload gambar (multi-file, preview, progress, cancel)
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) =>
-                              SizeTransition(sizeFactor: anim, child: child),
-                          child: _showGroupUploadImages
-                              ? Card(
-                                  elevation: 2,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          crossAxisAlignment:
-                                              WrapCrossAlignment.center,
-                                          children: [
-                                            const Text(
-                                              'Lampiran Berkas',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            Wrap(
-                                              spacing: 8,
-                                              runSpacing: 8,
-                                              children: [
-                                                if ((widget.qParam == '1' ||
-                                                        widget.qParam == '2') &&
-                                                    _existingDocument?.dibaca ==
-                                                        '1') ...[
-                                                  TextButton.icon(
-                                                    onPressed: _pickDocuments,
-                                                    icon: const Icon(Icons
-                                                        .photo_library_outlined),
-                                                    label: const Text('Galeri'),
-                                                  ),
-                                                  TextButton.icon(
-                                                    onPressed:
-                                                        _takePhotoWithCamera,
-                                                    icon: const Icon(Icons
-                                                        .photo_camera_outlined),
-                                                    label: const Text('Kamera'),
-                                                  ),
-                                                ],
-                                                if (_uploadItems
-                                                    .any((it) => it.uploading))
-                                                  TextButton.icon(
-                                                    onPressed:
-                                                        _cancelAllUploads,
-                                                    icon: const Icon(Icons
-                                                        .pause_circle_outline),
-                                                    label: const Text(
-                                                        'Batalkan semua'),
-                                                  ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                        if (_uploadValidationError != null)
-                                          Padding(
-                                            padding:
-                                                const EdgeInsets.only(top: 8),
-                                            child: Text(
-                                              _uploadValidationError!,
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: AppTheme.errorColor,
-                                              ),
-                                            ),
-                                          ),
-                                        const SizedBox(height: 12),
-                                        // Content and Preview gambar
-                                        LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            final width = constraints.maxWidth;
-                                            final crossAxisCount = width >= 1000
-                                                ? 5
-                                                : width >= 800
-                                                    ? 4
-                                                    : width >= 600
-                                                        ? 3
-                                                        : 2;
-                                            return GridView.builder(
-                                              shrinkWrap: true,
-                                              physics:
-                                                  const NeverScrollableScrollPhysics(),
-                                              gridDelegate:
-                                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                                crossAxisCount: crossAxisCount,
-                                                crossAxisSpacing: 8,
-                                                mainAxisSpacing: 8,
-                                                childAspectRatio: 1,
-                                              ),
-                                              itemCount: _uploadItems.length,
-                                              itemBuilder: (context, index) {
-                                                final it = _uploadItems[index];
-                                                return Container(
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color: it.success
-                                                          ? Colors.green
-                                                              .withOpacity(0.5)
-                                                          : it.uploading
-                                                              ? AppTheme
-                                                                  .primaryColor
-                                                                  .withOpacity(
-                                                                      0.5)
-                                                              : AppTheme
-                                                                  .errorColor
-                                                                  .withOpacity(
-                                                                      0.5),
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                  ),
-                                                  child: Column(
-                                                    children: [
-                                                      Expanded(
-                                                        child: ClipRRect(
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .only(
-                                                            topLeft:
-                                                                Radius.circular(
-                                                                    8),
-                                                            topRight:
-                                                                Radius.circular(
-                                                                    8),
-                                                          ),
-                                                          child: (() {
-                                                            final name = it.name
-                                                                .toLowerCase();
-                                                            if (it.bytes !=
-                                                                null) {
-                                                              if (_isImageFile(
-                                                                  name)) {
-                                                                return Image
-                                                                    .memory(
-                                                                  it.bytes!,
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                  width: double
-                                                                      .infinity,
-                                                                );
-                                                              } else {
-                                                                return Center(
-                                                                  child: Icon(
-                                                                    name.endsWith(
-                                                                            '.pdf')
-                                                                        ? Icons
-                                                                            .picture_as_pdf
-                                                                        : Icons
-                                                                            .description_outlined,
-                                                                    size: 48,
-                                                                  ),
-                                                                );
-                                                              }
-                                                            }
-                                                            if (_isImageFile(
-                                                                    name) &&
-                                                                it.tempUrl !=
-                                                                    null) {
-                                                              return Image
-                                                                  .network(
-                                                                it.tempUrl!,
-                                                                fit: BoxFit
-                                                                    .cover,
-                                                                width: double
-                                                                    .infinity,
-                                                                errorBuilder: (_,
-                                                                        __,
-                                                                        ___) =>
-                                                                    const Center(
-                                                                  child: Icon(
-                                                                      Icons
-                                                                          .broken_image,
-                                                                      size: 48),
-                                                                ),
-                                                              );
-                                                            }
-                                                            return Center(
-                                                              child: Icon(
-                                                                name.endsWith(
-                                                                        '.pdf')
-                                                                    ? Icons
-                                                                        .picture_as_pdf
-                                                                    : Icons
-                                                                        .description_outlined,
-                                                                size: 48,
-                                                              ),
-                                                            );
-                                                          }()),
-                                                        ),
-                                                      ),
-                                                      Flexible(
-                                                        child: Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(8),
-                                                          child:
-                                                              SingleChildScrollView(
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                Text(
-                                                                  it.name,
-                                                                  maxLines: 1,
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .ellipsis,
-                                                                ),
-                                                                Text(
-                                                                    '${(it.size / (1024 * 1024)).toStringAsFixed(2)} MB',
-                                                                    style: const TextStyle(
-                                                                        fontSize:
-                                                                            12,
-                                                                        color: Colors
-                                                                            .grey)),
-                                                                const SizedBox(
-                                                                    height: 6),
-                                                                if (it
-                                                                    .uploading)
-                                                                  LinearProgressIndicator(
-                                                                      value: it
-                                                                          .progress),
-                                                                if (it.error !=
-                                                                    null)
-                                                                  Text(
-                                                                    it.error!,
-                                                                    style: const TextStyle(
-                                                                        fontSize:
-                                                                            12,
-                                                                        color: AppTheme
-                                                                            .errorColor),
-                                                                  ),
-                                                                if (it.success &&
-                                                                    it.tempUrl !=
-                                                                        null)
-                                                                  Text(
-                                                                    'Terupload',
-                                                                    style: const TextStyle(
-                                                                        fontSize:
-                                                                            12,
-                                                                        color: Colors
-                                                                            .green),
-                                                                  ),
-                                                                const SizedBox(
-                                                                    height: 6),
-                                                                Row(
-                                                                  mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .end,
-                                                                  children: [
-                                                                    if (it
-                                                                        .uploading)
-                                                                      IconButton(
-                                                                        icon: const Icon(
-                                                                            Icons.pause_circle_outline),
-                                                                        tooltip:
-                                                                            'Batalkan',
-                                                                        onPressed:
-                                                                            () =>
-                                                                                _cancelUpload(it),
-                                                                      ),
-                                                                    IconButton(
-                                                                      icon: const Icon(
-                                                                          Icons
-                                                                              .visibility_outlined),
-                                                                      tooltip:
-                                                                          'Lihat',
-                                                                      onPressed:
-                                                                          () =>
-                                                                              _viewUpload(it),
-                                                                    ),
-                                                                    IconButton(
-                                                                      icon: const Icon(
-                                                                          Icons
-                                                                              .delete_outline),
-                                                                      tooltip:
-                                                                          'Hapus',
-                                                                      onPressed:
-                                                                          () =>
-                                                                              _removeUpload(it),
-                                                                    ),
-                                                                    if (it.error !=
-                                                                            null &&
-                                                                        !it.uploading)
-                                                                      IconButton(
-                                                                        icon: const Icon(
-                                                                            Icons.refresh),
-                                                                        tooltip:
-                                                                            'Ulangi',
-                                                                        onPressed:
-                                                                            () =>
-                                                                                _startUpload(it),
-                                                                      ),
-                                                                  ],
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-                                              },
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        // User information display
-                        //_buildUserInfo(),
-                        const SizedBox(height: 16),
 
                         _buildTindakanManajemenSection(),
 
