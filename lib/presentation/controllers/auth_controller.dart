@@ -24,14 +24,14 @@ class AuthController extends GetxController {
   Future<void> checkAuthentication() async {
     try {
       isLoading.value = true;
-      
+
       final cachedUser = _authService.getCachedUser();
       final hasToken = _authService.isAuthenticated();
 
       if (hasToken && cachedUser != null) {
         currentUser.value = cachedUser;
         isAuthenticated.value = true;
-        
+
         // Try to refresh user data
         final user = await _authService.getCurrentUser();
         if (user != null) {
@@ -58,14 +58,14 @@ class AuthController extends GetxController {
       errorMessage.value = '';
 
       final result = await _authService.login(
-        username: username,
-        password: password,
+        username: username.trim(),
+        password: password.trim(),
       );
 
       if (result['success'] == true) {
         currentUser.value = result['user'] as UserModel;
         isAuthenticated.value = true;
-        
+
         Get.snackbar(
           'Berhasil',
           'Login berhasil. Selamat datang ${currentUser.value!.namaLengkap}!',
@@ -73,10 +73,10 @@ class AuthController extends GetxController {
           colorText: Colors.white,
           snackPosition: SnackPosition.TOP,
         );
-        
+
         return true;
       }
-      
+
       return false;
     } on ApiException catch (e) {
       errorMessage.value = e.message;

@@ -5010,7 +5010,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           doc.lampirans.map((l) {
             // final url = '${ApiConstants.baseUrl}/storage/${l.tokenLampiran}/${l.namaBerkas}';
             final url =
-                '${ApiConstants.baseUrl}/storage/lampiran/${l.namaBerkas}';
+                '${Environment.apiBaseUrl}/storage/lampiran/${l.namaBerkas}';
             _logger.d({'lampiran': l.namaBerkas, 'lokasi': url});
             return _UploadItem(
               name: l.namaBerkas,
