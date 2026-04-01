@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\GeneralDropdownController;
 use App\Http\Controllers\Api\UsersController;
 use App\Http\Controllers\Api\SuratMasukController;
 use App\Http\Controllers\Api\UploadsController;
+use App\Http\Controllers\Api\StatusRapatController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -63,6 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/dropdown', [UsersController::class, 'dropdown']);
     Route::get('/general/dropdown', [GeneralDropdownController::class, 'dropdown'])->middleware('throttle:general_dropdown');
     Route::get('/documents/last-no-surat', [DocumentController::class, 'getLastNoSurat']);
+    Route::get('/status-rapat', [StatusRapatController::class, 'index']);
 
     // Surat Masuk (tbl_sm)
     Route::post('/surat-masuk', [SuratMasukController::class, 'store']);

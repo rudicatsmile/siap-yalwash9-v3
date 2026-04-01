@@ -183,6 +183,120 @@ void main() {
     expect(kode, isNull);
   });
 
+  test('resolveMeetingDateManajemenTextForEdit normalizes ISO date', () {
+    final text = resolveMeetingDateManajemenTextForEdit(
+      isEditMode: true,
+      dibaca: '7',
+      tglAgendaRapatRaw: '2026-04-01',
+    );
+    expect(text, '01/04/2026');
+  });
+
+  test('resolveMeetingDateManajemenTextForEdit returns null on invalid date', () {
+    final text = resolveMeetingDateManajemenTextForEdit(
+      isEditMode: true,
+      dibaca: '7',
+      tglAgendaRapatRaw: 'invalid',
+    );
+    expect(text, isNull);
+  });
+
+  test('resolveMeetingTimeManajemenTextForEdit returns raw string time', () {
+    final text = resolveMeetingTimeManajemenTextForEdit(
+      isEditMode: true,
+      dibaca: '7',
+      jamRapatRaw: '14:05:00',
+    );
+    expect(text, '14:05:00');
+  });
+
+  test('resolveMeetingTimeManajemenTextForEdit returns null when not edit', () {
+    final text = resolveMeetingTimeManajemenTextForEdit(
+      isEditMode: false,
+      dibaca: '7',
+      jamRapatRaw: '14:05',
+    );
+    expect(text, isNull);
+  });
+
+  test('resolvePesertaRapatManajemenKodesForEdit maps codes and names', () {
+    final items = [
+      DropdownItem(kode: '10', deskripsi: 'Alice'),
+      DropdownItem(kode: '20', deskripsi: 'Bob'),
+    ];
+
+    final byKode = resolvePesertaRapatManajemenKodesForEdit(
+      isEditMode: true,
+      dibaca: '7',
+      pesertaRapatRaw: '10,20',
+      items: items,
+    );
+    expect(byKode.toSet(), {'10', '20'});
+
+    final byNama = resolvePesertaRapatManajemenKodesForEdit(
+      isEditMode: true,
+      dibaca: '7',
+      pesertaRapatRaw: 'Alice, Bob',
+      items: items,
+    );
+    expect(byNama.toSet(), {'10', '20'});
+
+    final byBr = resolvePesertaRapatManajemenKodesForEdit(
+      isEditMode: true,
+      dibaca: '7',
+      pesertaRapatRaw: 'Alice<br>Bob',
+      items: items,
+    );
+    expect(byBr.toSet(), {'10', '20'});
+  });
+
+  test('resolvePimpinanRapatManajemenKodeForEdit maps kode and name', () {
+    final items = [
+      DropdownItem(kode: '10', deskripsi: 'Alice'),
+      DropdownItem(kode: '20', deskripsi: 'Bob'),
+    ];
+
+    final byKode = resolvePimpinanRapatManajemenKodeForEdit(
+      isEditMode: true,
+      dibaca: '7',
+      pimpinanRapatRaw: '20',
+      items: items,
+    );
+    expect(byKode, '20');
+
+    final byNama = resolvePimpinanRapatManajemenKodeForEdit(
+      isEditMode: true,
+      dibaca: '7',
+      pimpinanRapatRaw: 'Alice',
+      items: items,
+    );
+    expect(byNama, '10');
+  });
+
+  test('resolvePokokBahasanRapatTextForEdit returns trimmed text only for edit dibaca=7',
+      () {
+    final ok = resolvePokokBahasanRapatTextForEdit(
+      isEditMode: true,
+      dibaca: '7',
+      bahasanRapatRaw: '  Agenda A  ',
+    );
+    expect(ok, 'Agenda A');
+
+    final notEdit = resolvePokokBahasanRapatTextForEdit(
+      isEditMode: false,
+      dibaca: '7',
+      bahasanRapatRaw: 'Agenda A',
+    );
+    expect(notEdit, isNull);
+
+    final not7 = resolvePokokBahasanRapatTextForEdit(
+      isEditMode: true,
+      dibaca: '8',
+      bahasanRapatRaw: 'Agenda A',
+    );
+    expect(not7, isNull);
+  });
+
   testWidgets(
       'DocumentFormScreen should have _teruskanPimpinanController initialized',
       (WidgetTester tester) async {

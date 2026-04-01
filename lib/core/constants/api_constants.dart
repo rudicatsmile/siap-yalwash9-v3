@@ -29,6 +29,7 @@ class ApiConstants {
   // API Endpoints - History
   static const String history = '/api/history';
   static const String generalDropdown = '/api/general/dropdown';
+  static const String statusRapat = '/api/status-rapat';
 
   // API Endpoints - Profile
   static const String profile = '/api/profile';

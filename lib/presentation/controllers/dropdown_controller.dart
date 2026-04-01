@@ -78,4 +78,48 @@ class DropdownController extends GetxController {
   void select(String? kode) {
     selectedKode.value = (kode ?? '').trim();
   }
+
+  Future<void> loadStatusRapat({bool forceRefresh = false}) async {
+    error.value = '';
+    isLoading.value = true;
+    const tableKey = '__status_rapat__';
+    try {
+      if (forceRefresh) {
+        _cache.remove(tableKey);
+      }
+      if (_cache.containsKey(tableKey)) {
+        items.assignAll(_cache[tableKey]!);
+        return;
+      }
+      final resp = await _api.get(ApiConstants.statusRapat);
+      final data = resp.data;
+      if (data is Map && data['success'] == true && data['data'] is List) {
+        final list = (data['data'] as List)
+            .map((e) => DropdownItem(
+                  kode: e['id_status']?.toString() ?? '',
+                  deskripsi: e['nama_status']?.toString() ?? '',
+                ))
+            .where((it) => it.kode.isNotEmpty && it.deskripsi.isNotEmpty)
+            .toList();
+        items.assignAll(list);
+        _cache[tableKey] = list;
+      } else {
+        items.clear();
+        error.value = 'Data tidak tersedia';
+      }
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        error.value =
+            'Endpoint status rapat tidak ditemukan (404). Pastikan backend sudah ter-update dan route cache sudah di-clear.';
+      } else {
+        error.value = e.message;
+      }
+      items.clear();
+    } catch (e) {
+      error.value = e.toString();
+      items.clear();
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }

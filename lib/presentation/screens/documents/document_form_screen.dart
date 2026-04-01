@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/models.dart';
@@ -156,6 +157,129 @@ String? resolveRuangRapatManajemenKodeForEdit({
       raw: ruangRapatRaw, items: items, logger: logger);
 }
 
+String? _normalizeAgendaDateForForm(String? raw) {
+  final v = (raw ?? '').trim();
+  if (v.isEmpty) return null;
+
+  final iso = DateTime.tryParse(v);
+  if (iso != null) return DateFormat('dd/MM/yyyy').format(iso);
+
+  try {
+    final dt = DateFormat('dd/MM/yyyy').parseStrict(v);
+    return DateFormat('dd/MM/yyyy').format(dt);
+  } catch (_) {
+    return null;
+  }
+}
+
+List<String> _parseCsvLike(String raw) {
+  var s = raw.trim();
+  if (s.startsWith('[') && s.endsWith(']') && s.length >= 2) {
+    s = s.substring(1, s.length - 1);
+  }
+  return s
+      .split(',')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList(growable: false);
+}
+
+List<String> resolvePesertaRapatManajemenKodesForEdit({
+  required bool isEditMode,
+  required String? dibaca,
+  required String? pesertaRapatRaw,
+  required List<DropdownItem> items,
+  Logger? logger,
+}) {
+  if (!isEditMode) return const <String>[];
+  if (dibaca != '7') return const <String>[];
+  final raw = (pesertaRapatRaw ?? '').trim();
+  if (raw.isEmpty) return const <String>[];
+  if (items.isEmpty) return const <String>[];
+
+  final fromBr =
+      getDataFromDocDitujukan(raw: raw, items: items, logger: logger);
+  if (fromBr.isNotEmpty) return fromBr.toSet().toList(growable: false);
+
+  final tokens = _parseCsvLike(raw);
+  final out = <String>[];
+  for (final t in tokens) {
+    final direct = items.where((it) => it.kode.trim() == t).toList();
+    if (direct.isNotEmpty) {
+      out.add(direct.first.kode.trim());
+      continue;
+    }
+    final lowered = t.toLowerCase();
+    final match = items
+        .where((it) => it.deskripsi.toLowerCase().trim() == lowered)
+        .toList();
+    if (match.isNotEmpty) {
+      out.add(match.first.kode.trim());
+    } else {
+      logger?.w('Peserta rapat tidak dikenali, lewati: "$t"');
+    }
+  }
+  return out.toSet().toList(growable: false);
+}
+
+String? resolvePimpinanRapatManajemenKodeForEdit({
+  required bool isEditMode,
+  required String? dibaca,
+  required String? pimpinanRapatRaw,
+  required List<DropdownItem> items,
+}) {
+  if (!isEditMode) return null;
+  if (dibaca != '7') return null;
+  final raw = (pimpinanRapatRaw ?? '').trim();
+  if (raw.isEmpty) return null;
+  if (items.isEmpty) return null;
+
+  final direct = items.where((it) => it.kode.trim() == raw).toList();
+  if (direct.isNotEmpty) return direct.first.kode.trim();
+
+  final lowered = raw.toLowerCase();
+  final match = items
+      .where((it) => it.deskripsi.toLowerCase().trim() == lowered)
+      .toList();
+  if (match.isNotEmpty) return match.first.kode.trim();
+
+  return null;
+}
+
+String? resolveMeetingDateManajemenTextForEdit({
+  required bool isEditMode,
+  required String? dibaca,
+  required String? tglAgendaRapatRaw,
+}) {
+  if (!isEditMode) return null;
+  if (dibaca != '7') return null;
+  return _normalizeAgendaDateForForm(tglAgendaRapatRaw);
+}
+
+String? resolveMeetingTimeManajemenTextForEdit({
+  required bool isEditMode,
+  required String? dibaca,
+  required String? jamRapatRaw,
+}) {
+  if (!isEditMode) return null;
+  if (dibaca != '7') return null;
+  final v = (jamRapatRaw ?? '').trim();
+  if (v.isEmpty) return null;
+  return v;
+}
+
+String? resolvePokokBahasanRapatTextForEdit({
+  required bool isEditMode,
+  required String? dibaca,
+  required String? bahasanRapatRaw,
+}) {
+  if (!isEditMode) return null;
+  if (dibaca != '7') return null;
+  final v = (bahasanRapatRaw ?? '').trim();
+  if (v.isEmpty) return null;
+  return v;
+}
+
 /// Document form screen for creating and editing documents
 class DocumentFormScreen extends StatefulWidget {
   final String? noSurat;
@@ -286,9 +410,30 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   late final Worker _kategoriLaporanItemsOnce;
   late final Worker _part2SyncWorker;
   late final Worker _ruangRapatManajemenItemsWorker;
+  late final Worker _pesertaRapatManajemenItemsWorker;
+  late final Worker _pimpinanRapatManajemenItemsWorker;
+  final DropdownController _statusRapatManajemenController =
+      DropdownController();
+  String? _idStatusRapatManajemen;
+  bool _showStatusRapatManajemen = false;
   bool _ruangRapatManajemenTouched = false;
   String? _ruangRapatManajemenLastSyncedRaw;
   bool _ruangRapatManajemenSyncErrorShown = false;
+  bool _meetingDateManajemenTouched = false;
+  bool _meetingTimeManajemenTouched = false;
+  bool _pesertaRapatManajemenTouched = false;
+  bool _pimpinanRapatManajemenTouched = false;
+  bool _pokokBahasanRapatTouched = false;
+  bool _pokokBahasanRapatManajemenTouched = false;
+  String? _meetingDateManajemenLastSyncedRaw;
+  String? _meetingTimeManajemenLastSyncedRaw;
+  String? _pesertaRapatManajemenLastSyncedRaw;
+  String? _pimpinanRapatManajemenLastSyncedRaw;
+  String? _pokokBahasanRapatLastSyncedRaw;
+  String? _pokokBahasanRapatManajemenLastSyncedRaw;
+  bool _meetingDateManajemenSyncErrorShown = false;
+  bool _pesertaRapatManajemenSyncErrorShown = false;
+  bool _pimpinanRapatManajemenSyncErrorShown = false;
   final List<String> _selectedTujuanDisposisi = <String>[];
   final List<String> _selectedPesertaRapat = <String>[];
   final List<String> _selectedPesertaManajemenRapat = <String>[];
@@ -855,6 +1000,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _showKtuDisposisi = false;
       _showCatatanKtu = false;
       _showGroupRapatManajemen = true;
+      _idStatusRapatManajemen = '2';
+      _showStatusRapatManajemen = true;
+      _statusRapatManajemenController.loadStatusRapat();
       _teruskanPimpinanController.select('');
       _selectedKtuDisposisi.clear();
     } else if (kodeTindakan == '8') {
@@ -862,6 +1010,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _showKtuDisposisi = false;
       _showCatatanKtu = false;
       _showGroupRapatManajemen = true;
+      _idStatusRapatManajemen = '2';
+      _showStatusRapatManajemen = true;
+      _statusRapatManajemenController.loadStatusRapat();
       _teruskanPimpinanController.select('');
       _selectedKtuDisposisi.clear();
     } else {
@@ -869,6 +1020,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _showKtuDisposisi = true;
       _showCatatanKtu = true;
       _showGroupRapatManajemen = false;
+      _idStatusRapatManajemen = null;
+      _showStatusRapatManajemen = false;
     }
   }
 
@@ -1091,6 +1244,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     if (widget.noSurat != null && widget.noSurat!.trim().isNotEmpty) {
       _docNumberPart1Controller.text = widget.noSurat!.trim();
       _isEditMode = true;
+      _logger.i({
+        'init_edit_mode': true,
+        'qParam': widget.qParam,
+        'noSurat': widget.noSurat,
+        'existing_dibaca': _existingDocument?.dibaca,
+        'bahasan_rapat_controller_before_load': _pokokBahasanController.text,
+      });
       _loadExistingDocumentByNoSurat(widget.noSurat!.trim());
     }
     Get.put(SuratMasukController(), permanent: !Get.testMode);
@@ -1162,8 +1322,17 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
     _ruangRapatManajemenItemsWorker =
         ever(_ruangRapatManajemenController.items, (_) {
-      _syncRuangRapatManajemenFromExistingDocument();
+      _syncRapatManajemenFromExistingDocument();
     });
+    _pesertaRapatManajemenItemsWorker =
+        ever(_pesertaRapatManajemenController.items, (_) {
+      _syncRapatManajemenFromExistingDocument();
+    });
+    _pimpinanRapatManajemenItemsWorker =
+        ever(_pimpinanRapatManajemenController.items, (_) {
+      _syncRapatManajemenFromExistingDocument();
+    });
+    _statusRapatManajemenController.loadStatusRapat();
 
     // When API returns next_no_surat, prefill part-1 document number
     _lastNoSuratResultWorker = ever(_lastNoSuratController.result, (res) {
@@ -1217,6 +1386,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _isEditMode = true;
       _titleController.text = _existingDocument!.title;
       _descriptionController.text = _existingDocument!.description ?? '';
+      _syncPokokBahasanRapatManajemenFromExistingDocument(force: true);
     }
   }
 
@@ -1251,6 +1421,8 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _kategoriLaporanItemsOnce.dispose();
     _part2SyncWorker.dispose();
     _ruangRapatManajemenItemsWorker.dispose();
+    _pesertaRapatManajemenItemsWorker.dispose();
+    _pimpinanRapatManajemenItemsWorker.dispose();
     unawaited(_cleanupTempDir());
     super.dispose();
   }
@@ -1319,6 +1491,294 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _ruangRapatManajemenLastSyncedRaw = raw;
       setState(() {});
     }
+  }
+
+  void _syncMeetingDateManajemenFromExistingDocument({bool force = false}) {
+    if (!_isEditMode) return;
+    if (_meetingDateManajemenTouched && !force) return;
+    final dibaca = _existingDocument?.dibaca;
+    final raw = _existingDocument?.tglAgendaRapat?.trim();
+
+    if (dibaca != '7') return;
+    if ((raw ?? '').isEmpty) return;
+
+    if (!force &&
+        _meetingDateManajemenLastSyncedRaw != null &&
+        _meetingDateManajemenLastSyncedRaw == raw) {
+      return;
+    }
+
+    final text = resolveMeetingDateManajemenTextForEdit(
+      isEditMode: _isEditMode,
+      dibaca: dibaca,
+      tglAgendaRapatRaw: raw,
+    );
+    if (text == null || text.isEmpty) {
+      if (!_meetingDateManajemenSyncErrorShown) {
+        _meetingDateManajemenSyncErrorShown = true;
+        Get.snackbar(
+          'Info',
+          'Tanggal rapat tidak valid, silakan isi manual.',
+          backgroundColor: AppTheme.errorColor,
+          colorText: Colors.white,
+        );
+      }
+      return;
+    }
+
+    if (_meetingDateManajemenController.text.trim() != text) {
+      _meetingDateManajemenController.text = text;
+      try {
+        _selectedMeetingManajemenDate =
+            DateFormat('dd/MM/yyyy').parseStrict(text);
+      } catch (_) {
+        _selectedMeetingManajemenDate = null;
+      }
+      _meetingDateManajemenLastSyncedRaw = raw;
+      setState(() {});
+    }
+  }
+
+  void _syncMeetingTimeManajemenFromExistingDocument({bool force = false}) {
+    if (!_isEditMode) return;
+    if (_meetingTimeManajemenTouched && !force) return;
+    final dibaca = _existingDocument?.dibaca;
+    final raw = _existingDocument?.jamRapat?.trim();
+
+    if (dibaca != '7') return;
+    if ((raw ?? '').isEmpty) return;
+
+    if (!force &&
+        _meetingTimeManajemenLastSyncedRaw != null &&
+        _meetingTimeManajemenLastSyncedRaw == raw) {
+      return;
+    }
+
+    final text = resolveMeetingTimeManajemenTextForEdit(
+      isEditMode: _isEditMode,
+      dibaca: dibaca,
+      jamRapatRaw: raw,
+    );
+    if (text == null || text.isEmpty) return;
+
+    if (_meetingTimeManajemenController.text.trim() != text) {
+      _meetingTimeManajemenController.text = text;
+      _meetingTimeManajemenLastSyncedRaw = raw;
+      setState(() {});
+    }
+  }
+
+  void _syncPesertaRapatManajemenFromExistingDocument({bool force = false}) {
+    if (!_isEditMode) return;
+    if (_pesertaRapatManajemenTouched && !force) return;
+    if (_pesertaRapatManajemenController.items.isEmpty) return;
+
+    final dibaca = _existingDocument?.dibaca;
+    if (dibaca != '7') return;
+    final raw = _existingDocument?.pesertaRapat?.trim();
+    if ((raw ?? '').isEmpty) return;
+
+    if (!force &&
+        _pesertaRapatManajemenLastSyncedRaw != null &&
+        _pesertaRapatManajemenLastSyncedRaw == raw) {
+      return;
+    }
+
+    _logger.i({
+      'peserta_rapat_manajemen_sync_start': {
+        'raw': raw,
+        'force': force,
+        'touched': _pesertaRapatManajemenTouched,
+        'items_count': _pesertaRapatManajemenController.items.length,
+        'selected_before': List<String>.from(_selectedPesertaManajemenRapat),
+      }
+    });
+    final kodes = resolvePesertaRapatManajemenKodesForEdit(
+      isEditMode: _isEditMode,
+      dibaca: dibaca,
+      pesertaRapatRaw: raw,
+      items: _pesertaRapatManajemenController.items,
+      logger: _logger,
+    );
+
+    if (kodes.isEmpty) {
+      if (!_pesertaRapatManajemenSyncErrorShown) {
+        _pesertaRapatManajemenSyncErrorShown = true;
+        Get.snackbar(
+          'Info',
+          'Peserta rapat tidak dikenali, silakan pilih manual.',
+          backgroundColor: AppTheme.errorColor,
+          colorText: Colors.white,
+        );
+      }
+      _logger.w({
+        'peserta_rapat_manajemen_sync_failed': {
+          'raw': raw,
+          'items_count': _pesertaRapatManajemenController.items.length,
+        }
+      });
+      return;
+    }
+
+    if (!listEquals(_selectedPesertaManajemenRapat, kodes)) {
+      _logger.i({
+        'peserta_rapat_manajemen_binding': {
+          'selected_after': List<String>.from(kodes),
+        }
+      });
+      _selectedPesertaManajemenRapat
+        ..clear()
+        ..addAll(kodes);
+      _pesertaRapatManajemenLastSyncedRaw = raw;
+      setState(() {});
+    }
+  }
+
+  void _syncPimpinanRapatManajemenFromExistingDocument({bool force = false}) {
+    if (!_isEditMode) return;
+    if (_pimpinanRapatManajemenTouched && !force) return;
+    if (_pimpinanRapatManajemenController.items.isEmpty) return;
+
+    final dibaca = _existingDocument?.dibaca;
+    if (dibaca != '7') return;
+    final raw = _existingDocument?.pimpinanRapat?.trim();
+    if ((raw ?? '').isEmpty) return;
+
+    if (!force &&
+        _pimpinanRapatManajemenLastSyncedRaw != null &&
+        _pimpinanRapatManajemenLastSyncedRaw == raw) {
+      return;
+    }
+
+    final kode = resolvePimpinanRapatManajemenKodeForEdit(
+      isEditMode: _isEditMode,
+      dibaca: dibaca,
+      pimpinanRapatRaw: raw,
+      items: _pimpinanRapatManajemenController.items,
+    );
+    if (kode == null || kode.isEmpty) {
+      if (!_pimpinanRapatManajemenSyncErrorShown) {
+        _pimpinanRapatManajemenSyncErrorShown = true;
+        Get.snackbar(
+          'Info',
+          'Pimpinan rapat tidak dikenali, silakan pilih manual.',
+          backgroundColor: AppTheme.errorColor,
+          colorText: Colors.white,
+        );
+      }
+      return;
+    }
+
+    if (_pimpinanRapatManajemenController.selectedKode.value != kode) {
+      _pimpinanRapatManajemenController.select(kode);
+      _pimpinanRapatManajemenLastSyncedRaw = raw;
+      setState(() {});
+    }
+  }
+
+  void _syncPokokBahasanRapatFromExistingDocument({bool force = false}) {
+    final doc = _existingDocument;
+    if (doc == null) return;
+    _syncPokokBahasanRapatFromDoc(doc, force: force);
+  }
+
+  void _syncPokokBahasanRapatFromDoc(DocumentModel doc, {bool force = false}) {
+    if (!_isEditMode) return;
+    if (_pokokBahasanRapatTouched && !force) return;
+    if (doc.dibaca != '7') return;
+
+    final raw = doc.bahasanRapat?.trim();
+    if ((raw ?? '').isEmpty) return;
+
+    if (!force &&
+        _pokokBahasanRapatLastSyncedRaw != null &&
+        _pokokBahasanRapatLastSyncedRaw == raw) {
+      return;
+    }
+
+    _logger.i({
+      'bahasan_rapat_sync_start': {
+        'raw': raw,
+        'force': force,
+        'controller_current': _pokokBahasanController.text,
+        'touched': _pokokBahasanRapatTouched,
+      }
+    });
+    final text = resolvePokokBahasanRapatTextForEdit(
+      isEditMode: _isEditMode,
+      dibaca: doc.dibaca,
+      bahasanRapatRaw: raw,
+    );
+    if (text == null || text.isEmpty) return;
+
+    if (_pokokBahasanController.text.trim() != text) {
+      _logger.i({
+        'bahasan_rapat_binding': {'set_text': text}
+      });
+      _pokokBahasanController.text = text;
+      _pokokBahasanRapatLastSyncedRaw = raw;
+      setState(() {});
+    }
+  }
+
+  void _syncPokokBahasanRapatManajemenFromExistingDocument(
+      {bool force = false}) {
+    final doc = _existingDocument;
+    if (doc == null) return;
+    _syncPokokBahasanRapatManajemenFromDoc(doc, force: force);
+  }
+
+  void _syncPokokBahasanRapatManajemenFromDoc(DocumentModel doc,
+      {bool force = false}) {
+    if (!_isEditMode) return;
+    if (_pokokBahasanRapatManajemenTouched && !force) return;
+    if (doc.dibaca != '7') return;
+
+    final raw = doc.bahasanRapat?.trim();
+    if ((raw ?? '').isEmpty) return;
+
+    if (!force &&
+        _pokokBahasanRapatManajemenLastSyncedRaw != null &&
+        _pokokBahasanRapatManajemenLastSyncedRaw == raw) {
+      return;
+    }
+
+    _logger.i({
+      'bahasan_rapat_manajemen_sync_start': {
+        'raw': raw,
+        'force': force,
+        'controller_current': _pokokBahasanManajemenController.text,
+        'touched': _pokokBahasanRapatManajemenTouched,
+      }
+    });
+
+    final text = resolvePokokBahasanRapatTextForEdit(
+      isEditMode: _isEditMode,
+      dibaca: doc.dibaca,
+      bahasanRapatRaw: raw,
+    );
+    if (text == null || text.isEmpty) return;
+
+    if (_pokokBahasanManajemenController.text.trim() != text) {
+      _logger.i({
+        'bahasan_rapat_manajemen_binding': {'set_text': text}
+      });
+      _pokokBahasanManajemenController.text = text;
+      _pokokBahasanRapatManajemenLastSyncedRaw = raw;
+      setState(() {});
+    }
+  }
+
+  void _syncRapatManajemenFromExistingDocument({bool force = false}) {
+    _syncMeetingDateManajemenFromExistingDocument(force: force);
+    _syncMeetingTimeManajemenFromExistingDocument(force: force);
+    _syncRuangRapatManajemenFromExistingDocument(force: force);
+    _syncPesertaRapatManajemenFromExistingDocument(force: force);
+    _syncPimpinanRapatManajemenFromExistingDocument(force: force);
+    _syncPokokBahasanRapatManajemenFromExistingDocument(force: force);
+    _idStatusRapatManajemen = _existingDocument?.idStatusRapat;
+    _showStatusRapatManajemen = _idStatusRapatManajemen == '2';
+    setState(() {});
   }
 
   void _computeLetterNumberPart2() {
@@ -2994,6 +3454,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                 }
                                                                 return null;
                                                               },
+                                                              onChanged: (val) {
+                                                                _pokokBahasanRapatTouched =
+                                                                    true;
+                                                                _logger.i({
+                                                                  'bahasan_rapat_onChanged':
+                                                                      val
+                                                                });
+                                                                setState(() {});
+                                                              },
                                                             ),
                                                             const SizedBox(
                                                                 height: 12),
@@ -3624,6 +4093,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                           2100, 12, 31),
                                                     );
                                                     if (picked != null) {
+                                                      _meetingDateManajemenTouched =
+                                                          true;
+                                                      _meetingDateManajemenSyncErrorShown =
+                                                          false;
                                                       _selectedMeetingManajemenDate =
                                                           picked;
                                                       _meetingDateManajemenController
@@ -3634,6 +4107,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                     }
                                                   },
                                                   onChanged: (v) {
+                                                    _meetingDateManajemenTouched =
+                                                        true;
+                                                    _meetingDateManajemenSyncErrorShown =
+                                                        false;
                                                     try {
                                                       _selectedMeetingManajemenDate =
                                                           DateFormat(
@@ -3670,6 +4147,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                     }
                                                     return null;
                                                   },
+                                                  onChanged: (_) {
+                                                    _meetingTimeManajemenTouched =
+                                                        true;
+                                                    _logger.i({
+                                                      'meeting_time_onChanged':
+                                                          _meetingTimeManajemenController
+                                                              .text
+                                                    });
+                                                    setState(() {});
+                                                  },
                                                 ),
                                               ),
                                             ],
@@ -3699,11 +4186,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                 _ruangRapatManajemenController,
                                             itemTextBuilder: (it) =>
                                                 it.deskripsi,
-                                            onChanged: (_) {
+                                            onChanged: (val) {
                                               _ruangRapatManajemenTouched =
                                                   true;
                                               _ruangRapatManajemenSyncErrorShown =
                                                   false;
+                                              _logger.i({
+                                                'ruang_rapat_manajemen_onChanged':
+                                                    val
+                                              });
                                               setState(() {});
                                             },
                                             validator: (value) {
@@ -3749,6 +4240,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                               return null;
                                             },
                                             onChanged: (vals) {
+                                              _pesertaRapatManajemenTouched =
+                                                  true;
+                                              _pesertaRapatManajemenSyncErrorShown =
+                                                  false;
+                                              _logger.i({
+                                                'peserta_rapat_manajemen_onChanged':
+                                                    vals
+                                              });
                                               _selectedPesertaManajemenRapat
                                                 ..clear()
                                                 ..addAll(vals);
@@ -3780,6 +4279,17 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                 _pimpinanRapatManajemenController,
                                             itemTextBuilder: (it) =>
                                                 it.deskripsi,
+                                            onChanged: (val) {
+                                              _pimpinanRapatManajemenTouched =
+                                                  true;
+                                              _pimpinanRapatManajemenSyncErrorShown =
+                                                  false;
+                                              _logger.i({
+                                                'pimpinan_rapat_manajemen_onChanged':
+                                                    val
+                                              });
+                                              setState(() {});
+                                            },
                                             validator: (value) {
                                               if (value == null ||
                                                   value.isEmpty) {
@@ -3831,12 +4341,60 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                               }
                                               return null;
                                             },
+                                            onChanged: (val) {
+                                              _pokokBahasanRapatManajemenTouched =
+                                                  true;
+                                              _logger.i({
+                                                'bahasan_rapat_manajemen_onChanged':
+                                                    val
+                                              });
+                                              setState(() {});
+                                            },
                                           ),
                                           const SizedBox(height: 12),
                                         ],
                                       )
                                     : const SizedBox.shrink(),
                               ),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 250),
+                                transitionBuilder: (child, anim) =>
+                                    SizeTransition(
+                                  sizeFactor: anim,
+                                  child: child,
+                                ),
+                                child: _showStatusRapatManajemen
+                                    ? Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          ApiDropdownField(
+                                            label: 'Status Rapat',
+                                            placeholder:
+                                                'Pilih Status Rapat (id_status)',
+                                            tableName: 'tbl_status_rapat',
+                                            controller:
+                                                _statusRapatManajemenController,
+                                            itemTextBuilder: (it) =>
+                                                it.deskripsi,
+                                            validator: (value) {
+                                              if (value == null ||
+                                                  value.isEmpty) {
+                                                return 'Status rapat harus dipilih';
+                                              }
+                                              return null;
+                                            },
+                                            onChanged: (val) {
+                                              _statusRapatManajemenController
+                                                  .select(val);
+                                              setState(() {});
+                                            },
+                                          ),
+                                          const SizedBox(height: 16),
+                                        ],
+                                      )
+                                    : const SizedBox.shrink(),
+                              )
                             ],
                           )
                         : const SizedBox.shrink(),
@@ -4362,7 +4920,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         payload['jam_rapat'] = _meetingTimeController.text.trim();
         payload['ruang_rapat'] =
             _getSelectedDeskripsi(_ruangRapatController) ?? 'null';
-        payload['bahasan_rapat'] = _pokokBahasanController.text.trim();
+        final bahasan = _pokokBahasanController.text.trim();
+        _logger.i({'submit_bahasan_rapat': bahasan});
+        payload['bahasan_rapat'] = bahasan;
         payload['pimpinan_rapat'] =
             _getSelectedDeskripsi(_pimpinanRapatController) ?? 'null';
         payload['peserta_rapat'] = _getSelectedDescriptions(
@@ -4467,11 +5027,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         }
         final bahasan = _pokokBahasanManajemenController.text.trim();
         if (bahasan.isNotEmpty) {
+          _logger.i({'submit_bahasan_rapat_manajemen': bahasan});
           payloadManajemen['bahasan_rapat'] = bahasan;
         }
         payloadManajemen['delegasi_tu'] = 'roihan***087817989449';
         payloadManajemen['status_tu'] = '2';
-        if (user?.role != UserRole.coordinator) {
+        final selectedStatusKode =
+            _statusRapatManajemenController.selectedKode.value.trim();
+        if (selectedStatusKode.isNotEmpty) {
+          payloadManajemen['id_status_rapat'] = selectedStatusKode;
+        } else if (user?.role != UserRole.coordinator) {
           payloadManajemen['id_status_rapat'] = '2';
           payloadManajemen['dibaca'] = '7';
         }
@@ -4729,7 +5294,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         final doc = results.first;
         _existingDocument = doc;
         _editingDocumentId = doc.id;
-        _syncRuangRapatManajemenFromExistingDocument(force: true);
+        _logger.i({
+          'api_loaded_doc': {
+            'noSurat': noSurat,
+            'dibaca': doc.dibaca,
+            'bahasan_rapat': doc.bahasanRapat
+          }
+        });
+        _syncRapatManajemenFromExistingDocument(force: true);
 
         // Cek kondisi khusus untuk reload kategori (qParam=4 dan klasifikasi MEMO/KRDN)
         _logger.i(
@@ -5156,8 +5728,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           _logger.w('doc.pimpinanRapat kosong/null, skip preselect pimpinan');
         }
 
-        //Bahasan rapat
-        _pokokBahasanController.text = doc.bahasanRapat ?? '';
+        _syncPokokBahasanRapatFromDoc(doc, force: true);
 
         // Lampiran
         /*
