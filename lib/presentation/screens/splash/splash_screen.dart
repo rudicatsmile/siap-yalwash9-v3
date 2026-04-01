@@ -51,17 +51,19 @@ class _SplashScreenState extends State<SplashScreen> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(AppRadius.xl),
               ),
-              child: const Icon(
-                Icons.description_outlined,
-                size: AppIconSize.xxl,
-                color: AppTheme.primaryColor,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            
+
             // App Name
             const Text(
               AppConstants.appName,
@@ -72,7 +74,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            
+
             // Tagline
             const Text(
               AppConstants.appTagline,
@@ -83,7 +85,7 @@ class _SplashScreenState extends State<SplashScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xxl),
-            
+
             // Loading Indicator
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),

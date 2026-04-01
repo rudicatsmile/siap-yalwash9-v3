@@ -30,6 +30,7 @@ use Illuminate\Http\Request;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::get('/lampiran/file/{filename}', [SuratMasukController::class, 'file'])->where('filename', '[A-Za-z0-9._-]+');
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {

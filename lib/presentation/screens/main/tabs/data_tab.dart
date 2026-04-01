@@ -5,6 +5,7 @@ import '../../../../data/repositories/document_repository.dart';
 import '../../../controllers/dashboard_controller.dart';
 import '../../../controllers/auth_controller.dart';
 import '../../../../routes/app_routes.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Data tab with role-based dashboard
@@ -133,234 +134,250 @@ class _DataTabState extends State<DataTab> {
 
                 return Card(
                   child: ListTile(
-                    title: Text(doc.kategoriKode == 'Rapat'
-                        ? (doc.bahasanRapat ?? doc.title)
-                        : (doc.kategoriKode == 'Memo' ||
-                                doc.kategoriKode == 'Koordinasi')
-                            ? (doc.instruksiKerja ?? doc.title)
-                            : (doc.perihal ?? doc.title)),
-                    subtitle: Text(doc.documentNumber),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: statusColor,
+                      title: Text(doc.kategoriKode == 'Rapat'
+                          ? (doc.bahasanRapat ?? doc.title)
+                          : (doc.kategoriKode == 'Memo' ||
+                                  doc.kategoriKode == 'Koordinasi')
+                              ? (doc.instruksiKerja ?? doc.title)
+                              : (doc.perihal ?? doc.title)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            (authController.currentUser.value?.role !=
+                                        UserRole.user &&
+                                    authController.currentUser.value?.role !=
+                                        UserRole.deptHead)
+                                ? (doc.pengirim ?? '')
+                                : (doc.noAsal ?? ''),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: statusColor,
+                              ),
+                            ),
+                            child: Text(
+                              (switch (doc.dibaca) {
+                                    '1' => 'Progres Kabag. Umum',
+                                    '2' => 'Progres Pimpinan',
+                                    '3' => 'Di terima',
+                                    '7' || '8' => 'Rapat Koordinasi',
+                                    '20' => 'Tidak diterima',
+                                    '0' => 'Di kembalikan',
+                                    _ => doc.status.displayName
+                                  }) +
+                                  (doc.kategoriSurat != null
+                                      ? ' - ${doc.kategoriSurat!}'
+                                      : ''),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: statusColor,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            (switch (doc.dibaca) {
-                                  '1' => 'Progres Kabag. Umum',
-                                  '2' => 'Progres Pimpinan',
-                                  '3' => 'Di terima',
-                                  '7' || '8' => 'Rapat Koordinasi',
-                                  '20' => 'Tidak diterima',
-                                  '0' => 'Di kembalikan',
-                                  _ => doc.status.displayName
-                                }) +
-                                (doc.kategoriSurat != null
-                                    ? '\n${doc.kategoriSurat!}'
-                                    : ''),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: statusColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        PopupMenuButton<String>(
-                          onSelected: (value) async {
-                            switch (value) {
-                              case 'detail':
-                                try {
-                                  final result = await Get.toNamed(
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          PopupMenuButton<String>(
+                            onSelected: (value) async {
+                              switch (value) {
+                                case 'detail':
+                                  try {
+                                    final result = await Get.toNamed(
+                                      AppRoutes.documentForm,
+                                      arguments: {
+                                        'no_surat': doc.documentNumber,
+                                        'qParam': qp
+                                      },
+                                    );
+                                    if (result != null) {
+                                      // final dashboardController =
+                                      //     Get.find<DashboardController>();
+                                      await dashboardController
+                                          .refreshDocuments();
+                                    }
+                                  } catch (e) {
+                                    Get.snackbar(
+                                      'Error',
+                                      'Gagal membuka form edit: $e',
+                                      backgroundColor: AppTheme.errorColor,
+                                      colorText: Colors.white,
+                                    );
+                                  }
+                                  break;
+                                case 'view':
+                                  try {
+                                    final result = await Get.toNamed(
+                                      AppRoutes.documentDetail,
+                                      arguments: doc,
+                                    );
+                                    if (result == 'deleted') {
+                                      await dashboardController
+                                          .refreshDocuments();
+                                    }
+                                  } catch (e) {
+                                    Get.snackbar(
+                                      'Error',
+                                      'Gagal membuka detail: $e',
+                                      backgroundColor: AppTheme.errorColor,
+                                      colorText: Colors.white,
+                                    );
+                                  }
+                                  break;
+                                case 'edit':
+                                  Get.toNamed(
                                     AppRoutes.documentForm,
                                     arguments: {
                                       'no_surat': doc.documentNumber,
                                       'qParam': qp
                                     },
-                                  );
-                                  if (result != null) {
-                                    // final dashboardController =
-                                    //     Get.find<DashboardController>();
-                                    await dashboardController
-                                        .refreshDocuments();
-                                  }
-                                } catch (e) {
-                                  Get.snackbar(
-                                    'Error',
-                                    'Gagal membuka form edit: $e',
-                                    backgroundColor: AppTheme.errorColor,
-                                    colorText: Colors.white,
-                                  );
-                                }
-                                break;
-                              case 'view':
-                                try {
-                                  final result = await Get.toNamed(
-                                    AppRoutes.documentDetail,
-                                    arguments: doc,
-                                  );
-                                  if (result == 'deleted') {
-                                    await dashboardController
-                                        .refreshDocuments();
-                                  }
-                                } catch (e) {
-                                  Get.snackbar(
-                                    'Error',
-                                    'Gagal membuka detail: $e',
-                                    backgroundColor: AppTheme.errorColor,
-                                    colorText: Colors.white,
-                                  );
-                                }
-                                break;
-                              case 'edit':
-                                Get.toNamed(
-                                  AppRoutes.documentForm,
-                                  arguments: {
-                                    'no_surat': doc.documentNumber,
-                                    'qParam': qp
-                                  },
-                                )?.then((result) {
-                                  if (result != null) {
-                                    String? dibacaVal;
-                                    if (result is Map) {
-                                      if (result['status'] == 'created' ||
-                                          result['status'] == 'updated') {
-                                        dibacaVal =
-                                            result['dibaca']?.toString();
+                                  )?.then((result) {
+                                    if (result != null) {
+                                      String? dibacaVal;
+                                      if (result is Map) {
+                                        if (result['status'] == 'created' ||
+                                            result['status'] == 'updated') {
+                                          dibacaVal =
+                                              result['dibaca']?.toString();
+                                        }
+                                      } else if (result == 'created' ||
+                                          result == 'updated') {
+                                        // Fallback if just string returned
+                                        dibacaVal = null;
                                       }
-                                    } else if (result == 'created' ||
-                                        result == 'updated') {
-                                      // Fallback if just string returned
-                                      dibacaVal = null;
-                                    }
 
-                                    // Refresh documents with filter 'dibaca' received from form
-                                    dashboardController
-                                        .refreshDocuments(dibaca: dibacaVal)
-                                        .then((_) {
-                                      Get.snackbar(
-                                        'Berhasil',
-                                        'Data berhasil diperbarui',
-                                        backgroundColor:
-                                            AppTheme.statusApproved,
-                                        colorText: Colors.white,
-                                        snackPosition: SnackPosition.BOTTOM,
-                                        margin: const EdgeInsets.all(16),
-                                      );
-                                    }).catchError((e) {
-                                      Get.snackbar(
-                                        'Peringatan',
-                                        'Gagal memperbarui data: $e',
-                                        backgroundColor: AppTheme.warningColor,
-                                        colorText: Colors.white,
-                                      );
-                                    });
-                                  }
-                                }).catchError((e) {
-                                  Get.snackbar(
-                                    'Error',
-                                    'Gagal membuka form edit: $e',
-                                    backgroundColor: AppTheme.errorColor,
-                                    colorText: Colors.white,
-                                  );
-                                });
-                                break;
-                              case 'delete':
-                                try {
-                                  if (doc.dibaca != '1') {
+                                      // Refresh documents with filter 'dibaca' received from form
+                                      dashboardController
+                                          .refreshDocuments(dibaca: dibacaVal)
+                                          .then((_) {
+                                        Get.snackbar(
+                                          'Berhasil',
+                                          'Data berhasil diperbarui',
+                                          backgroundColor:
+                                              AppTheme.statusApproved,
+                                          colorText: Colors.white,
+                                          snackPosition: SnackPosition.BOTTOM,
+                                          margin: const EdgeInsets.all(16),
+                                        );
+                                      }).catchError((e) {
+                                        Get.snackbar(
+                                          'Peringatan',
+                                          'Gagal memperbarui data: $e',
+                                          backgroundColor:
+                                              AppTheme.warningColor,
+                                          colorText: Colors.white,
+                                        );
+                                      });
+                                    }
+                                  }).catchError((e) {
                                     Get.snackbar(
-                                      'Hapus berkas',
-                                      'Berkas tidak dapat dihapus.',
-                                      backgroundColor: AppTheme.warningColor
-                                          .withOpacity(0.9),
+                                      'Error',
+                                      'Gagal membuka form edit: $e',
+                                      backgroundColor: AppTheme.errorColor,
                                       colorText: Colors.white,
                                     );
-                                    break;
+                                  });
+                                  break;
+                                case 'delete':
+                                  try {
+                                    if (doc.dibaca != '1') {
+                                      Get.snackbar(
+                                        'Hapus berkas',
+                                        'Berkas tidak dapat dihapus.',
+                                        backgroundColor: AppTheme.warningColor
+                                            .withOpacity(0.9),
+                                        colorText: Colors.white,
+                                      );
+                                      break;
+                                    }
+                                    final repo = DocumentRepository();
+                                    await repo.deleteDocument(doc.id);
+                                    // final dashboardController =
+                                    //     Get.find<DashboardController>();
+                                    dashboardController.documents
+                                        .removeAt(index);
+                                    Get.snackbar(
+                                      'Berhasil',
+                                      'Dokumen berhasil dihapus',
+                                      backgroundColor: AppTheme.statusApproved,
+                                      colorText: Colors.white,
+                                    );
+                                  } catch (e) {
+                                    Get.snackbar(
+                                      'Error',
+                                      'Gagal menghapus dokumen: $e',
+                                      backgroundColor: AppTheme.errorColor,
+                                      colorText: Colors.white,
+                                    );
                                   }
-                                  final repo = DocumentRepository();
-                                  await repo.deleteDocument(doc.id);
-                                  // final dashboardController =
-                                  //     Get.find<DashboardController>();
-                                  dashboardController.documents.removeAt(index);
-                                  Get.snackbar(
-                                    'Berhasil',
-                                    'Dokumen berhasil dihapus',
-                                    backgroundColor: AppTheme.statusApproved,
-                                    colorText: Colors.white,
-                                  );
-                                } catch (e) {
-                                  Get.snackbar(
-                                    'Error',
-                                    'Gagal menghapus dokumen: $e',
-                                    backgroundColor: AppTheme.errorColor,
-                                    colorText: Colors.white,
-                                  );
-                                }
-                                break;
-                            }
-                          },
-                          // Menampilkan menu kondisional berdasarkan qParam
-                          itemBuilder: (context) {
-                            // if (qp == '2') {
-                            //   //Buat berkas : oleh user, coordinator
-                            //   return [
-                            //     PopupMenuItem(
-                            //       value: 'detail',
-                            //       child: Row(
-                            //         children: const [
-                            //           Icon(Icons.info_outline),
-                            //           SizedBox(width: 8),
-                            //           Text('Detail'),
-                            //         ],
-                            //       ),
-                            //     ),
-                            //   ];
-                            // }
-                            return [
-                              // const PopupMenuItem(
-                              //   value: 'view',
-                              //   child: Text('Lihat'),
-                              // ),
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Text('Edit'),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Text('Hapus'),
-                              ),
-                            ];
-                          },
-                        ),
-                      ],
-                    ),
-                    onTap: () async {
-                      try {
-                        final result = await Get.toNamed(
-                          AppRoutes.documentDetail,
-                          arguments: doc,
-                        );
-                        if (result == 'deleted') {
-                          await dashboardController.refreshDocuments();
-                        }
-                      } catch (e) {
-                        Get.snackbar(
-                          'Error',
-                          'Gagal membuka detail: $e',
-                          backgroundColor: AppTheme.errorColor,
-                          colorText: Colors.white,
-                        );
-                      }
-                    },
-                  ),
+                                  break;
+                              }
+                            },
+                            // Menampilkan menu kondisional berdasarkan qParam
+                            itemBuilder: (context) {
+                              // if (qp == '2') {
+                              //   //Buat berkas : oleh user, coordinator
+                              //   return [
+                              //     PopupMenuItem(
+                              //       value: 'detail',
+                              //       child: Row(
+                              //         children: const [
+                              //           Icon(Icons.info_outline),
+                              //           SizedBox(width: 8),
+                              //           Text('Detail'),
+                              //         ],
+                              //       ),
+                              //     ),
+                              //   ];
+                              // }
+                              return [
+                                // const PopupMenuItem(
+                                //   value: 'view',
+                                //   child: Text('Lihat'),
+                                // ),
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Text('Edit'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Hapus'),
+                                ),
+                              ];
+                            },
+                          ),
+                        ],
+                      ),
+                      onTap: () {}
+                      // async {
+                      //   try {
+                      //     final result = await Get.toNamed(
+                      //       AppRoutes.documentDetail,
+                      //       arguments: doc,
+                      //     );
+                      //     if (result == 'deleted') {
+                      //       await dashboardController.refreshDocuments();
+                      //     }
+                      //   } catch (e) {
+                      //     Get.snackbar(
+                      //       'Error',
+                      //       'Gagal membuka detail: $e',
+                      //       backgroundColor: AppTheme.errorColor,
+                      //       colorText: Colors.white,
+                      //     );
+                      //   }
+                      // },
+                      ),
                 );
               },
             ),

@@ -87,7 +87,7 @@ class HomeTab extends StatelessWidget {
                   height: 150,
                   child: PageView(
                     children: [
-                      _buildInfoCard('Selamat Datang di SIAP',
+                      _buildInfoCard('SIAP Yalwash9 ',
                           'Sistem Informasi Administrasi Protokoler'),
                       _buildInfoCard(
                           'Info', 'Kelola dokumen administrasi dengan mudah'),
@@ -295,7 +295,7 @@ const List<_HomeStat> _gridStats = <_HomeStat>[
   _HomeStat(9, 'Agenda Rapat', '9'), //coordinator
   _HomeStat(3, 'Arsip Digital', '3'), //general_head, coordinator
 
-  _HomeStat(10, 'Berkas naik', '10'), //dept_head, dept_head
+  _HomeStat(10, 'Berkas naik..', '10'), //dept_head, dept_head
   _HomeStat(11, 'Berkas naik', '11'), //user
 
   _HomeStat(12, 'Pengajuan Rapat', '12'), //dept_head, dept_head
@@ -307,7 +307,7 @@ const List<_HomeStat> _gridStats = <_HomeStat>[
   _HomeStat(18, 'Di tolak', '18'), //dept_head, dept_head
   _HomeStat(19, 'Di tolak', '19'), //user
 
-  _HomeStat(20, 'Informasi', '20'), //dept_head, dept_head
+  // _HomeStat(20, 'Informasi', '20'), //dept_head, dept_head
   _HomeStat(20, 'Informasi', '20'), //user
 
   _HomeStat(14, 'Arsip Digital', '14'), //dept_head, dept_head

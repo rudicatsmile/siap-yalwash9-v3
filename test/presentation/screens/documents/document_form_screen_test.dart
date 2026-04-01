@@ -49,7 +49,10 @@ class MockDropdownController extends GetxController
   final error = ''.obs;
 
   @override
-  Future<void> loadTable(String tableName, {int limit = 100}) async {
+  Future<void> loadTable(String tableName,
+      {int limit = 100,
+      bool forceRefresh = false,
+      Map<String, dynamic>? params}) async {
     // Mock: Do nothing to avoid network calls
   }
 
@@ -125,6 +128,8 @@ void main() {
     Get.put<DropdownController>(MockDropdownController(),
         tag: 'tujuan_disposisi');
     Get.put<DropdownController>(MockDropdownController(), tag: 'ruang_rapat');
+    Get.put<DropdownController>(MockDropdownController(),
+        tag: 'ruang_rapat_manajemen');
     Get.put<DropdownController>(MockDropdownController(), tag: 'peserta_rapat');
     Get.put<DropdownController>(MockDropdownController(),
         tag: 'pimpinan_rapat');
@@ -135,6 +140,47 @@ void main() {
 
   tearDown(() {
     Get.reset();
+  });
+
+  test(
+      'resolveRuangRapatManajemenKodeForEdit returns kode when edit & dibaca=7',
+      () {
+    final items = [
+      DropdownItem(kode: 'A', deskripsi: 'Ruang A'),
+      DropdownItem(kode: 'B', deskripsi: 'Ruang B'),
+    ];
+
+    final kode = resolveRuangRapatManajemenKodeForEdit(
+      isEditMode: true,
+      dibaca: '7',
+      ruangRapatRaw: 'Ruang B',
+      items: items,
+    );
+
+    expect(kode, 'B');
+  });
+
+  test('resolveRuangRapatManajemenKodeForEdit returns null when not edit', () {
+    final items = [DropdownItem(kode: 'A', deskripsi: 'Ruang A')];
+    final kode = resolveRuangRapatManajemenKodeForEdit(
+      isEditMode: false,
+      dibaca: '7',
+      ruangRapatRaw: 'Ruang A',
+      items: items,
+    );
+    expect(kode, isNull);
+  });
+
+  test('resolveRuangRapatManajemenKodeForEdit returns null when dibaca != 7',
+      () {
+    final items = [DropdownItem(kode: 'A', deskripsi: 'Ruang A')];
+    final kode = resolveRuangRapatManajemenKodeForEdit(
+      isEditMode: true,
+      dibaca: '8',
+      ruangRapatRaw: 'Ruang A',
+      items: items,
+    );
+    expect(kode, isNull);
   });
 
   testWidgets(
@@ -396,25 +442,26 @@ void main() {
     expect(
         Get.isRegistered<DropdownController>(tag: 'tindakan_pimpinan'), isTrue);
 
-    // Find ApiDropdownField for Tindakan Pimpinan
-    final tindakanPimpinanFinder = find.byWidgetPredicate((widget) {
-      if (widget is ApiDropdownField) {
-        return widget.tableName == 'm_tindakan_pimpinan' &&
-            widget.label == 'Tindakan';
+    final tindakanLabelColumn = find.byWidgetPredicate((widget) {
+      if (widget is Column) {
+        return widget.children
+            .any((child) => child is Text && child.data?.trim() == 'Tindakan');
       }
       return false;
     });
+    expect(tindakanLabelColumn, findsOneWidget);
 
-    expect(tindakanPimpinanFinder, findsOneWidget);
+    final dropdownFinder = find.descendant(
+      of: tindakanLabelColumn,
+      matching: find.byType(DropdownButtonFormField<String>),
+    );
+    expect(dropdownFinder, findsOneWidget);
 
-    // Verify properties
     final dropdownWidget =
-        tester.widget<ApiDropdownField>(tindakanPimpinanFinder);
-    expect(dropdownWidget.placeholder, 'Pilih Tindakan');
-
-    // Verify validator
-    expect(dropdownWidget.validator!(null), 'Tindakan harus dipilih');
-    expect(dropdownWidget.validator!('valid_kode'), null);
+        tester.widget<DropdownButtonFormField<String>>(dropdownFinder);
+    expect(dropdownWidget.decoration?.hintText, 'Pilih Tindakan');
+    expect(dropdownWidget.validator?.call(null), 'Tindakan harus dipilih');
+    expect(dropdownWidget.validator?.call('valid_kode'), null);
   });
 
   testWidgets('Koordinator Disposisi field should be present and functional',
@@ -427,23 +474,31 @@ void main() {
     await tester.pumpAndSettle();
 
     // Trigger visibility by selecting a valid Tindakan (e.g. '3')
-    // We need to register the controller and mock items first if not already done
-    // But DocumentFormScreen registers controllers. We might need to populate items.
     final tindakanController =
         Get.find<DropdownController>(tag: 'tindakan_pimpinan');
     tindakanController.items.assignAll([
       DropdownItem(kode: '3', deskripsi: 'Di Terima'),
     ]);
-    tindakanController.select('3'); // Select directly via controller
     await tester.pumpAndSettle();
 
-    // Select '3' via UI to trigger onChanged listener which sets visibility
-    final tindakanFinder = find.byWidgetPredicate((widget) =>
-        widget is ApiDropdownField &&
-        widget.tableName == 'm_tindakan_pimpinan');
+    final tindakanLabelColumn = find.byWidgetPredicate((widget) {
+      if (widget is Column) {
+        return widget.children
+            .any((child) => child is Text && child.data?.trim() == 'Tindakan');
+      }
+      return false;
+    });
+    expect(tindakanLabelColumn, findsOneWidget);
+
+    final dropdownFinder = find.descendant(
+      of: tindakanLabelColumn,
+      matching: find.byType(DropdownButtonFormField<String>),
+    );
+    expect(dropdownFinder, findsOneWidget);
+
     final tindakanDropdownWidget =
-        tester.widget<ApiDropdownField>(tindakanFinder);
-    tindakanDropdownWidget.onChanged!('3');
+        tester.widget<DropdownButtonFormField<String>>(dropdownFinder);
+    tindakanDropdownWidget.onChanged?.call('3');
     await tester.pumpAndSettle();
 
     // Verify controller registration
@@ -462,13 +517,13 @@ void main() {
     expect(koordinatorFinder, findsOneWidget);
 
     // Verify properties
-    final dropdownWidget =
+    final koordinatorWidget =
         tester.widget<ApiMultiSelectField>(koordinatorFinder);
-    expect(dropdownWidget.placeholder, 'Pilih Disposisi Koordinator');
+    expect(koordinatorWidget.placeholder, 'Pilih Disposisi Koordinator');
 
     // Verify validator
-    expect(dropdownWidget.validator!(null), 'Minimal pilih 1 disposisi');
-    expect(dropdownWidget.validator!(['valid_kode']), null);
+    expect(koordinatorWidget.validator!(null), 'Minimal pilih 1 disposisi');
+    expect(koordinatorWidget.validator!(['valid_kode']), null);
   });
 
   testWidgets('Catatan Koordinator field should be present',
@@ -486,12 +541,26 @@ void main() {
     tindakanController.items.assignAll([
       DropdownItem(kode: '3', deskripsi: 'Di Terima'),
     ]);
+    await tester.pumpAndSettle();
 
-    final tindakanFinder = find.byWidgetPredicate((widget) =>
-        widget is ApiDropdownField &&
-        widget.tableName == 'm_tindakan_pimpinan');
-    final dropdownWidget = tester.widget<ApiDropdownField>(tindakanFinder);
-    dropdownWidget.onChanged!('3');
+    final tindakanLabelColumn = find.byWidgetPredicate((widget) {
+      if (widget is Column) {
+        return widget.children
+            .any((child) => child is Text && child.data?.trim() == 'Tindakan');
+      }
+      return false;
+    });
+    expect(tindakanLabelColumn, findsOneWidget);
+
+    final dropdownFinder = find.descendant(
+      of: tindakanLabelColumn,
+      matching: find.byType(DropdownButtonFormField<String>),
+    );
+    expect(dropdownFinder, findsOneWidget);
+
+    final dropdownWidget =
+        tester.widget<DropdownButtonFormField<String>>(dropdownFinder);
+    dropdownWidget.onChanged?.call('3');
     await tester.pumpAndSettle();
 
     expect(
@@ -537,14 +606,28 @@ void main() {
       DropdownItem(kode: '8', deskripsi: 'Option 8'),
       DropdownItem(kode: '9', deskripsi: 'Option 9'),
     ]);
+    await tester.pumpAndSettle();
 
     // Helper to trigger selection
     Future<void> selectTindakan(String kode) async {
-      final dropdownFinder = find.byWidgetPredicate((widget) =>
-          widget is ApiDropdownField &&
-          widget.tableName == 'm_tindakan_pimpinan');
-      final dropdownWidget = tester.widget<ApiDropdownField>(dropdownFinder);
-      dropdownWidget.onChanged!(kode);
+      final tindakanLabelColumn = find.byWidgetPredicate((widget) {
+        if (widget is Column) {
+          return widget.children.any(
+              (child) => child is Text && child.data?.trim() == 'Tindakan');
+        }
+        return false;
+      });
+      expect(tindakanLabelColumn, findsOneWidget);
+
+      final dropdownFinder = find.descendant(
+        of: tindakanLabelColumn,
+        matching: find.byType(DropdownButtonFormField<String>),
+      );
+      expect(dropdownFinder, findsOneWidget);
+
+      final dropdownWidget =
+          tester.widget<DropdownButtonFormField<String>>(dropdownFinder);
+      dropdownWidget.onChanged?.call(kode);
       await tester.pumpAndSettle();
     }
 
@@ -565,20 +648,20 @@ void main() {
         find.text('Catatan Koordinator', skipOffstage: false), findsOneWidget);
   });
 
-  testWidgets('Group Rapat Manajemen should be visible only when qParam is "4"',
+  testWidgets('Group Rapat Manajemen hidden when qParam != "4"',
       (WidgetTester tester) async {
-    // 1. qParam != '4' (e.g., '1') -> Hidden
     await tester.pumpWidget(
       GetMaterialApp(
         home: DocumentFormScreen(qParam: '1', key: UniqueKey()),
       ),
     );
     await tester.pumpAndSettle();
-
-    // Check if visible (even if offstage)
     expect(find.text('Waktu Rapat', skipOffstage: false), findsNothing);
+  });
 
-    // 2. qParam == '4' -> Visible
+  testWidgets(
+      'Group Rapat Manajemen visible after tindakan "7" when qParam="4"',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
       GetMaterialApp(
         home: DocumentFormScreen(qParam: '4', key: UniqueKey()),
@@ -586,26 +669,27 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Setup mock items for Tindakan Manajemen
     final tindakanController =
         Get.find<DropdownController>(tag: 'tindakan_manajemen');
     tindakanController.items.assignAll([
       DropdownItem(kode: '7', deskripsi: 'Agenda Rapat'),
       DropdownItem(kode: '3', deskripsi: 'Di Terima'),
     ]);
+    await tester.pumpAndSettle();
 
-    // Select '7' (Agenda Rapat) to trigger visibility
     final dropdownFinder = find.byWidgetPredicate((widget) =>
         widget is ApiDropdownField &&
         widget.tableName == 'm_tindakan_manajemen');
+    expect(dropdownFinder, findsOneWidget);
     final dropdownWidget = tester.widget<ApiDropdownField>(dropdownFinder);
-    dropdownWidget.onChanged!('7');
+    dropdownWidget.onChanged?.call('7');
     await tester.pumpAndSettle();
 
-    // Check if visible (even if offstage)
     expect(find.text('Waktu Rapat', skipOffstage: false), findsOneWidget);
+  });
 
-    // 3. qParam == null -> Hidden
+  testWidgets('Group Rapat Manajemen hidden when qParam is null',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
       GetMaterialApp(
         home: DocumentFormScreen(qParam: null, key: UniqueKey()),

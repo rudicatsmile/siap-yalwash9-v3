@@ -55,10 +55,15 @@ class ApiService {
           return handler.next(response);
         },
         onError: (error, handler) {
-          _logger.e(
-              'Error: ${error.response?.statusCode} ${error.requestOptions.path}');
-          _logger.e('Error message: ${error.message}');
-          _logger.e('Error data: ${error.response?.data}');
+          _logger.e({
+            'type': error.type.toString(),
+            'uri': error.requestOptions.uri.toString(),
+            'path': error.requestOptions.path,
+            'status': error.response?.statusCode,
+            'message': error.message,
+            'error': error.error?.toString(),
+            'data': error.response?.data,
+          });
           return handler.next(error);
         },
       ),
@@ -181,14 +186,16 @@ class ApiService {
             statusCode: 0,
           );
         }
+        final detail = (error.error ?? error.message)?.toString();
         return ApiException(
-          'Unexpected error occurred: ${error.message}',
+          'Unexpected error occurred: ${detail ?? 'Unknown'}',
           statusCode: 0,
         );
 
       default:
+        final detail = (error.error ?? error.message)?.toString();
         return ApiException(
-          'An error occurred: ${error.message}',
+          'An error occurred: ${detail ?? 'Unknown'}',
           statusCode: 0,
         );
     }

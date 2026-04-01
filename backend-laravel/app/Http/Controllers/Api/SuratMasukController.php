@@ -133,7 +133,7 @@ class SuratMasukController extends Controller
                 'message' => 'Lampiran berhasil diunggah',
                 'data' => [
                     'id' => $id,
-                    'url' => asset('storage/' . $path),
+                    'url' => url('api/lampiran/file/' . $storedName),
                     'nama_berkas' => $storedName,
                 ],
                 'timestamp' => now()->toIso8601String(),
@@ -157,6 +157,28 @@ class SuratMasukController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ], 500);
         }
+    }
+
+    public function file(string $filename)
+    {
+        if (!preg_match('/^[A-Za-z0-9._-]+$/', $filename)) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'Lampiran tidak ditemukan',
+                'timestamp' => now()->toIso8601String(),
+            ], 404);
+        }
+
+        $path = 'lampiran/' . $filename;
+        if (!Storage::disk('public')->exists($path)) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'Lampiran tidak ditemukan',
+                'timestamp' => now()->toIso8601String(),
+            ], 404);
+        }
+
+        return Storage::disk('public')->response($path);
     }
 
     /**

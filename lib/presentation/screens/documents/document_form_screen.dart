@@ -16,7 +16,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart' as dio;
 import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/app_constants.dart';
-import 'dart:typed_data';
 import 'dart:async';
 import 'dart:io';
 import '../../controllers/surat_masuk_controller.dart';
@@ -142,6 +141,19 @@ String? getKodeFromDocRuangRapat({
     logger?.e('Gagal parse doc.ruangRapat: $e');
     return null;
   }
+}
+
+String? resolveRuangRapatManajemenKodeForEdit({
+  required bool isEditMode,
+  required String? dibaca,
+  required String? ruangRapatRaw,
+  required List<DropdownItem> items,
+  Logger? logger,
+}) {
+  if (!isEditMode) return null;
+  if (dibaca != '7') return null;
+  return getKodeFromDocRuangRapat(
+      raw: ruangRapatRaw, items: items, logger: logger);
 }
 
 /// Document form screen for creating and editing documents
@@ -273,6 +285,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
   late final Worker _jenisItemsOnce;
   late final Worker _kategoriLaporanItemsOnce;
   late final Worker _part2SyncWorker;
+  late final Worker _ruangRapatManajemenItemsWorker;
+  bool _ruangRapatManajemenTouched = false;
+  String? _ruangRapatManajemenLastSyncedRaw;
+  bool _ruangRapatManajemenSyncErrorShown = false;
   final List<String> _selectedTujuanDisposisi = <String>[];
   final List<String> _selectedPesertaRapat = <String>[];
   final List<String> _selectedPesertaManajemenRapat = <String>[];
@@ -845,7 +861,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _showTeruskanPimpinan = false;
       _showKtuDisposisi = false;
       _showCatatanKtu = false;
-      _showGroupRapatManajemen = false;
+      _showGroupRapatManajemen = true;
       _teruskanPimpinanController.select('');
       _selectedKtuDisposisi.clear();
     } else {
@@ -1050,7 +1066,10 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         _putOrFind(LastNoSuratController(), tag: 'last_no_surat');
 
     // Cek qParam untuk menentukan visibilitas _showGroupRapatManajemen
-    if (widget.qParam != '4') {
+    if (widget.qParam == '6') {
+      _showTindakanManajemen = true;
+      _showGroupRapatManajemen = true;
+    } else if (widget.qParam != '4') {
       _showTindakanManajemen = false;
       _showGroupRapatManajemen = false;
     } else {
@@ -1074,7 +1093,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       _isEditMode = true;
       _loadExistingDocumentByNoSurat(widget.noSurat!.trim());
     }
-    Get.put(SuratMasukController(), permanent: true);
+    Get.put(SuratMasukController(), permanent: !Get.testMode);
     // _kategoriController.loadTable('m_kategori_formulir');
     _kategoriController.loadTable('m_kategori_formulir', forceRefresh: true);
     _jenisController.loadTable('m_jenis_dokumen');
@@ -1141,9 +1160,14 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       (_) => _syncDocNumberPart2(),
     );
 
+    _ruangRapatManajemenItemsWorker =
+        ever(_ruangRapatManajemenController.items, (_) {
+      _syncRuangRapatManajemenFromExistingDocument();
+    });
+
     // When API returns next_no_surat, prefill part-1 document number
     _lastNoSuratResultWorker = ever(_lastNoSuratController.result, (res) {
-      if (res != null && res.nextNoSurat.isNotEmpty) {
+      if (!_isEditMode && res != null && res.nextNoSurat.isNotEmpty) {
         _docNumberPart1Controller.text = res.nextNoSurat;
       }
     });
@@ -1226,6 +1250,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _jenisItemsOnce.dispose();
     _kategoriLaporanItemsOnce.dispose();
     _part2SyncWorker.dispose();
+    _ruangRapatManajemenItemsWorker.dispose();
     unawaited(_cleanupTempDir());
     super.dispose();
   }
@@ -1243,6 +1268,57 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     _isDocNumberPart2ReadOnly = decision.readOnly;
     _docNumberPart2Controller.text = decision.value;
     setState(() {});
+  }
+
+  void _syncRuangRapatManajemenFromExistingDocument({bool force = false}) {
+    if (!_isEditMode) return;
+    if (_ruangRapatManajemenTouched && !force) return;
+    if (_ruangRapatManajemenController.items.isEmpty) return;
+
+    final dibaca = _existingDocument?.dibaca;
+    if (dibaca != '7') return;
+
+    final raw = _existingDocument?.ruangRapat?.trim();
+    if ((raw ?? '').isEmpty) {
+      if (!_ruangRapatManajemenSyncErrorShown) {
+        _ruangRapatManajemenSyncErrorShown = true;
+        _logger.w('ruang_rapat kosong/null saat dibaca=7 (edit mode)');
+      }
+      return;
+    }
+
+    if (!force &&
+        _ruangRapatManajemenLastSyncedRaw != null &&
+        _ruangRapatManajemenLastSyncedRaw == raw) {
+      return;
+    }
+
+    final kode = resolveRuangRapatManajemenKodeForEdit(
+      isEditMode: _isEditMode,
+      dibaca: dibaca,
+      ruangRapatRaw: raw,
+      items: _ruangRapatManajemenController.items,
+      logger: _logger,
+    );
+
+    if (kode == null || kode.isEmpty) {
+      if (!_ruangRapatManajemenSyncErrorShown) {
+        _ruangRapatManajemenSyncErrorShown = true;
+        Get.snackbar(
+          'Info',
+          'Ruang rapat tidak dikenali, silakan pilih manual.',
+          backgroundColor: AppTheme.errorColor,
+          colorText: Colors.white,
+        );
+      }
+      return;
+    }
+
+    if (_ruangRapatManajemenController.selectedKode.value != kode) {
+      _ruangRapatManajemenController.select(kode);
+      _ruangRapatManajemenLastSyncedRaw = raw;
+      setState(() {});
+    }
   }
 
   void _computeLetterNumberPart2() {
@@ -1632,13 +1708,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                               ),
                                                             )
                                                             .toList(),
-                                                    onChanged: ((widget.qParam ==
+                                                    /*
+                                                        (widget.qParam ==
                                                                     '1' ||
                                                                 widget.qParam ==
                                                                     '2') &&
                                                             _existingDocument
                                                                     ?.dibaca ==
-                                                                '1')
+                                                                '1'
+                                                        */
+                                                    onChanged: (true)
                                                         ? (val) =>
                                                             _usersDropdownController
                                                                 .select(val)
@@ -2000,11 +2079,9 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                           fontWeight: FontWeight.bold),
                                     ),
                                     TextFormField(
-                                      enabled:
-                                          // (widget.qParam == '1' || widget.qParam == '2'),
-                                          ((widget.qParam == '1' ||
-                                                  widget.qParam == '2') &&
-                                              _existingDocument?.dibaca == '1'),
+                                      // enabled: ((widget.qParam == '1' ||
+                                      //         widget.qParam == '2') &&
+                                      //     _existingDocument?.dibaca == '1'),
                                       readOnly: true,
                                       controller: _letterDateController,
                                       decoration: const InputDecoration(
@@ -2067,13 +2144,35 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                     ),
                                     Row(
                                       children: [
+                                        Builder(
+                                          builder: (_) {
+                                            final condQ1 = widget.qParam == '1';
+                                            final condQ2 = widget.qParam == '2';
+                                            final condD1 =
+                                                _existingDocument?.dibaca ==
+                                                    '1';
+                                            final enabledOriginal =
+                                                (condQ1 || condQ2) && condD1;
+                                            _logger.i({
+                                              'qParam': widget.qParam,
+                                              'qParam_is_1': condQ1,
+                                              'qParam_is_2': condQ2,
+                                              'existing_dibaca':
+                                                  _existingDocument?.dibaca,
+                                              'dibaca_is_1': condD1,
+                                              'enabled_original':
+                                                  enabledOriginal,
+                                            });
+                                            return const SizedBox.shrink();
+                                          },
+                                        ),
                                         Expanded(
                                           flex: 4,
                                           child: TextFormField(
-                                            enabled: ((widget.qParam == '1' ||
-                                                    widget.qParam == '2') &&
-                                                _existingDocument?.dibaca ==
-                                                    '1'),
+                                            // enabled: ((widget.qParam == '1' ||
+                                            //         widget.qParam == '2') &&
+                                            //     _existingDocument?.dibaca ==
+                                            //         '1'),
                                             controller:
                                                 _letterNumberPart1Controller,
                                             decoration: const InputDecoration(
@@ -2177,13 +2276,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                           FontWeight.bold),
                                                 ),
                                                 TextFormField(
-                                                  enabled:
-                                                      ((widget.qParam == '1' ||
-                                                              widget.qParam ==
-                                                                  '2') &&
-                                                          _existingDocument
-                                                                  ?.dibaca ==
-                                                              '1'),
+                                                  // enabled:
+                                                  //     ((widget.qParam == '1' ||
+                                                  //             widget.qParam ==
+                                                  //                 '2') &&
+                                                  //         _existingDocument
+                                                  //                 ?.dibaca ==
+                                                  //             '1'),
                                                   controller:
                                                       _perihalController,
                                                   decoration:
@@ -2212,13 +2311,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                           FontWeight.bold),
                                                 ),
                                                 TextFormField(
-                                                  enabled:
-                                                      ((widget.qParam == '1' ||
-                                                              widget.qParam ==
-                                                                  '2') &&
-                                                          _existingDocument
-                                                                  ?.dibaca ==
-                                                              '1'),
+                                                  // enabled:
+                                                  //     ((widget.qParam == '1' ||
+                                                  //             widget.qParam ==
+                                                  //                 '2') &&
+                                                  //         _existingDocument
+                                                  //                 ?.dibaca ==
+                                                  //             '1'),
                                                   controller:
                                                       _ringkasanController,
                                                   decoration:
@@ -2284,15 +2383,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                       'm_tujuan_disposisi',
                                                   controller:
                                                       _tujuanDisposisiController,
-                                                  disabled: ((widget.qParam ==
-                                                                  '1' ||
-                                                              widget.qParam ==
-                                                                  '2') &&
-                                                          _existingDocument
-                                                                  ?.dibaca ==
-                                                              '1')
-                                                      ? false
-                                                      : true,
+                                                  // disabled: ((widget.qParam ==
+                                                  //                 '1' ||
+                                                  //             widget.qParam ==
+                                                  //                 '2') &&
+                                                  //         _existingDocument
+                                                  //                 ?.dibaca ==
+                                                  //             '1')
+                                                  //     ? false
+                                                  //     : true,
                                                   selectedValues:
                                                       _selectedTujuanDisposisi,
                                                   itemTextBuilder: (it) =>
@@ -2337,15 +2436,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                       'm_tujuan_disposisi',
                                                   controller:
                                                       _disposisiPimpinanController,
-                                                  disabled: ((widget.qParam ==
-                                                                  '1' ||
-                                                              widget.qParam ==
-                                                                  '2') &&
-                                                          _existingDocument
-                                                                  ?.dibaca ==
-                                                              '1')
-                                                      ? false
-                                                      : true,
+                                                  // disabled: ((widget.qParam ==
+                                                  //                 '1' ||
+                                                  //             widget.qParam ==
+                                                  //                 '2') &&
+                                                  //         _existingDocument
+                                                  //                 ?.dibaca ==
+                                                  //             '1')
+                                                  //     ? false
+                                                  //     : true,
                                                   selectedValues:
                                                       _selectedDisposisiPimpinan,
                                                   itemTextBuilder: (it) =>
@@ -2406,12 +2505,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                   controller:
                                                       _InstruksiMemoController,
                                                   enabled:
-                                                      ((widget.qParam == '1' ||
+                                                      /*
+                                                          ((widget.qParam == '1' ||
                                                               widget.qParam ==
                                                                   '2') &&
                                                           _existingDocument
                                                                   ?.dibaca ==
                                                               '1'),
+                                                  */
+                                                      (true),
                                                   decoration:
                                                       const InputDecoration(
                                                     hintText: 'Input di sini',
@@ -2528,12 +2630,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                   flex: 5,
                                                                   child:
                                                                       TextFormField(
-                                                                    enabled: ((widget.qParam ==
+                                                                    /*
+                                                                        (widget.qParam ==
                                                                                 '1' ||
                                                                             widget.qParam ==
                                                                                 '2') &&
                                                                         _existingDocument?.dibaca ==
-                                                                            '1'),
+                                                                            '1'
+                                                                            */
+                                                                    enabled:
+                                                                        (true),
                                                                     controller:
                                                                         _meetingDateController,
                                                                     decoration:
@@ -2615,12 +2721,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                   flex: 5,
                                                                   child:
                                                                       TextFormField(
-                                                                    enabled: ((widget.qParam ==
+                                                                    /*(widget.qParam ==
                                                                                 '1' ||
                                                                             widget.qParam ==
                                                                                 '2') &&
                                                                         _existingDocument?.dibaca ==
-                                                                            '1'),
+                                                                            '1'
+                                                                            */
+                                                                    enabled:
+                                                                        (true),
                                                                     controller:
                                                                         _meetingTimeController,
                                                                     decoration:
@@ -2678,15 +2787,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                   'm_ruang_rapat',
                                                               controller:
                                                                   _ruangRapatController,
-                                                              disabled: ((widget.qParam ==
-                                                                              '1' ||
-                                                                          widget.qParam ==
-                                                                              '2') &&
-                                                                      _existingDocument
-                                                                              ?.dibaca ==
-                                                                          '1')
-                                                                  ? false
-                                                                  : true,
+                                                              // disabled: ((widget.qParam ==
+                                                              //                 '1' ||
+                                                              //             widget.qParam ==
+                                                              //                 '2') &&
+                                                              //         _existingDocument
+                                                              //                 ?.dibaca ==
+                                                              //             '1')
+                                                              //     ? false
+                                                              //     : true,
                                                               itemTextBuilder:
                                                                   (it) => it
                                                                       .deskripsi,
@@ -2731,15 +2840,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                   'm_tujuan_disposisi',
                                                               controller:
                                                                   _pesertaRapatController,
-                                                              disabled: ((widget.qParam ==
-                                                                              '1' ||
-                                                                          widget.qParam ==
-                                                                              '2') &&
-                                                                      _existingDocument
-                                                                              ?.dibaca ==
-                                                                          '1')
-                                                                  ? false
-                                                                  : true,
+                                                              // disabled: ((widget.qParam ==
+                                                              //                 '1' ||
+                                                              //             widget.qParam ==
+                                                              //                 '2') &&
+                                                              //         _existingDocument
+                                                              //                 ?.dibaca ==
+                                                              //             '1')
+                                                              //     ? false
+                                                              //     : true,
                                                               selectedValues:
                                                                   _selectedPesertaRapat,
                                                               itemTextBuilder:
@@ -2793,15 +2902,15 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                                   'm_tujuan_disposisi',
                                                               controller:
                                                                   _pimpinanRapatController,
-                                                              disabled: ((widget.qParam ==
-                                                                              '1' ||
-                                                                          widget.qParam ==
-                                                                              '2') &&
-                                                                      _existingDocument
-                                                                              ?.dibaca ==
-                                                                          '1')
-                                                                  ? false
-                                                                  : true,
+                                                              // disabled: ((widget.qParam ==
+                                                              //                 '1' ||
+                                                              //             widget.qParam ==
+                                                              //                 '2') &&
+                                                              //         _existingDocument
+                                                              //                 ?.dibaca ==
+                                                              //             '1')
+                                                              //     ? false
+                                                              //     : true,
                                                               itemTextBuilder:
                                                                   (it) => it
                                                                       .deskripsi,
@@ -2847,14 +2956,17 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                             TextFormField(
                                                               controller:
                                                                   _pokokBahasanController,
-                                                              enabled: ((widget
+                                                              /*
+                                                                  (widget
                                                                               .qParam ==
                                                                           '1' ||
                                                                       widget.qParam ==
                                                                           '2') &&
                                                                   _existingDocument
                                                                           ?.dibaca ==
-                                                                      '1'),
+                                                                      '1'
+                                                                      */
+                                                              enabled: (true),
                                                               decoration:
                                                                   const InputDecoration(
                                                                 hintText:
@@ -2929,13 +3041,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                           spacing: 8,
                                                           runSpacing: 8,
                                                           children: [
-                                                            if ((widget.qParam ==
+                                                            /*
+                                                            (widget.qParam ==
                                                                         '1' ||
                                                                     widget.qParam ==
                                                                         '2') &&
                                                                 _existingDocument
                                                                         ?.dibaca ==
-                                                                    '1') ...[
+                                                                    '1'
+                                                                    */
+                                                            if (true) ...[
                                                               TextButton.icon(
                                                                 onPressed:
                                                                     _pickDocuments,
@@ -3267,6 +3382,23 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                         }
                         _tindakanManajemenController.error.value = '';
                       }
+                      // Jika dibaca '7', jalankan otomatis tindakan kode 7
+                      else if (gDibaca == '7') {
+                        // if (_tindakanManajemenController.selectedKode.value !=
+                        //     '7') {
+                        //   _tindakanManajemenController.select('7');
+                        //   _handleTindakanManajemenChanged('7');
+                        // }
+                        // _tindakanManajemenController.error.value = '';
+                        _tindakanManajemenController.items.assignAll([
+                          DropdownItem(kode: '7', deskripsi: 'Rapat'),
+                        ]);
+                        if (_tindakanManajemenController.selectedKode.value !=
+                            '7') {
+                          _tindakanManajemenController.select('7');
+                        }
+                        _tindakanManajemenController.error.value = '';
+                      }
                       //Jika _kategoriController == 'Undangan' Maka dropdown hanya menampilkan data dengan kode 3 / Di terima
                       else if (_getSelectedKode(_kategoriController) ==
                           'Undangan') {
@@ -3567,6 +3699,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
                                                 _ruangRapatManajemenController,
                                             itemTextBuilder: (it) =>
                                                 it.deskripsi,
+                                            onChanged: (_) {
+                                              _ruangRapatManajemenTouched =
+                                                  true;
+                                              _ruangRapatManajemenSyncErrorShown =
+                                                  false;
+                                              setState(() {});
+                                            },
                                             validator: (value) {
                                               if (value == null ||
                                                   value.isEmpty) {
@@ -4114,6 +4253,27 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       return;
     }
 
+    if (_isEditMode) {
+      final dibaca = _existingDocument?.dibaca;
+      final role = authController.currentUser.value?.role;
+
+      final canEdit = dibaca == '1' || dibaca == '0' || dibaca == null;
+      final canEditAsCoordinator =
+          role == UserRole.coordinator && dibaca == '2';
+      final canEditAsGeneralHead =
+          role == UserRole.generalHead && dibaca == '8';
+
+      if (!canEdit && !canEditAsCoordinator && !canEditAsGeneralHead) {
+        Get.snackbar(
+          'Info',
+          'Formulir sudah di proses, tidak dapat diubah.',
+          backgroundColor: AppTheme.errorColor,
+          colorText: Colors.white,
+        );
+        return;
+      }
+    }
+
     if (!_validateUploadRequirement()) {
       return;
     }
@@ -4265,7 +4425,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         if (koreksi.isNotEmpty) {
           payloadManajemen['catatan_koreksi'] = koreksi;
         }
-      } else if (kodeManajemen == '7') {
+      } else if (kodeManajemen == '7' || kodeManajemen == '8') {
         final rawTgl = _meetingDateManajemenController.text.trim();
         DateTime? dt;
         if (rawTgl.isNotEmpty) {
@@ -4311,11 +4471,16 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         }
         payloadManajemen['delegasi_tu'] = 'roihan***087817989449';
         payloadManajemen['status_tu'] = '2';
+        if (user?.role != UserRole.coordinator) {
+          payloadManajemen['id_status_rapat'] = '2';
+          payloadManajemen['dibaca'] = '7';
+        }
       }
 
       //Action Pimpinan : Koordinator / Wapim
       final payloadPimpinan = <String, dynamic>{};
       final kodePimpinan = _getSelectedKode(_tindakanPimpinanController) ?? '';
+
       payloadPimpinan['dibaca'] = kodePimpinan;
 
       final disposisiPimpinan = _getSelectedDescriptions(
@@ -4564,6 +4729,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         final doc = results.first;
         _existingDocument = doc;
         _editingDocumentId = doc.id;
+        _syncRuangRapatManajemenFromExistingDocument(force: true);
 
         // Cek kondisi khusus untuk reload kategori (qParam=4 dan klasifikasi MEMO/KRDN)
         _logger.i(
