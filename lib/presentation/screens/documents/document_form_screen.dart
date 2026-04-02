@@ -5037,6 +5037,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         if (selectedStatusKode.isNotEmpty) {
           payloadManajemen['id_status_rapat'] = selectedStatusKode;
         } else if (user?.role != UserRole.coordinator) {
+          //Do todo
           payloadManajemen['id_status_rapat'] = '2';
           payloadManajemen['dibaca'] = '7';
         }

@@ -32,6 +32,8 @@ class StatusRapatController extends Controller
 
             $query = DB::table($table)->select(['id_status', 'nama_status']);
 
+            $query->whereIn('id_status', [1, 3]);
+
             if (Schema::hasColumn($table, 'status')) {
                 $query->where('status', 1);
             }
@@ -41,6 +43,7 @@ class StatusRapatController extends Controller
                 $query->where('nama_status', 'like', "%$s%");
             }
 
+            $query->orderBy('id_status');
             $rows = $query->get();
 
             return response()->json([
