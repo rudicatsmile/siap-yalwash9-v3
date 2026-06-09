@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../data/models/models.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/document_repository.dart';
+import '../../../data/repositories/surat_masuk_child_repository.dart';
 import '../../controllers/auth_controller.dart';
 import '../../../data/services/api_service.dart';
 import '../../controllers/dropdown_controller.dart';
@@ -280,6 +281,65 @@ String? resolvePokokBahasanRapatTextForEdit({
   return v;
 }
 
+String? normalizeJamRapatForChild(String raw) {
+  final v = raw.trim();
+  if (v.isEmpty) return null;
+  final parts =
+      v.split(':').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+  if (parts.length < 2 || parts.length > 3) return null;
+  final hh = parts[0].padLeft(2, '0');
+  final mm = parts[1].padLeft(2, '0');
+  final ss = (parts.length == 3 ? parts[2] : '00').padLeft(2, '0');
+  final h = int.tryParse(hh);
+  final m = int.tryParse(mm);
+  final s = int.tryParse(ss);
+  if (h == null || m == null || s == null) return null;
+  if (h < 0 || h > 23) return null;
+  if (m < 0 || m > 59) return null;
+  if (s < 0 || s > 59) return null;
+  return '$hh:$mm:$ss';
+}
+
+Map<String, dynamic>? buildSmChildPayload({
+  required int? idSm,
+  required String noAsal,
+  required DateTime? tglAgendaRapat,
+  required String jamRapatRaw,
+  required String bahasanRapat,
+  required String pimpinanRapat,
+  required String pesertaRapat,
+  required String idStatusRapatRaw,
+}) {
+  if (idSm == null) return null;
+  final no = noAsal.trim();
+  final bahasan = bahasanRapat.trim();
+  final pimpinan = pimpinanRapat.trim();
+  final peserta = pesertaRapat.trim();
+  final status = int.tryParse(idStatusRapatRaw.trim());
+  if (no.isEmpty ||
+      bahasan.isEmpty ||
+      pimpinan.isEmpty ||
+      peserta.isEmpty ||
+      tglAgendaRapat == null ||
+      status == null ||
+      status == 1) {
+    return null;
+  }
+  final jam = normalizeJamRapatForChild(jamRapatRaw);
+  if (jam == null) return null;
+
+  return <String, dynamic>{
+    'id_sm': idSm,
+    'no_asal': no,
+    'tgl_agenda_rapat': DateFormat('yyyy-MM-dd').format(tglAgendaRapat),
+    'jam_rapat': jam,
+    'bahasan_rapat': bahasan,
+    'pimpinan_rapat': pimpinan,
+    'peserta_rapat': peserta,
+    'id_status_rapat': status,
+  };
+}
+
 /// Document form screen for creating and editing documents
 class DocumentFormScreen extends StatefulWidget {
   final String? noSurat;
@@ -443,6 +503,7 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
 
   final ImagePicker _imagePicker = ImagePicker();
   final ApiService _api = ApiService();
+  final SuratMasukChildRepository _smChildRepo = SuratMasukChildRepository();
   final List<_UploadItem> _uploadItems = <_UploadItem>[];
   String? _uploadValidationError;
   final _logger = Logger();
@@ -4820,8 +4881,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
           role == UserRole.coordinator && dibaca == '2';
       final canEditAsGeneralHead =
           role == UserRole.generalHead && dibaca == '8';
+      final canEditAsGeneralHeadOnRapat =
+          role == UserRole.generalHead && dibaca == '7';
 
-      if (!canEdit && !canEditAsCoordinator && !canEditAsGeneralHead) {
+      if (!canEdit &&
+          !canEditAsCoordinator &&
+          !canEditAsGeneralHead &&
+          !canEditAsGeneralHeadOnRapat) {
         Get.snackbar(
           'Info',
           'Formulir sudah di proses, tidak dapat diubah.',
@@ -5117,8 +5183,186 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
         //Jika action KTU, maka hanya input form KTU yg di update
         if (widget.qParam == '4') {
           await repo.updateDocument(_editingDocumentId!, payloadManajemen);
+          final statusStr =
+              (payloadManajemen['id_status_rapat'] ?? '').toString().trim();
+          if (statusStr.isNotEmpty && statusStr != '1') {
+            DateTime? rapatDate;
+            final rawTgl = _meetingDateManajemenController.text.trim();
+            if (rawTgl.isNotEmpty) {
+              rapatDate = DateTime.tryParse(rawTgl);
+              rapatDate ??= () {
+                try {
+                  return DateFormat('dd/MM/yyyy').parseStrict(rawTgl);
+                } catch (_) {
+                  return null;
+                }
+              }();
+            }
+            final peserta = _getSelectedDescriptions(
+                    _pesertaRapatManajemenController,
+                    _selectedPesertaManajemenRapat)
+                .join('<br>');
+            final pimpinan =
+                _getSelectedDeskripsi(_pimpinanRapatManajemenController) ?? '';
+            final noAsal = (_existingDocument?.noAsal ??
+                    payload['no_asal']?.toString() ??
+                    '')
+                .trim();
+            final childPayload = buildSmChildPayload(
+              idSm: _editingDocumentId,
+              noAsal: noAsal,
+              tglAgendaRapat: rapatDate,
+              jamRapatRaw: _meetingTimeManajemenController.text,
+              bahasanRapat: _pokokBahasanManajemenController.text,
+              pimpinanRapat: pimpinan,
+              pesertaRapat: peserta,
+              idStatusRapatRaw: statusStr,
+            );
+            if (childPayload == null) {
+              _logger.w({
+                'tbl_sm_child_skip_invalid_payload': {
+                  'id_sm': _editingDocumentId,
+                  'id_status_rapat': statusStr,
+                  'tgl_agenda_rapat_raw': rawTgl,
+                  'jam_rapat_raw': _meetingTimeManajemenController.text,
+                }
+              });
+              Get.snackbar(
+                'Info',
+                'Data rapat (child) tidak valid, sehingga tidak disimpan.',
+                backgroundColor: AppTheme.errorColor,
+                colorText: Colors.white,
+              );
+            } else {
+              try {
+                await _smChildRepo.insertChild(childPayload);
+                Get.snackbar(
+                  'Berhasil',
+                  'Detail rapat berhasil disimpan.',
+                  backgroundColor: AppTheme.statusApproved,
+                  colorText: Colors.white,
+                );
+              } catch (e) {
+                _logger.e('Insert tbl_sm_child gagal: $e');
+                Get.snackbar(
+                  'Error',
+                  'Gagal menyimpan detail rapat: $e',
+                  backgroundColor: AppTheme.errorColor,
+                  colorText: Colors.white,
+                );
+              }
+            }
+          }
         } else if (widget.qParam == '7') {
           await repo.updateDocument(_editingDocumentId!, payloadPimpinan);
+          final statusStr = _statusRapatManajemenController.selectedKode.value
+                  .trim()
+                  .isNotEmpty
+              ? _statusRapatManajemenController.selectedKode.value.trim()
+              : (_existingDocument?.idStatusRapat ?? '').trim();
+
+          if (statusStr.isNotEmpty && statusStr != '1') {
+            DateTime? rapatDate;
+            final rawTgl =
+                _meetingDateManajemenController.text.trim().isNotEmpty
+                    ? _meetingDateManajemenController.text.trim()
+                    : _meetingDateController.text.trim();
+            if (rawTgl.isNotEmpty) {
+              rapatDate = DateTime.tryParse(rawTgl);
+              rapatDate ??= () {
+                try {
+                  return DateFormat('dd/MM/yyyy').parseStrict(rawTgl);
+                } catch (_) {
+                  return null;
+                }
+              }();
+            }
+
+            final jamRaw =
+                _meetingTimeManajemenController.text.trim().isNotEmpty
+                    ? _meetingTimeManajemenController.text
+                    : _meetingTimeController.text;
+            final bahasan =
+                _pokokBahasanManajemenController.text.trim().isNotEmpty
+                    ? _pokokBahasanManajemenController.text
+                    : _pokokBahasanController.text;
+            final pimpinan =
+                (_getSelectedDeskripsi(_pimpinanRapatManajemenController) ?? '')
+                        .trim()
+                        .isNotEmpty
+                    ? (_getSelectedDeskripsi(
+                            _pimpinanRapatManajemenController) ??
+                        '')
+                    : (_getSelectedDeskripsi(_pimpinanRapatController) ?? '');
+            final pesertaManajemen = _getSelectedDescriptions(
+                    _pesertaRapatManajemenController,
+                    _selectedPesertaManajemenRapat)
+                .join('<br>');
+            final peserta = pesertaManajemen.trim().isNotEmpty
+                ? pesertaManajemen
+                : _getSelectedDescriptions(
+                        _pesertaRapatController, _selectedPesertaRapat)
+                    .join('<br>');
+            final noAsal = (_existingDocument?.noAsal ??
+                    payload['no_asal']?.toString() ??
+                    '')
+                .trim();
+
+            _logger.i({
+              'tbl_sm_child_insert_attempt_qp7': {
+                'id_sm': _editingDocumentId,
+                'id_status_rapat': statusStr,
+                'tgl_agenda_rapat_raw': rawTgl,
+                'jam_rapat_raw': jamRaw,
+              }
+            });
+
+            final childPayload = buildSmChildPayload(
+              idSm: _editingDocumentId,
+              noAsal: noAsal,
+              tglAgendaRapat: rapatDate,
+              jamRapatRaw: jamRaw,
+              bahasanRapat: bahasan,
+              pimpinanRapat: pimpinan,
+              pesertaRapat: peserta,
+              idStatusRapatRaw: statusStr,
+            );
+
+            if (childPayload == null) {
+              _logger.w({
+                'tbl_sm_child_skip_invalid_payload_qp7': {
+                  'id_sm': _editingDocumentId,
+                  'id_status_rapat': statusStr,
+                  'tgl_agenda_rapat_raw': rawTgl,
+                  'jam_rapat_raw': jamRaw,
+                }
+              });
+              Get.snackbar(
+                'Info',
+                'Perubahan tersimpan, namun detail rapat (child) tidak valid sehingga tidak disimpan.',
+                backgroundColor: AppTheme.errorColor,
+                colorText: Colors.white,
+              );
+            } else {
+              try {
+                await _smChildRepo.insertChild(childPayload);
+                Get.snackbar(
+                  'Berhasil',
+                  'Detail rapat berhasil disimpan.',
+                  backgroundColor: AppTheme.statusApproved,
+                  colorText: Colors.white,
+                );
+              } catch (e) {
+                _logger.e('Insert tbl_sm_child gagal (qParam=7): $e');
+                Get.snackbar(
+                  'Error',
+                  'Perubahan tersimpan, namun gagal menyimpan detail rapat: $e',
+                  backgroundColor: AppTheme.errorColor,
+                  colorText: Colors.white,
+                );
+              }
+            }
+          }
         } else {
           await repo.updateDocument(_editingDocumentId!, payload);
         }

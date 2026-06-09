@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\UsersController;
 use App\Http\Controllers\Api\SuratMasukController;
 use App\Http\Controllers\Api\UploadsController;
 use App\Http\Controllers\Api\StatusRapatController;
+use App\Http\Controllers\Api\SuratMasukChildController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -68,6 +69,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Surat Masuk (tbl_sm)
     Route::post('/surat-masuk', [SuratMasukController::class, 'store']);
+    // Surat Masuk Child (tbl_sm_child)
+    Route::post('/surat-masuk/child', [SuratMasukChildController::class, 'store']);
     // Upload Lampiran (tbl_lampiran)
     Route::post('/lampiran/upload', [SuratMasukController::class, 'uploadLampiran']);
     // Delete Lampiran

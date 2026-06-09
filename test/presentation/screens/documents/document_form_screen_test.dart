@@ -297,6 +297,61 @@ void main() {
     expect(not7, isNull);
   });
 
+  test('normalizeJamRapatForChild normalizes HH:mm to HH:mm:ss', () {
+    expect(normalizeJamRapatForChild('9:5'), '09:05:00');
+    expect(normalizeJamRapatForChild('09:05:07'), '09:05:07');
+    expect(normalizeJamRapatForChild(''), isNull);
+    expect(normalizeJamRapatForChild('25:00'), isNull);
+    expect(normalizeJamRapatForChild('10'), isNull);
+  });
+
+  test('buildSmChildPayload returns null for status=1 and invalid time', () {
+    final dt = DateTime(2026, 4, 2);
+    final badStatus = buildSmChildPayload(
+      idSm: 1,
+      noAsal: 'A',
+      tglAgendaRapat: dt,
+      jamRapatRaw: '10:00:00',
+      bahasanRapat: 'B',
+      pimpinanRapat: 'C',
+      pesertaRapat: 'D',
+      idStatusRapatRaw: '1',
+    );
+    expect(badStatus, isNull);
+
+    final badTime = buildSmChildPayload(
+      idSm: 1,
+      noAsal: 'A',
+      tglAgendaRapat: dt,
+      jamRapatRaw: 'jam bebas',
+      bahasanRapat: 'B',
+      pimpinanRapat: 'C',
+      pesertaRapat: 'D',
+      idStatusRapatRaw: '3',
+    );
+    expect(badTime, isNull);
+  });
+
+  test('buildSmChildPayload builds valid payload', () {
+    final dt = DateTime(2026, 4, 2);
+    final payload = buildSmChildPayload(
+      idSm: 99,
+      noAsal: '  NO/001  ',
+      tglAgendaRapat: dt,
+      jamRapatRaw: '10:30',
+      bahasanRapat: 'Bahasan',
+      pimpinanRapat: 'Pimpinan',
+      pesertaRapat: 'Peserta 1<br>Peserta 2',
+      idStatusRapatRaw: '3',
+    );
+    expect(payload, isNotNull);
+    expect(payload!['id_sm'], 99);
+    expect(payload['no_asal'], 'NO/001');
+    expect(payload['tgl_agenda_rapat'], '2026-04-02');
+    expect(payload['jam_rapat'], '10:30:00');
+    expect(payload['id_status_rapat'], 3);
+  });
+
   testWidgets(
       'DocumentFormScreen should have _teruskanPimpinanController initialized',
       (WidgetTester tester) async {

@@ -19,6 +19,7 @@ class ApiConstants {
   static const String documentsLastNoSurat = '/api/documents/last-no-surat';
   static const String uploads = '/api/uploads/images';
   static const String suratMasuk = '/api/surat-masuk';
+  static const String suratMasukChild = '/api/surat-masuk/child';
   static const String lampiranUpload = '/api/lampiran/upload';
   static String lampiranDelete(int id) => '/api/lampiran/$id';
 
